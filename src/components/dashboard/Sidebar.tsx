@@ -3,14 +3,15 @@ import { LayoutDashboard, CreditCard, Download, Activity, Settings, HelpCircle, 
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
-const links = [
+type NavLink = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
+const links: NavLink[] = [
   { to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
   { to: "/dashboard/billing", label: "Billing & Plans", icon: CreditCard },
   { to: "/dashboard/download", label: "Download Bot", icon: Download },
   { to: "/dashboard/sessions", label: "My Sessions", icon: Activity },
   { to: "/dashboard/settings", label: "Settings", icon: Settings },
   { to: "/dashboard/support", label: "Support", icon: HelpCircle },
-] as const;
+];
 
 export function DashboardSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { signOut, profile } = useAuth();
