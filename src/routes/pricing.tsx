@@ -47,7 +47,8 @@ function PricingPage() {
     },
   });
 
-  function handleBuy(plan: typeof plansQ.data extends Array<infer T> ? T : never) {
+  type PlanRow = NonNullable<typeof plansQ.data>[number];
+  function handleBuy(plan: PlanRow) {
     if (plan.is_free || Number(plan.price) <= 0) {
       navigate({ to: "/register" });
       return;
