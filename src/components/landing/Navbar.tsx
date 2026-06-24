@@ -1,17 +1,42 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { Zap, Menu, X } from "lucide-react";
+import { Zap, Menu, X, LayoutDashboard, Settings, LogOut, Shield, User as UserIcon } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
+  const { user, profile, isAdmin, signOut } = useAuth();
+  const navigate = useNavigate();
+
   const links = [
     { to: "/", label: "Home" },
     { to: "/#features", label: "Features" },
     { to: "/#networks", label: "Networks" },
     { to: "/pricing", label: "Pricing" },
-    { to: "/dashboard", label: "Dashboard" },
   ];
+
+  const initials = (profile?.full_name || user?.email || "?")
+    .split(" ")
+    .map((s) => s[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate({ to: "/", replace: true });
+  };
+
   return (
     <motion.header
       initial={{ y: -30, opacity: 0 }}
@@ -37,15 +62,57 @@ export function Navbar() {
           </nav>
 
           <div className="hidden md:flex items-center gap-2">
-            <Link to="/login" className="px-4 py-2 text-sm text-white/80 hover:text-white transition">
-              Log in
-            </Link>
-            <Link
-              to="/register"
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[oklch(0.7_0.22_35)] to-[oklch(0.6_0.24_20)] text-white text-sm font-semibold shadow-[0_0_24px_oklch(0.7_0.22_35/40%)] hover:shadow-[0_0_32px_oklch(0.7_0.22_35/60%)] transition"
-            >
-              Get Started
-            </Link>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center gap-2 rounded-xl pl-2 pr-3 py-1.5 hover:bg-white/5 transition cursor-pointer outline-none">
+                  <Avatar className="w-8 h-8 ring-1 ring-white/10">
+                    <AvatarImage src={profile?.avatar_url ?? undefined} />
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white text-xs font-semibold">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm text-white/90 max-w-[140px] truncate">
+                    {profile?.full_name ?? user.email}
+                  </span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="text-xs text-muted-foreground font-normal truncate">
+                    {user.email}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate({ to: "/dashboard" })}>
+                    <LayoutDashboard className="w-4 h-4" /> Dashboard
+                  </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>
+                      <Shield className="w-4 h-4" /> Admin Panel
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => navigate({ to: "/dashboard" })}>
+                    <UserIcon className="w-4 h-4" /> Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate({ to: "/dashboard" })}>
+                    <Settings className="w-4 h-4" /> Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
+                    <LogOut className="w-4 h-4" /> Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Link to="/login" className="px-4 py-2 text-sm text-white/80 hover:text-white transition">
+                  Log in
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-[oklch(0.7_0.22_35)] to-[oklch(0.6_0.24_20)] text-white text-sm font-semibold shadow-[0_0_24px_oklch(0.7_0.22_35/40%)] hover:shadow-[0_0_32px_oklch(0.7_0.22_35/60%)] transition"
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
 
           <button className="md:hidden text-white" onClick={() => setOpen(!open)} aria-label="Menu">
@@ -60,10 +127,22 @@ export function Navbar() {
                 {l.label}
               </a>
             ))}
-            <Link to="/login" className="px-3 py-2 text-white/80">Log in</Link>
-            <Link to="/register" className="px-3 py-2 rounded-xl bg-gradient-to-r from-[oklch(0.7_0.22_35)] to-[oklch(0.6_0.24_20)] text-white font-semibold text-center">
-              Get Started
-            </Link>
+            {user ? (
+              <>
+                <Link to="/dashboard" className="px-3 py-2 text-white/80">Dashboard</Link>
+                {isAdmin && <Link to="/admin" className="px-3 py-2 text-white/80">Admin Panel</Link>}
+                <button onClick={handleSignOut} className="px-3 py-2 text-left text-destructive">
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="px-3 py-2 text-white/80">Log in</Link>
+                <Link to="/register" className="px-3 py-2 rounded-xl bg-gradient-to-r from-[oklch(0.7_0.22_35)] to-[oklch(0.6_0.24_20)] text-white font-semibold text-center">
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
         )}
       </div>
