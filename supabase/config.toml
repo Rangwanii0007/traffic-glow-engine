@@ -1,1 +1,4 @@
 project_id = "rscbecibvalwzhgixbrk"
+
+[functions.nowpayments-webhook]
+verify_jwt = false
