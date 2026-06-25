@@ -2,8 +2,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { createHmac } from "node:crypto";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+// Write to the external Supabase project the website is bound to.
+// Falls back to local Lovable Cloud env vars if external ones are not set.
+const SUPABASE_URL =
+  Deno.env.get("EXTERNAL_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL")!;
+const SERVICE_KEY =
+  Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ??
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const IPN_SECRET = Deno.env.get("NOWPAYMENTS_IPN_SECRET") ?? "";
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
