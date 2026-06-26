@@ -70,8 +70,8 @@ function DownloadPage() {
                   <span className="text-xs px-2 py-0.5 rounded-md bg-white/5 capitalize">{v.platform}</span>
                   {v.is_latest && <span className="text-xs px-2 py-0.5 rounded-md bg-success/15 text-success flex items-center gap-1"><CheckCircle2 className="w-3 h-3" />Latest</span>}
                 </div>
-                {v.changelog && <p className="text-sm text-muted-foreground">{v.changelog}</p>}
-                <p className="text-xs text-muted-foreground mt-1">{v.file_size_mb ? `${v.file_size_mb} MB · ` : ""}{v.released_at ? new Date(v.released_at).toLocaleDateString() : ""}</p>
+                {v.release_notes && <p className="text-sm text-muted-foreground">{v.release_notes}</p>}
+                <p className="text-xs text-muted-foreground mt-1">{v.file_size ? `${v.file_size} · ` : ""}{v.created_at ? new Date(v.created_at).toLocaleDateString() : ""}</p>
               </div>
               <Button
                 disabled={!isPaid || !v.download_url}
