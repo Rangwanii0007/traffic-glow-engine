@@ -26,7 +26,7 @@ function SettingsPage() {
   const saveProfile = async () => {
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase.from("users").update({ full_name: name.trim() || null }).eq("id", user.id);
+    const { error } = await supabase.from("users").update({ full_name: name.trim() || null } as never).eq("id", user.id);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     await refreshProfile();
