@@ -33,8 +33,8 @@ function DownloadPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("bot_versions")
-        .select("id, version, platform, download_url, changelog, is_latest, file_size_mb, released_at")
-        .order("released_at", { ascending: false });
+        .select("id, version, platform, download_url, release_notes, is_latest, file_size, created_at")
+        .order("created_at", { ascending: false });
       return data ?? [];
     },
   });
