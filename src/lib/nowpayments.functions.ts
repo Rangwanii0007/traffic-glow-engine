@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getRequest } from "@tanstack/react-start/server";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
 const NP_API = "https://api.nowpayments.io/v1";
 
@@ -22,16 +24,52 @@ type InvoiceResult = {
   invoice_url?: string;
 };
 
+function getExternalEnv() {
+  const url = process.env.EXTERNAL_SUPABASE_URL || process.env.SUPABASE_URL;
+  const serviceKey =
+    process.env.EXTERNAL_SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) {
+    throw new Error("External Supabase credentials not configured");
+  }
+  return { url, serviceKey };
+}
+
+function getAdminClient() {
+  const { url, serviceKey } = getExternalEnv();
+  return createClient<Database>(url, serviceKey, {
+    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+  });
+}
+
+async function authenticateRequest(): Promise<{ userId: string; admin: ReturnType<typeof getAdminClient> }> {
+  const request = getRequest();
+  const authHeader = request?.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    throw new Error("Unauthorized: missing bearer token");
+  }
+  const token = authHeader.slice("Bearer ".length).trim();
+  if (!token) throw new Error("Unauthorized: empty token");
+
+  const admin = getAdminClient();
+  // Verify token against the EXTERNAL Supabase project using the service role
+  const { data, error } = await admin.auth.getUser(token);
+  if (error || !data?.user) {
+    console.error("[nowpayments] token verification failed:", error?.message);
+    throw new Error("Unauthorized: invalid session");
+  }
+  return { userId: data.user.id, admin };
+}
+
 export const createCryptoInvoice = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d: InvoiceInput) => d)
-  .handler(async ({ data, context }): Promise<InvoiceResult> => {
+  .handler(async ({ data }): Promise<InvoiceResult> => {
     const apiKey = process.env.NOWPAYMENTS_API_KEY;
     if (!apiKey) throw new Error("NOWPAYMENTS_API_KEY not configured");
 
-    const { supabase, userId } = context;
+    const { userId, admin } = await authenticateRequest();
 
-    const { data: plan, error: planErr } = await supabase
+    const { data: plan, error: planErr } = await admin
       .from("plans")
       .select("id, name, slug, price, duration_days, is_active, is_free")
       .eq("id", data.planId)
@@ -41,7 +79,10 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
     if (!plan.is_active) throw new Error("Plan not available");
 
     const orderId = `sub_${userId}_${plan.slug}_${Date.now()}`;
-    const supabaseUrl = process.env.SUPABASE_URL!;
+    const { url: externalUrl } = getExternalEnv();
+    // IPN must hit our edge function. Webhook is hosted on Lovable Cloud infra
+    // but writes to external project via EXTERNAL_SUPABASE_* secrets.
+    const ipnBase = process.env.SUPABASE_URL || externalUrl;
 
     const body = {
       price_amount: Number(plan.price),
@@ -49,7 +90,7 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
       pay_currency: data.payCurrency,
       order_id: orderId,
       order_description: `AD4YOU ${plan.name} Plan - ${plan.duration_days} Days`,
-      ipn_callback_url: `${supabaseUrl}/functions/v1/nowpayments-webhook`,
+      ipn_callback_url: `${ipnBase}/functions/v1/nowpayments-webhook`,
       success_url: data.successUrl,
       cancel_url: data.cancelUrl,
     };
@@ -78,7 +119,7 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
       invoice_url?: string;
     };
 
-    await supabase.from("payments").insert({
+    await admin.from("payments").insert({
       user_id: userId,
       plan_id: plan.id,
       amount: Number(plan.price),
@@ -103,19 +144,20 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
   });
 
 export const getPaymentStatus = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d: { paymentId: string }) => d)
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
     const apiKey = process.env.NOWPAYMENTS_API_KEY;
     if (!apiKey) throw new Error("NOWPAYMENTS_API_KEY not configured");
 
-    // Ensure caller owns this payment
-    const { data: own } = await context.supabase
+    const { userId, admin } = await authenticateRequest();
+
+    // Ensure caller owns this payment in external DB
+    const { data: own } = await admin
       .from("payments")
-      .select("id")
+      .select("id, user_id")
       .eq("nowpayments_id", data.paymentId)
       .maybeSingle();
-    if (!own) throw new Error("Payment not found");
+    if (!own || own.user_id !== userId) throw new Error("Payment not found");
 
     const res = await fetch(`${NP_API}/payment/${data.paymentId}`, {
       headers: { "x-api-key": apiKey },
