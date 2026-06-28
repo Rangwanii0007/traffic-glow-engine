@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
 import { Send, X, Sparkles } from "lucide-react";
 import { chatWithAria } from "@/lib/aria.functions";
-import { Robot3D } from "./Robot3D";
+
+const Robot3D = lazy(() => import("./Robot3D").then((m) => ({ default: m.Robot3D })));
 
 type Msg = { role: "user" | "assistant"; content: string; ts: number };
 
