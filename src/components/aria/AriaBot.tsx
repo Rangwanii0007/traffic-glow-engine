@@ -318,7 +318,9 @@ export function AriaBot() {
         className="pointer-events-auto"
         style={{ width: 200, height: 220 }}
       >
-        <Robot3D state={robotState} onClick={() => setOpen((v) => !v)} />
+        <Suspense fallback={null}>
+          <Robot3D state={robotState} onClick={() => setOpen((v) => !v)} />
+        </Suspense>
         {!open && messages.length <= 1 && (
           <motion.span
             animate={{ scale: [1, 1.2, 1] }}
