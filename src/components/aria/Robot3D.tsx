@@ -6,7 +6,9 @@ import robotAsset from "@/assets/RobotExpressive.glb.asset.json";
 
 const MODEL_URL = robotAsset.url;
 
-useGLTF.preload(MODEL_URL);
+if (typeof window !== "undefined") {
+  useGLTF.preload(MODEL_URL);
+}
 
 type RobotState = "entering" | "idle" | "waving" | "talking";
 
