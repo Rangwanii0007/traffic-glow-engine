@@ -51,16 +51,25 @@ function SettingsAdmin() {
         ) : q.data?.map((r) => {
           const current = draft[r.id] ?? r.value ?? "";
           const dirty = draft[r.id] !== undefined && draft[r.id] !== (r.value ?? "");
+          const isBool = r.type === "boolean";
+          const boolOn = (r.value ?? "") === "true" || (r.value ?? "") === "1";
           return (
             <div key={r.id} className="space-y-2">
-              <div>
-                <p className="text-sm font-medium">{r.label ?? r.key}</p>
-                <p className="text-[10px] text-muted-foreground font-mono">{r.key}{r.description ? ` · ${r.description}` : ""}</p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium">{r.label ?? r.key}</p>
+                  <p className="text-[10px] text-muted-foreground font-mono">{r.key}{r.description ? ` · ${r.description}` : ""}</p>
+                </div>
+                {isBool && (
+                  <Switch checked={boolOn} onCheckedChange={(v) => save(r, v ? "true" : "false")} />
+                )}
               </div>
-              <div className="flex gap-2">
-                <Input value={current} onChange={(e) => setDraft((d) => ({ ...d, [r.id]: e.target.value }))} />
-                <Button disabled={!dirty} onClick={() => save(r)} className="bg-gradient-to-r from-primary to-accent text-white"><Save className="w-4 h-4 mr-1" />Save</Button>
-              </div>
+              {!isBool && (
+                <div className="flex gap-2">
+                  <Input value={current} onChange={(e) => setDraft((d) => ({ ...d, [r.id]: e.target.value }))} />
+                  <Button disabled={!dirty} onClick={() => save(r)} className="bg-gradient-to-r from-primary to-accent text-white"><Save className="w-4 h-4 mr-1" />Save</Button>
+                </div>
+              )}
             </div>
           );
         })}
