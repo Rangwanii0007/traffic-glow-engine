@@ -1,13 +1,16 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Send, X, Sparkles } from "lucide-react";
 import { chatWithAria } from "@/lib/aria.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 import type { RobotState } from "./Robot3D";
 
 const Robot3D = lazy(() => import("./Robot3D").then((m) => ({ default: m.Robot3D })));
+
 
 type Msg = { role: "user" | "assistant"; content: string; ts: number };
 
@@ -31,6 +34,15 @@ const GREETING: Msg = {
 
 export function AriaBot() {
   const [mounted, setMounted] = useState(false);
+  const { data: enabled, isLoading: enabledLoading } = useQuery({
+    queryKey: ["setting", "aria_enabled"],
+    queryFn: async () => {
+      const { data } = await supabase.from("settings").select("value").eq("key", "aria_enabled").maybeSingle();
+      const v = (data as { value: string | null } | null)?.value;
+      return v === null || v === undefined ? true : v === "true" || v === "1";
+    },
+    staleTime: 60_000,
+  });
   const [open, setOpen] = useState(false);
   const [bubble, setBubble] = useState<string | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -127,6 +139,8 @@ export function AriaBot() {
   };
 
   if (!mounted) return null;
+  if (enabledLoading) return null;
+  if (enabled === false) return null;
 
   return (
     <div

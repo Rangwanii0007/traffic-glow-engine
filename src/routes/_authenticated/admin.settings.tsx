@@ -6,7 +6,9 @@ import { Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+
 
 export const Route = createFileRoute("/_authenticated/admin/settings")({
   head: () => ({ meta: [{ title: "Admin · Settings — AD4YOU" }] }),
@@ -27,13 +29,15 @@ function SettingsAdmin() {
     },
   });
 
-  const save = async (r: Row) => {
-    const v = draft[r.id]; if (v === undefined) return;
+  const save = async (r: Row, override?: string) => {
+    const v = override ?? draft[r.id];
+    if (v === undefined) return;
     const { error } = await supabase.from("settings").update({ value: v } as never).eq("id", r.id);
     if (error) return toast.error(error.message);
     setDraft((d) => { const n = { ...d }; delete n[r.id]; return n; });
     toast.success("Saved"); qc.invalidateQueries({ queryKey: ["admin-settings"] });
   };
+
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -47,16 +51,25 @@ function SettingsAdmin() {
         ) : q.data?.map((r) => {
           const current = draft[r.id] ?? r.value ?? "";
           const dirty = draft[r.id] !== undefined && draft[r.id] !== (r.value ?? "");
+          const isBool = r.type === "boolean";
+          const boolOn = (r.value ?? "") === "true" || (r.value ?? "") === "1";
           return (
             <div key={r.id} className="space-y-2">
-              <div>
-                <p className="text-sm font-medium">{r.label ?? r.key}</p>
-                <p className="text-[10px] text-muted-foreground font-mono">{r.key}{r.description ? ` · ${r.description}` : ""}</p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium">{r.label ?? r.key}</p>
+                  <p className="text-[10px] text-muted-foreground font-mono">{r.key}{r.description ? ` · ${r.description}` : ""}</p>
+                </div>
+                {isBool && (
+                  <Switch checked={boolOn} onCheckedChange={(v) => save(r, v ? "true" : "false")} />
+                )}
               </div>
-              <div className="flex gap-2">
-                <Input value={current} onChange={(e) => setDraft((d) => ({ ...d, [r.id]: e.target.value }))} />
-                <Button disabled={!dirty} onClick={() => save(r)} className="bg-gradient-to-r from-primary to-accent text-white"><Save className="w-4 h-4 mr-1" />Save</Button>
-              </div>
+              {!isBool && (
+                <div className="flex gap-2">
+                  <Input value={current} onChange={(e) => setDraft((d) => ({ ...d, [r.id]: e.target.value }))} />
+                  <Button disabled={!dirty} onClick={() => save(r)} className="bg-gradient-to-r from-primary to-accent text-white"><Save className="w-4 h-4 mr-1" />Save</Button>
+                </div>
+              )}
             </div>
           );
         })}
