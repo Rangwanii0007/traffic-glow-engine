@@ -94,8 +94,12 @@ export function AriaBot() {
   }, [open]);
 
   useEffect(() => {
-    setRobotState(typing ? "talking" : "idle");
-  }, [typing]);
+    if (typing) setRobotState("thinking");
+    else if (open && input.length > 0) setRobotState("listening");
+    else if (open) setRobotState("happy");
+    else setRobotState("idle");
+  }, [typing, open, input]);
+
 
   const send = async (text: string) => {
     const trimmed = text.trim().slice(0, 500);
