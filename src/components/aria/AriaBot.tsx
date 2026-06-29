@@ -139,6 +139,8 @@ export function AriaBot() {
   };
 
   if (!mounted) return null;
+  if (enabledLoading) return null;
+  if (enabled === false) return null;
 
   return (
     <div
