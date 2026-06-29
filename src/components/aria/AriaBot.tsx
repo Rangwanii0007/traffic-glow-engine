@@ -43,7 +43,7 @@ export function AriaBot() {
     },
     staleTime: 60_000,
   });
-
+  const [open, setOpen] = useState(false);
   const [bubble, setBubble] = useState<string | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
