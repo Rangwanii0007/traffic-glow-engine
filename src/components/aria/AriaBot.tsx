@@ -5,6 +5,8 @@ import { Link } from "@tanstack/react-router";
 import { Send, X, Sparkles } from "lucide-react";
 import { chatWithAria } from "@/lib/aria.functions";
 
+import type { RobotState } from "./Robot3D";
+
 const Robot3D = lazy(() => import("./Robot3D").then((m) => ({ default: m.Robot3D })));
 
 type Msg = { role: "user" | "assistant"; content: string; ts: number };
@@ -15,18 +17,17 @@ const MAX_MSGS = 50;
 
 const QUICK_ACTIONS = [
   { emoji: "🚀", label: "What can AD4YOU do?", q: "What can AD4YOU do for me?" },
-  { emoji: "💰", label: "How much can I earn?", q: "How much money can I realistically earn?" },
-  { emoji: "🛡️", label: "Is it safe?", q: "Is the bot safe and truly undetectable?" },
+  { emoji: "💰", label: "How does it work?", q: "How does the platform optimize my traffic and earnings?" },
+  { emoji: "🛡️", label: "Is it safe?", q: "Is the platform safe and undetectable?" },
   { emoji: "💎", label: "Pricing", q: "What are your pricing plans?" },
 ];
 
 const GREETING: Msg = {
   role: "assistant",
-  content: "👋 Hey! How are you today? I'm Aria — your AD4YOU AI assistant. Ask me anything about features, earnings, or pricing ✨",
+  content: "👋 Hey! I'm Aria — your AD4YOU AI Traffic Intelligence Specialist. Ask me anything about features, plans, or how to maximize your earnings ✨",
   ts: Date.now(),
 };
 
-type RobotState = "entering" | "idle" | "waving" | "talking";
 
 export function AriaBot() {
   const [mounted, setMounted] = useState(false);
@@ -93,8 +94,12 @@ export function AriaBot() {
   }, [open]);
 
   useEffect(() => {
-    setRobotState(typing ? "talking" : "idle");
-  }, [typing]);
+    if (typing) setRobotState("thinking");
+    else if (open && input.length > 0) setRobotState("listening");
+    else if (open) setRobotState("happy");
+    else setRobotState("idle");
+  }, [typing, open, input]);
+
 
   const send = async (text: string) => {
     const trimmed = text.trim().slice(0, 500);
@@ -315,12 +320,12 @@ export function AriaBot() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4, delay: 0.2 }}
         whileHover={{ scale: 1.04 }}
-        className="pointer-events-auto"
-        style={{ width: 200, height: 220 }}
+        className="pointer-events-auto relative w-[180px] h-[220px] sm:w-[220px] sm:h-[260px]"
       >
         <Suspense fallback={null}>
           <Robot3D state={robotState} onClick={() => setOpen((v) => !v)} />
         </Suspense>
+
         {!open && messages.length <= 1 && (
           <motion.span
             animate={{ scale: [1, 1.2, 1] }}
