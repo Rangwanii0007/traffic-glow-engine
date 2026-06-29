@@ -320,12 +320,12 @@ export function AriaBot() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4, delay: 0.2 }}
         whileHover={{ scale: 1.04 }}
-        className="pointer-events-auto"
-        style={{ width: 200, height: 220 }}
+        className="pointer-events-auto relative w-[180px] h-[220px] sm:w-[220px] sm:h-[260px]"
       >
         <Suspense fallback={null}>
           <Robot3D state={robotState} onClick={() => setOpen((v) => !v)} />
         </Suspense>
+
         {!open && messages.length <= 1 && (
           <motion.span
             animate={{ scale: [1, 1.2, 1] }}
