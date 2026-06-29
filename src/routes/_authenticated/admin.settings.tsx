@@ -29,13 +29,15 @@ function SettingsAdmin() {
     },
   });
 
-  const save = async (r: Row) => {
-    const v = draft[r.id]; if (v === undefined) return;
+  const save = async (r: Row, override?: string) => {
+    const v = override ?? draft[r.id];
+    if (v === undefined) return;
     const { error } = await supabase.from("settings").update({ value: v } as never).eq("id", r.id);
     if (error) return toast.error(error.message);
     setDraft((d) => { const n = { ...d }; delete n[r.id]; return n; });
     toast.success("Saved"); qc.invalidateQueries({ queryKey: ["admin-settings"] });
   };
+
 
   return (
     <div className="space-y-6 max-w-3xl">
