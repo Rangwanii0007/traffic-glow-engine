@@ -34,7 +34,16 @@ const GREETING: Msg = {
 
 export function AriaBot() {
   const [mounted, setMounted] = useState(false);
-  const [open, setOpen] = useState(false);
+  const { data: enabled, isLoading: enabledLoading } = useQuery({
+    queryKey: ["setting", "aria_enabled"],
+    queryFn: async () => {
+      const { data } = await supabase.from("settings").select("value").eq("key", "aria_enabled").maybeSingle();
+      const v = (data as { value: string | null } | null)?.value;
+      return v === null || v === undefined ? true : v === "true" || v === "1";
+    },
+    staleTime: 60_000,
+  });
+
   const [bubble, setBubble] = useState<string | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
