@@ -5,6 +5,8 @@ import { Link } from "@tanstack/react-router";
 import { Send, X, Sparkles } from "lucide-react";
 import { chatWithAria } from "@/lib/aria.functions";
 
+import type { RobotState } from "./Robot3D";
+
 const Robot3D = lazy(() => import("./Robot3D").then((m) => ({ default: m.Robot3D })));
 
 type Msg = { role: "user" | "assistant"; content: string; ts: number };
@@ -15,18 +17,17 @@ const MAX_MSGS = 50;
 
 const QUICK_ACTIONS = [
   { emoji: "🚀", label: "What can AD4YOU do?", q: "What can AD4YOU do for me?" },
-  { emoji: "💰", label: "How much can I earn?", q: "How much money can I realistically earn?" },
-  { emoji: "🛡️", label: "Is it safe?", q: "Is the bot safe and truly undetectable?" },
+  { emoji: "💰", label: "How does it work?", q: "How does the platform optimize my traffic and earnings?" },
+  { emoji: "🛡️", label: "Is it safe?", q: "Is the platform safe and undetectable?" },
   { emoji: "💎", label: "Pricing", q: "What are your pricing plans?" },
 ];
 
 const GREETING: Msg = {
   role: "assistant",
-  content: "👋 Hey! How are you today? I'm Aria — your AD4YOU AI assistant. Ask me anything about features, earnings, or pricing ✨",
+  content: "👋 Hey! I'm Aria — your AD4YOU AI Traffic Intelligence Specialist. Ask me anything about features, plans, or how to maximize your earnings ✨",
   ts: Date.now(),
 };
 
-type RobotState = "entering" | "idle" | "waving" | "talking";
 
 export function AriaBot() {
   const [mounted, setMounted] = useState(false);
