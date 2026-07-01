@@ -41,7 +41,8 @@ export function AriaBot() {
       const v = (data as { value: string | null } | null)?.value;
       return v === null || v === undefined ? true : v === "true" || v === "1";
     },
-    staleTime: 60_000,
+    staleTime: 10_000,
+    refetchOnWindowFocus: true,
   });
   const [open, setOpen] = useState(false);
   const [bubble, setBubble] = useState<string | null>(null);
