@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Send, X, Sparkles } from "lucide-react";
 import { chatWithAria } from "@/lib/aria.functions";
@@ -41,7 +41,8 @@ export function AriaBot() {
       const v = (data as { value: string | null } | null)?.value;
       return v === null || v === undefined ? true : v === "true" || v === "1";
     },
-    staleTime: 60_000,
+    staleTime: 10_000,
+    refetchOnWindowFocus: true,
   });
   const [open, setOpen] = useState(false);
   const [bubble, setBubble] = useState<string | null>(null);
@@ -52,6 +53,20 @@ export function AriaBot() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chat = useServerFn(chatWithAria);
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    const ch = supabase
+      .channel("aria-enabled")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "settings", filter: "key=eq.aria_enabled" },
+        () => qc.invalidateQueries({ queryKey: ["setting", "aria_enabled"] }),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
+
 
   useEffect(() => {
     setMounted(true);

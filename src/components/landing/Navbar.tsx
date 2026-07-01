@@ -20,6 +20,7 @@ export function Navbar() {
 
   const links = [
     { to: "/", label: "Home" },
+    { to: "/location", label: "Location" },
     { to: "/#features", label: "Features" },
     { to: "/#networks", label: "Networks" },
     { to: "/pricing", label: "Pricing" },
