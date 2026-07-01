@@ -53,6 +53,20 @@ export function AriaBot() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chat = useServerFn(chatWithAria);
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    const ch = supabase
+      .channel("aria-enabled")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "settings", filter: "key=eq.aria_enabled" },
+        () => qc.invalidateQueries({ queryKey: ["setting", "aria_enabled"] }),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
+
 
   useEffect(() => {
     setMounted(true);
