@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Package, Sliders, CreditCard, Activity,
-  HelpCircle, Megaphone, Mail, Download, Settings, ShieldCheck, ArrowLeft,
+  HelpCircle, Megaphone, Mail, Download, Settings, ShieldCheck, ArrowLeft, Tag,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ const links = [
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/plans", label: "Plans", icon: Package },
   { to: "/admin/features", label: "Plan Features", icon: Sliders },
+  { to: "/admin/offers", label: "Discount Offers", icon: Tag },
   { to: "/admin/payments", label: "Payments", icon: CreditCard },
   { to: "/admin/sessions", label: "Bot Sessions", icon: Activity },
   { to: "/admin/tickets", label: "Support Tickets", icon: HelpCircle },
@@ -19,6 +20,7 @@ const links = [
   { to: "/admin/versions", label: "Bot Versions", icon: Download },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
+
 
 export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { signOut, profile } = useAuth();

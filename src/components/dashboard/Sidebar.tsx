@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, CreditCard, Download, Activity, Settings, HelpCircle, LogOut, Sparkles } from "lucide-react";
+import { LayoutDashboard, CreditCard, Download, Activity, Settings, HelpCircle, LogOut, Sparkles, Star, Crown } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
@@ -9,9 +9,12 @@ const links: NavLink[] = [
   { to: "/dashboard/billing", label: "Billing & Plans", icon: CreditCard },
   { to: "/dashboard/download", label: "Download Bot", icon: Download },
   { to: "/dashboard/sessions", label: "My Sessions", icon: Activity },
+  { to: "/dashboard/affiliate", label: "Affiliate Program", icon: Crown },
+  { to: "/dashboard/reviews", label: "Reviews", icon: Star },
   { to: "/dashboard/settings", label: "Settings", icon: Settings },
   { to: "/dashboard/support", label: "Support", icon: HelpCircle },
 ];
+
 
 export function DashboardSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { signOut, profile } = useAuth();
