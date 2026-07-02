@@ -142,7 +142,7 @@ function OffersAdmin() {
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2 shrink-0">
-                  <Switch checked={o.is_active} onCheckedChange={(v) => toggle.mutate({ id: o.id, on: v })} />
+                  <Switch checked={!!o.is_active} onCheckedChange={(v) => toggle.mutate({ id: o.id, on: v })} />
                   <button onClick={() => del.mutate(o.id)} className="text-destructive hover:text-destructive/80"><Trash2 className="w-4 h-4" /></button>
                 </div>
               </div>
