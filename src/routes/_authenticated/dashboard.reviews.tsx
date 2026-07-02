@@ -86,8 +86,13 @@ function ReviewsPage() {
   const avg = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
 
   return (
-    <DashboardShell title="Community Reviews" description="Rate your experience and read what others are saying about the AD4YOU traffic machine.">
+    <DashboardShell>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Community Reviews</h1>
+        <p className="text-sm text-muted-foreground">Rate your experience and read what others say about the AD4YOU traffic machine.</p>
+      </div>
       <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
+
         {/* Submit card */}
         <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/5 to-transparent p-6 backdrop-blur-xl">
           <div className="flex items-center gap-2 mb-1">

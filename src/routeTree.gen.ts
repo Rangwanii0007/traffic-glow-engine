@@ -24,6 +24,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedDashboardSupportRouteImport } from './routes/_authenticated/dashboard.support'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
 import { Route as AuthenticatedDashboardSessionsRouteImport } from './routes/_authenticated/dashboard.sessions'
+import { Route as AuthenticatedDashboardReviewsRouteImport } from './routes/_authenticated/dashboard.reviews'
 import { Route as AuthenticatedDashboardDownloadRouteImport } from './routes/_authenticated/dashboard.download'
 import { Route as AuthenticatedDashboardBillingRouteImport } from './routes/_authenticated/dashboard.billing'
 import { Route as AuthenticatedAdminVersionsRouteImport } from './routes/_authenticated/admin.versions'
@@ -113,6 +114,12 @@ const AuthenticatedDashboardSessionsRoute =
   AuthenticatedDashboardSessionsRouteImport.update({
     id: '/sessions',
     path: '/sessions',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardReviewsRoute =
+  AuthenticatedDashboardReviewsRouteImport.update({
+    id: '/reviews',
+    path: '/reviews',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardDownloadRoute =
@@ -208,6 +215,7 @@ export interface FileRoutesByFullPath {
   '/admin/versions': typeof AuthenticatedAdminVersionsRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/download': typeof AuthenticatedDashboardDownloadRoute
+  '/dashboard/reviews': typeof AuthenticatedDashboardReviewsRoute
   '/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/support': typeof AuthenticatedDashboardSupportRoute
@@ -234,6 +242,7 @@ export interface FileRoutesByTo {
   '/admin/versions': typeof AuthenticatedAdminVersionsRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/download': typeof AuthenticatedDashboardDownloadRoute
+  '/dashboard/reviews': typeof AuthenticatedDashboardReviewsRoute
   '/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/support': typeof AuthenticatedDashboardSupportRoute
@@ -264,6 +273,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/versions': typeof AuthenticatedAdminVersionsRoute
   '/_authenticated/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/_authenticated/dashboard/download': typeof AuthenticatedDashboardDownloadRoute
+  '/_authenticated/dashboard/reviews': typeof AuthenticatedDashboardReviewsRoute
   '/_authenticated/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/_authenticated/dashboard/support': typeof AuthenticatedDashboardSupportRoute
@@ -294,6 +304,7 @@ export interface FileRouteTypes {
     | '/admin/versions'
     | '/dashboard/billing'
     | '/dashboard/download'
+    | '/dashboard/reviews'
     | '/dashboard/sessions'
     | '/dashboard/settings'
     | '/dashboard/support'
@@ -320,6 +331,7 @@ export interface FileRouteTypes {
     | '/admin/versions'
     | '/dashboard/billing'
     | '/dashboard/download'
+    | '/dashboard/reviews'
     | '/dashboard/sessions'
     | '/dashboard/settings'
     | '/dashboard/support'
@@ -349,6 +361,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/versions'
     | '/_authenticated/dashboard/billing'
     | '/_authenticated/dashboard/download'
+    | '/_authenticated/dashboard/reviews'
     | '/_authenticated/dashboard/sessions'
     | '/_authenticated/dashboard/settings'
     | '/_authenticated/dashboard/support'
@@ -474,6 +487,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardSessionsRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/reviews': {
+      id: '/_authenticated/dashboard/reviews'
+      path: '/reviews'
+      fullPath: '/dashboard/reviews'
+      preLoaderRoute: typeof AuthenticatedDashboardReviewsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/download': {
       id: '/_authenticated/dashboard/download'
       path: '/download'
@@ -595,6 +615,7 @@ const AuthenticatedAdminRouteWithChildren =
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardBillingRoute: typeof AuthenticatedDashboardBillingRoute
   AuthenticatedDashboardDownloadRoute: typeof AuthenticatedDashboardDownloadRoute
+  AuthenticatedDashboardReviewsRoute: typeof AuthenticatedDashboardReviewsRoute
   AuthenticatedDashboardSessionsRoute: typeof AuthenticatedDashboardSessionsRoute
   AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
   AuthenticatedDashboardSupportRoute: typeof AuthenticatedDashboardSupportRoute
@@ -605,6 +626,7 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
   {
     AuthenticatedDashboardBillingRoute: AuthenticatedDashboardBillingRoute,
     AuthenticatedDashboardDownloadRoute: AuthenticatedDashboardDownloadRoute,
+    AuthenticatedDashboardReviewsRoute: AuthenticatedDashboardReviewsRoute,
     AuthenticatedDashboardSessionsRoute: AuthenticatedDashboardSessionsRoute,
     AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,
     AuthenticatedDashboardSupportRoute: AuthenticatedDashboardSupportRoute,
