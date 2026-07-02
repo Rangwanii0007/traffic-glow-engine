@@ -47,6 +47,20 @@ function PricingPage() {
     },
   });
 
+  const offersQ = useQuery({
+    queryKey: ["discount-offers-active"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("discount_offers")
+        .select("*, plans:plan_id(name, slug)")
+        .eq("is_active", true)
+        .gt("seats_remaining", 0)
+        .order("discount_percent", { ascending: false });
+      return data ?? [];
+    },
+  });
+
+
   type PlanRow = NonNullable<typeof plansQ.data>[number];
   function handleBuy(plan: PlanRow) {
     if (plan.is_free || Number(plan.price) <= 0) {
