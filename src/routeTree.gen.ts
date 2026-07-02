@@ -24,8 +24,10 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedDashboardSupportRouteImport } from './routes/_authenticated/dashboard.support'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
 import { Route as AuthenticatedDashboardSessionsRouteImport } from './routes/_authenticated/dashboard.sessions'
+import { Route as AuthenticatedDashboardReviewsRouteImport } from './routes/_authenticated/dashboard.reviews'
 import { Route as AuthenticatedDashboardDownloadRouteImport } from './routes/_authenticated/dashboard.download'
 import { Route as AuthenticatedDashboardBillingRouteImport } from './routes/_authenticated/dashboard.billing'
+import { Route as AuthenticatedDashboardAffiliateRouteImport } from './routes/_authenticated/dashboard.affiliate'
 import { Route as AuthenticatedAdminVersionsRouteImport } from './routes/_authenticated/admin.versions'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedAdminTicketsRouteImport } from './routes/_authenticated/admin.tickets'
@@ -33,6 +35,7 @@ import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminSessionsRouteImport } from './routes/_authenticated/admin.sessions'
 import { Route as AuthenticatedAdminPlansRouteImport } from './routes/_authenticated/admin.plans'
 import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authenticated/admin.payments'
+import { Route as AuthenticatedAdminOffersRouteImport } from './routes/_authenticated/admin.offers'
 import { Route as AuthenticatedAdminFeaturesRouteImport } from './routes/_authenticated/admin.features'
 import { Route as AuthenticatedAdminContactRouteImport } from './routes/_authenticated/admin.contact'
 import { Route as AuthenticatedAdminAnnouncementsRouteImport } from './routes/_authenticated/admin.announcements'
@@ -115,6 +118,12 @@ const AuthenticatedDashboardSessionsRoute =
     path: '/sessions',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardReviewsRoute =
+  AuthenticatedDashboardReviewsRouteImport.update({
+    id: '/reviews',
+    path: '/reviews',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardDownloadRoute =
   AuthenticatedDashboardDownloadRouteImport.update({
     id: '/download',
@@ -125,6 +134,12 @@ const AuthenticatedDashboardBillingRoute =
   AuthenticatedDashboardBillingRouteImport.update({
     id: '/billing',
     path: '/billing',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardAffiliateRoute =
+  AuthenticatedDashboardAffiliateRouteImport.update({
+    id: '/affiliate',
+    path: '/affiliate',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedAdminVersionsRoute =
@@ -167,6 +182,12 @@ const AuthenticatedAdminPaymentsRoute =
     path: '/payments',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminOffersRoute =
+  AuthenticatedAdminOffersRouteImport.update({
+    id: '/offers',
+    path: '/offers',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminFeaturesRoute =
   AuthenticatedAdminFeaturesRouteImport.update({
     id: '/features',
@@ -199,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
   '/admin/contact': typeof AuthenticatedAdminContactRoute
   '/admin/features': typeof AuthenticatedAdminFeaturesRoute
+  '/admin/offers': typeof AuthenticatedAdminOffersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/plans': typeof AuthenticatedAdminPlansRoute
   '/admin/sessions': typeof AuthenticatedAdminSessionsRoute
@@ -206,8 +228,10 @@ export interface FileRoutesByFullPath {
   '/admin/tickets': typeof AuthenticatedAdminTicketsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/versions': typeof AuthenticatedAdminVersionsRoute
+  '/dashboard/affiliate': typeof AuthenticatedDashboardAffiliateRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/download': typeof AuthenticatedDashboardDownloadRoute
+  '/dashboard/reviews': typeof AuthenticatedDashboardReviewsRoute
   '/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/support': typeof AuthenticatedDashboardSupportRoute
@@ -225,6 +249,7 @@ export interface FileRoutesByTo {
   '/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
   '/admin/contact': typeof AuthenticatedAdminContactRoute
   '/admin/features': typeof AuthenticatedAdminFeaturesRoute
+  '/admin/offers': typeof AuthenticatedAdminOffersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/plans': typeof AuthenticatedAdminPlansRoute
   '/admin/sessions': typeof AuthenticatedAdminSessionsRoute
@@ -232,8 +257,10 @@ export interface FileRoutesByTo {
   '/admin/tickets': typeof AuthenticatedAdminTicketsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/versions': typeof AuthenticatedAdminVersionsRoute
+  '/dashboard/affiliate': typeof AuthenticatedDashboardAffiliateRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/download': typeof AuthenticatedDashboardDownloadRoute
+  '/dashboard/reviews': typeof AuthenticatedDashboardReviewsRoute
   '/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/support': typeof AuthenticatedDashboardSupportRoute
@@ -255,6 +282,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
   '/_authenticated/admin/contact': typeof AuthenticatedAdminContactRoute
   '/_authenticated/admin/features': typeof AuthenticatedAdminFeaturesRoute
+  '/_authenticated/admin/offers': typeof AuthenticatedAdminOffersRoute
   '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/_authenticated/admin/plans': typeof AuthenticatedAdminPlansRoute
   '/_authenticated/admin/sessions': typeof AuthenticatedAdminSessionsRoute
@@ -262,8 +290,10 @@ export interface FileRoutesById {
   '/_authenticated/admin/tickets': typeof AuthenticatedAdminTicketsRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/versions': typeof AuthenticatedAdminVersionsRoute
+  '/_authenticated/dashboard/affiliate': typeof AuthenticatedDashboardAffiliateRoute
   '/_authenticated/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/_authenticated/dashboard/download': typeof AuthenticatedDashboardDownloadRoute
+  '/_authenticated/dashboard/reviews': typeof AuthenticatedDashboardReviewsRoute
   '/_authenticated/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/_authenticated/dashboard/support': typeof AuthenticatedDashboardSupportRoute
@@ -285,6 +315,7 @@ export interface FileRouteTypes {
     | '/admin/announcements'
     | '/admin/contact'
     | '/admin/features'
+    | '/admin/offers'
     | '/admin/payments'
     | '/admin/plans'
     | '/admin/sessions'
@@ -292,8 +323,10 @@ export interface FileRouteTypes {
     | '/admin/tickets'
     | '/admin/users'
     | '/admin/versions'
+    | '/dashboard/affiliate'
     | '/dashboard/billing'
     | '/dashboard/download'
+    | '/dashboard/reviews'
     | '/dashboard/sessions'
     | '/dashboard/settings'
     | '/dashboard/support'
@@ -311,6 +344,7 @@ export interface FileRouteTypes {
     | '/admin/announcements'
     | '/admin/contact'
     | '/admin/features'
+    | '/admin/offers'
     | '/admin/payments'
     | '/admin/plans'
     | '/admin/sessions'
@@ -318,8 +352,10 @@ export interface FileRouteTypes {
     | '/admin/tickets'
     | '/admin/users'
     | '/admin/versions'
+    | '/dashboard/affiliate'
     | '/dashboard/billing'
     | '/dashboard/download'
+    | '/dashboard/reviews'
     | '/dashboard/sessions'
     | '/dashboard/settings'
     | '/dashboard/support'
@@ -340,6 +376,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/announcements'
     | '/_authenticated/admin/contact'
     | '/_authenticated/admin/features'
+    | '/_authenticated/admin/offers'
     | '/_authenticated/admin/payments'
     | '/_authenticated/admin/plans'
     | '/_authenticated/admin/sessions'
@@ -347,8 +384,10 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/tickets'
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/versions'
+    | '/_authenticated/dashboard/affiliate'
     | '/_authenticated/dashboard/billing'
     | '/_authenticated/dashboard/download'
+    | '/_authenticated/dashboard/reviews'
     | '/_authenticated/dashboard/sessions'
     | '/_authenticated/dashboard/settings'
     | '/_authenticated/dashboard/support'
@@ -474,6 +513,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardSessionsRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/reviews': {
+      id: '/_authenticated/dashboard/reviews'
+      path: '/reviews'
+      fullPath: '/dashboard/reviews'
+      preLoaderRoute: typeof AuthenticatedDashboardReviewsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/download': {
       id: '/_authenticated/dashboard/download'
       path: '/download'
@@ -486,6 +532,13 @@ declare module '@tanstack/react-router' {
       path: '/billing'
       fullPath: '/dashboard/billing'
       preLoaderRoute: typeof AuthenticatedDashboardBillingRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/affiliate': {
+      id: '/_authenticated/dashboard/affiliate'
+      path: '/affiliate'
+      fullPath: '/dashboard/affiliate'
+      preLoaderRoute: typeof AuthenticatedDashboardAffiliateRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/admin/versions': {
@@ -537,6 +590,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPaymentsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/offers': {
+      id: '/_authenticated/admin/offers'
+      path: '/offers'
+      fullPath: '/admin/offers'
+      preLoaderRoute: typeof AuthenticatedAdminOffersRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/features': {
       id: '/_authenticated/admin/features'
       path: '/features'
@@ -565,6 +625,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAnnouncementsRoute: typeof AuthenticatedAdminAnnouncementsRoute
   AuthenticatedAdminContactRoute: typeof AuthenticatedAdminContactRoute
   AuthenticatedAdminFeaturesRoute: typeof AuthenticatedAdminFeaturesRoute
+  AuthenticatedAdminOffersRoute: typeof AuthenticatedAdminOffersRoute
   AuthenticatedAdminPaymentsRoute: typeof AuthenticatedAdminPaymentsRoute
   AuthenticatedAdminPlansRoute: typeof AuthenticatedAdminPlansRoute
   AuthenticatedAdminSessionsRoute: typeof AuthenticatedAdminSessionsRoute
@@ -579,6 +640,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAnnouncementsRoute: AuthenticatedAdminAnnouncementsRoute,
   AuthenticatedAdminContactRoute: AuthenticatedAdminContactRoute,
   AuthenticatedAdminFeaturesRoute: AuthenticatedAdminFeaturesRoute,
+  AuthenticatedAdminOffersRoute: AuthenticatedAdminOffersRoute,
   AuthenticatedAdminPaymentsRoute: AuthenticatedAdminPaymentsRoute,
   AuthenticatedAdminPlansRoute: AuthenticatedAdminPlansRoute,
   AuthenticatedAdminSessionsRoute: AuthenticatedAdminSessionsRoute,
@@ -593,8 +655,10 @@ const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
 interface AuthenticatedDashboardRouteChildren {
+  AuthenticatedDashboardAffiliateRoute: typeof AuthenticatedDashboardAffiliateRoute
   AuthenticatedDashboardBillingRoute: typeof AuthenticatedDashboardBillingRoute
   AuthenticatedDashboardDownloadRoute: typeof AuthenticatedDashboardDownloadRoute
+  AuthenticatedDashboardReviewsRoute: typeof AuthenticatedDashboardReviewsRoute
   AuthenticatedDashboardSessionsRoute: typeof AuthenticatedDashboardSessionsRoute
   AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
   AuthenticatedDashboardSupportRoute: typeof AuthenticatedDashboardSupportRoute
@@ -603,8 +667,10 @@ interface AuthenticatedDashboardRouteChildren {
 
 const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
   {
+    AuthenticatedDashboardAffiliateRoute: AuthenticatedDashboardAffiliateRoute,
     AuthenticatedDashboardBillingRoute: AuthenticatedDashboardBillingRoute,
     AuthenticatedDashboardDownloadRoute: AuthenticatedDashboardDownloadRoute,
+    AuthenticatedDashboardReviewsRoute: AuthenticatedDashboardReviewsRoute,
     AuthenticatedDashboardSessionsRoute: AuthenticatedDashboardSessionsRoute,
     AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,
     AuthenticatedDashboardSupportRoute: AuthenticatedDashboardSupportRoute,

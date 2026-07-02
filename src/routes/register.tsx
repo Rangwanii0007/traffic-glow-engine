@@ -75,14 +75,29 @@ function RegisterPage() {
     }
     setErrors({});
     setSubmitting(true);
-    const { error } = await supabase.auth.signUp({
+    const refCode = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("ref") ?? undefined : undefined;
+    const { data, error } = await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
-        data: { full_name: parsed.data.full_name },
+        data: { full_name: parsed.data.full_name, referral_code: refCode },
       },
     });
+    if (!error && data.user && refCode) {
+      // Attempt to record the referral (best effort)
+      try {
+        const { data: referrer } = await supabase.from("users").select("id").eq("referral_code", refCode).maybeSingle();
+        if (referrer?.id && referrer.id !== data.user.id) {
+          await supabase.from("affiliate_referrals").insert({
+            referrer_id: referrer.id,
+            referred_id: data.user.id,
+            referred_email: parsed.data.email,
+            status: "free",
+          });
+        }
+      } catch { /* ignore */ }
+    }
     setSubmitting(false);
     if (error) {
       toast.error(friendlyAuthError(error.message));
@@ -91,6 +106,7 @@ function RegisterPage() {
     toast.success("Account created! Check your email to verify.");
     setTimeout(() => navigate({ to: "/dashboard", replace: true }), 2000);
   };
+
 
   return (
     <AuthShell

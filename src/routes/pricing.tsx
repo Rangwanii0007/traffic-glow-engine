@@ -47,6 +47,20 @@ function PricingPage() {
     },
   });
 
+  const offersQ = useQuery({
+    queryKey: ["discount-offers-active"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("discount_offers")
+        .select("*, plans:plan_id(name, slug)")
+        .eq("is_active", true)
+        .gt("seats_remaining", 0)
+        .order("discount_percent", { ascending: false });
+      return data ?? [];
+    },
+  });
+
+
   type PlanRow = NonNullable<typeof plansQ.data>[number];
   function handleBuy(plan: PlanRow) {
     if (plan.is_free || Number(plan.price) <= 0) {
@@ -87,9 +101,56 @@ function PricingPage() {
         </div>
       </section>
 
+      {/* Discount offers */}
+      {offersQ.data && offersQ.data.length > 0 && (
+        <section className="px-4 pb-8">
+          <div className="max-w-5xl mx-auto space-y-4">
+            {offersQ.data.map((o) => {
+              const discounted = Number(o.original_price) * (1 - Number(o.discount_percent) / 100);
+              const seatsPct = (o.seats_remaining / o.initial_seats) * 100;
+              return (
+                <div key={o.id} className="relative overflow-hidden rounded-3xl border border-amber-400/30 bg-gradient-to-br from-amber-500/10 via-fuchsia-500/10 to-emerald-500/10 p-6 sm:p-8">
+                  <div className="absolute -top-20 -right-20 w-64 h-64 bg-amber-400/20 rounded-full blur-3xl" />
+                  <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-fuchsia-500/20 rounded-full blur-3xl" />
+                  <div className="relative flex flex-col md:flex-row md:items-center gap-6">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-bold px-2 py-1 rounded-full bg-emerald-500/25 text-emerald-200">🎉 LIMITED OFFER</span>
+                        {o.coupon_code && <span className="text-xs font-mono px-2 py-1 rounded-full bg-white/10">{o.coupon_code}</span>}
+                      </div>
+                      <h3 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-amber-200 via-white to-fuchsia-200 bg-clip-text text-transparent">
+                        {o.title}
+                      </h3>
+                      {o.reason && <p className="text-sm text-white/70 mt-1">{o.reason}</p>}
+                      <div className="flex items-baseline gap-3 mt-4">
+                        <span className="text-lg line-through text-white/40">${Number(o.original_price).toFixed(0)}</span>
+                        <span className="text-4xl font-black text-emerald-300">${discounted.toFixed(0)}</span>
+                        <span className="text-sm font-bold text-emerald-300">/ {(o as { plans?: { name?: string } }).plans?.name ?? "plan"}</span>
+                        <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/25 text-emerald-200 font-bold">{o.discount_percent}% OFF</span>
+                      </div>
+                    </div>
+                    <div className="md:w-72 shrink-0">
+                      <div className="flex justify-between text-xs mb-1.5">
+                        <span className="text-white/70">Only <b className="text-amber-300">{o.seats_remaining}</b> seats left</span>
+                        <span className="text-white/50">of {o.initial_seats}</span>
+                      </div>
+                      <div className="h-2.5 rounded-full bg-black/40 overflow-hidden ring-1 ring-white/10">
+                        <div className="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 transition-all" style={{ width: `${seatsPct}%` }} />
+                      </div>
+                      <p className="text-[11px] text-white/50 mt-2">Seats drop {o.daily_decay_min}–{o.daily_decay_max} per day</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {/* plan cards */}
       <section className="px-4 pb-16">
         <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+
           {plansQ.isLoading
             ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[520px] rounded-3xl" />)
             : plansQ.data?.map((plan) => {

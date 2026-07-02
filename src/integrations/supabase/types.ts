@@ -49,6 +49,98 @@ export type Database = {
           },
         ]
       }
+      affiliate_referrals: {
+        Row: {
+          activated_at: string | null
+          commission_amount: number | null
+          created_at: string | null
+          id: string
+          referred_email: string | null
+          referred_id: string
+          referrer_id: string
+          status: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          commission_amount?: number | null
+          created_at?: string | null
+          id?: string
+          referred_email?: string | null
+          referred_id: string
+          referrer_id: string
+          status?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          commission_amount?: number | null
+          created_at?: string | null
+          id?: string
+          referred_email?: string | null
+          referred_id?: string
+          referrer_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_referrals_referred_id_fkey"
+            columns: ["referred_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_referrals_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_withdrawals: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string | null
+          id: string
+          method: string
+          method_details: Json | null
+          processed_at: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string | null
+          id?: string
+          method: string
+          method_details?: Json | null
+          processed_at?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string | null
+          id?: string
+          method?: string
+          method_details?: Json | null
+          processed_at?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_withdrawals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           created_at: string | null
@@ -239,6 +331,112 @@ export type Database = {
           },
         ]
       }
+      discount_offers: {
+        Row: {
+          coupon_code: string | null
+          created_at: string | null
+          daily_decay_max: number | null
+          daily_decay_min: number | null
+          discount_percent: number
+          ends_at: string | null
+          id: string
+          initial_seats: number
+          is_active: boolean | null
+          last_decay_at: string | null
+          original_price: number
+          plan_id: string | null
+          reason: string | null
+          seats_remaining: number
+          starts_at: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          coupon_code?: string | null
+          created_at?: string | null
+          daily_decay_max?: number | null
+          daily_decay_min?: number | null
+          discount_percent: number
+          ends_at?: string | null
+          id?: string
+          initial_seats?: number
+          is_active?: boolean | null
+          last_decay_at?: string | null
+          original_price: number
+          plan_id?: string | null
+          reason?: string | null
+          seats_remaining?: number
+          starts_at?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          coupon_code?: string | null
+          created_at?: string | null
+          daily_decay_max?: number | null
+          daily_decay_min?: number | null
+          discount_percent?: number
+          ends_at?: string | null
+          id?: string
+          initial_seats?: number
+          is_active?: boolean | null
+          last_decay_at?: string | null
+          original_price?: number
+          plan_id?: string | null
+          reason?: string | null
+          seats_remaining?: number
+          starts_at?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_offers_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_methods: {
+        Row: {
+          created_at: string | null
+          details: Json
+          id: string
+          is_default: boolean | null
+          method_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          details: Json
+          id?: string
+          is_default?: boolean | null
+          method_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          details?: Json
+          id?: string
+          is_default?: boolean | null
+          method_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_methods_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -388,6 +586,44 @@ export type Database = {
           sort_order?: number | null
         }
         Relationships: []
+      }
+      reviews: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_approved: boolean | null
+          message: string
+          rating: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_approved?: boolean | null
+          message: string
+          rating: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_approved?: boolean | null
+          message?: string
+          rating?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       settings: {
         Row: {
@@ -565,6 +801,7 @@ export type Database = {
           full_name: string
           id: string
           is_banned: boolean | null
+          referral_code: string | null
           role: string
           updated_at: string | null
         }
@@ -576,6 +813,7 @@ export type Database = {
           full_name?: string
           id: string
           is_banned?: boolean | null
+          referral_code?: string | null
           role?: string
           updated_at?: string | null
         }
@@ -587,6 +825,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_banned?: boolean | null
+          referral_code?: string | null
           role?: string
           updated_at?: string | null
         }
@@ -597,6 +836,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      decay_discount_seats: { Args: never; Returns: undefined }
       expire_overdue_subscriptions: { Args: never; Returns: undefined }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
