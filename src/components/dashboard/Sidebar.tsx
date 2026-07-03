@@ -1,11 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, CreditCard, Download, Activity, Settings, HelpCircle, LogOut, Sparkles, Star, Crown } from "lucide-react";
+import { User, CreditCard, Download, Activity, Settings, HelpCircle, LogOut, Sparkles, Star, Crown, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
 type NavLink = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
 const links: NavLink[] = [
-  { to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
+  { to: "/dashboard", label: "Profile", icon: User, exact: true },
   { to: "/dashboard/billing", label: "Billing & Plans", icon: CreditCard },
   { to: "/dashboard/download", label: "Download Bot", icon: Download },
   { to: "/dashboard/sessions", label: "My Sessions", icon: Activity },
