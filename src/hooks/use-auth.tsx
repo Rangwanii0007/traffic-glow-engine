@@ -8,6 +8,7 @@ type Profile = {
   full_name: string | null;
   role: string;
   avatar_url: string | null;
+  referral_code: string | null;
 };
 
 type AuthContextValue = {
