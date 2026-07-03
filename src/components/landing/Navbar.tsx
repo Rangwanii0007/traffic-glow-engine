@@ -85,17 +85,14 @@ export function Navbar() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate({ to: "/dashboard" })}>
-                    <LayoutDashboard className="w-4 h-4" /> Dashboard
+                    <UserIcon className="w-4 h-4" /> Profile
                   </DropdownMenuItem>
                   {isAdmin && (
                     <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>
                       <Shield className="w-4 h-4" /> Admin Panel
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={() => navigate({ to: "/dashboard" })}>
-                    <UserIcon className="w-4 h-4" /> Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate({ to: "/dashboard" })}>
+                  <DropdownMenuItem onClick={() => navigate({ to: "/dashboard/settings" })}>
                     <Settings className="w-4 h-4" /> Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
