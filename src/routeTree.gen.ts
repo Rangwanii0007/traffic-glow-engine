@@ -18,6 +18,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedDownloadRouteImport } from './routes/_authenticated/download'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
@@ -83,6 +84,11 @@ const IndexRoute = IndexRouteImport.update({
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDownloadRoute = AuthenticatedDownloadRouteImport.update({
+  id: '/download',
+  path: '/download',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -223,6 +229,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/download': typeof AuthenticatedDownloadRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
   '/admin/contact': typeof AuthenticatedAdminContactRoute
@@ -253,6 +260,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/download': typeof AuthenticatedDownloadRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
   '/admin/contact': typeof AuthenticatedAdminContactRoute
@@ -287,6 +295,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/_authenticated/download': typeof AuthenticatedDownloadRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
   '/_authenticated/admin/contact': typeof AuthenticatedAdminContactRoute
@@ -321,6 +330,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin'
     | '/dashboard'
+    | '/download'
     | '/profile'
     | '/admin/announcements'
     | '/admin/contact'
@@ -351,6 +361,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/register'
     | '/reset-password'
+    | '/download'
     | '/profile'
     | '/admin/announcements'
     | '/admin/contact'
@@ -384,6 +395,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
+    | '/_authenticated/download'
     | '/_authenticated/profile'
     | '/_authenticated/admin/announcements'
     | '/_authenticated/admin/contact'
@@ -481,6 +493,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/download': {
+      id: '/_authenticated/download'
+      path: '/download'
+      fullPath: '/download'
+      preLoaderRoute: typeof AuthenticatedDownloadRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -704,12 +723,14 @@ const AuthenticatedDashboardRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
+  AuthenticatedDownloadRoute: typeof AuthenticatedDownloadRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
+  AuthenticatedDownloadRoute: AuthenticatedDownloadRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
 }
 
