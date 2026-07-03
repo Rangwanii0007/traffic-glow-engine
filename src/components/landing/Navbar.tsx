@@ -130,7 +130,7 @@ export function Navbar() {
             ))}
             {user ? (
               <>
-                <Link to="/dashboard" className="px-3 py-2 text-white/80">Dashboard</Link>
+                <Link to="/dashboard" className="px-3 py-2 text-white/80">Profile</Link>
                 {isAdmin && <Link to="/admin" className="px-3 py-2 text-white/80">Admin Panel</Link>}
                 <button onClick={handleSignOut} className="px-3 py-2 text-left text-destructive">
                   Sign out
