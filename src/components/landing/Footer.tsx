@@ -9,7 +9,7 @@ export function Footer() {
         { to: "/pricing", label: "Pricing" },
         { to: "/#features", label: "Features" },
         { to: "/#networks", label: "Networks" },
-        { to: "/dashboard/download", label: "Download Bot" },
+        { to: "/download", label: "Download Bot" },
       ],
     },
     {
@@ -17,7 +17,7 @@ export function Footer() {
       links: [
         { to: "/about", label: "About" },
         { to: "/contact", label: "Contact" },
-        { to: "/#reviews", label: "Reviews" },
+        { to: "/reviews", label: "Reviews" },
       ],
     },
     {

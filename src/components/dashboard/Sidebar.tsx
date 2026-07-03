@@ -7,13 +7,11 @@ type NavLink = { to: string; label: string; icon: typeof LayoutDashboard; exact?
 const links: NavLink[] = [
   { to: "/dashboard", label: "Profile", icon: User, exact: true },
   { to: "/dashboard/billing", label: "Billing & Plans", icon: CreditCard },
-  { to: "/dashboard/download", label: "Download Bot", icon: Download },
   { to: "/dashboard/sessions", label: "My Sessions", icon: Activity },
-  { to: "/dashboard/affiliate", label: "Affiliate Program", icon: Crown },
-  { to: "/dashboard/reviews", label: "Reviews", icon: Star },
   { to: "/dashboard/settings", label: "Settings", icon: Settings },
   { to: "/dashboard/support", label: "Support", icon: HelpCircle },
 ];
+void Download; void Crown; void Star;
 
 
 export function DashboardSidebar({ onNavigate }: { onNavigate?: () => void }) {
