@@ -24,6 +24,9 @@ export function Navbar() {
     { to: "/#features", label: "Features" },
     { to: "/#networks", label: "Networks" },
     { to: "/pricing", label: "Pricing" },
+    { to: "/dashboard/download", label: "Download Bot" },
+    { to: "/dashboard/affiliate", label: "Affiliate Program" },
+    { to: "/dashboard/reviews", label: "Reviews" },
   ];
 
   const initials = (profile?.full_name || user?.email || "?")
@@ -82,17 +85,14 @@ export function Navbar() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate({ to: "/dashboard" })}>
-                    <LayoutDashboard className="w-4 h-4" /> Dashboard
+                    <UserIcon className="w-4 h-4" /> Profile
                   </DropdownMenuItem>
                   {isAdmin && (
                     <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>
                       <Shield className="w-4 h-4" /> Admin Panel
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={() => navigate({ to: "/dashboard" })}>
-                    <UserIcon className="w-4 h-4" /> Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate({ to: "/dashboard" })}>
+                  <DropdownMenuItem onClick={() => navigate({ to: "/dashboard/settings" })}>
                     <Settings className="w-4 h-4" /> Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -130,7 +130,7 @@ export function Navbar() {
             ))}
             {user ? (
               <>
-                <Link to="/dashboard" className="px-3 py-2 text-white/80">Dashboard</Link>
+                <Link to="/dashboard" className="px-3 py-2 text-white/80">Profile</Link>
                 {isAdmin && <Link to="/admin" className="px-3 py-2 text-white/80">Admin Panel</Link>}
                 <button onClick={handleSignOut} className="px-3 py-2 text-left text-destructive">
                   Sign out
