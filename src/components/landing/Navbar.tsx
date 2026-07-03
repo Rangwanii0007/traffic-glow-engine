@@ -24,6 +24,9 @@ export function Navbar() {
     { to: "/#features", label: "Features" },
     { to: "/#networks", label: "Networks" },
     { to: "/pricing", label: "Pricing" },
+    { to: "/dashboard/download", label: "Download Bot" },
+    { to: "/dashboard/affiliate", label: "Affiliate Program" },
+    { to: "/dashboard/reviews", label: "Reviews" },
   ];
 
   const initials = (profile?.full_name || user?.email || "?")
