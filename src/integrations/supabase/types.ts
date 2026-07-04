@@ -590,30 +590,39 @@ export type Database = {
       reviews: {
         Row: {
           created_at: string | null
+          external_user_id: string | null
           id: string
           is_approved: boolean | null
           message: string
           rating: number
+          reviewer_email: string | null
+          reviewer_name: string | null
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
+          external_user_id?: string | null
           id?: string
           is_approved?: boolean | null
           message: string
           rating: number
+          reviewer_email?: string | null
+          reviewer_name?: string | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
+          external_user_id?: string | null
           id?: string
           is_approved?: boolean | null
           message?: string
           rating?: number
+          reviewer_email?: string | null
+          reviewer_name?: string | null
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
