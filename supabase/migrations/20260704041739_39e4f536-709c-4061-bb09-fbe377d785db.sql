@@ -1,0 +1,15 @@
+ALTER TABLE public.reviews ALTER COLUMN user_id DROP NOT NULL;
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS external_user_id TEXT;
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS reviewer_name TEXT;
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS reviewer_email TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS reviews_external_user_id_key ON public.reviews(external_user_id) WHERE external_user_id IS NOT NULL;
+GRANT SELECT ON public.reviews TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.reviews TO authenticated;
+GRANT ALL ON public.reviews TO service_role;
+DROP POLICY IF EXISTS "reviews public read" ON public.reviews;
+DROP POLICY IF EXISTS "reviews insert own" ON public.reviews;
+DROP POLICY IF EXISTS "reviews update own" ON public.reviews;
+CREATE POLICY "reviews public read" ON public.reviews FOR SELECT USING (is_approved = true OR auth.uid() = user_id);
+CREATE POLICY "reviews insert own" ON public.reviews FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "reviews update own" ON public.reviews FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+NOTIFY pgrst, 'reload schema';

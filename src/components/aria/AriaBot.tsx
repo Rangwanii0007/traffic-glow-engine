@@ -39,7 +39,7 @@ export function AriaBot() {
     queryFn: async () => {
       const { data } = await supabase.from("settings").select("value").eq("key", "aria_enabled").maybeSingle();
       const v = (data as { value: string | null } | null)?.value;
-      return v === null || v === undefined ? true : v === "true" || v === "1";
+      return v === "true" || v === "1";
     },
     staleTime: 10_000,
     refetchOnWindowFocus: true,

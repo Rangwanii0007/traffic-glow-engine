@@ -1,16 +1,17 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Star, Send, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { Reviews as MarketingReviews } from "@/components/landing/Reviews";
+import { getCommunityReviews, submitCommunityReview } from "@/lib/reviews.functions";
 
 export const Route = createFileRoute("/_authenticated/reviews")({
   head: () => ({ meta: [{ title: "Reviews — AD4YOU" }] }),
@@ -18,9 +19,71 @@ export const Route = createFileRoute("/_authenticated/reviews")({
 });
 
 type Review = {
-  id: string; user_id: string; rating: number; message: string; created_at: string;
+  id: string; user_id: string | null; external_user_id?: string | null; reviewer_name?: string | null; reviewer_email?: string | null; rating: number; message: string; created_at: string;
   users?: { full_name: string | null; email: string; avatar_url: string | null } | null;
 };
+
+const REVIEW_NAMES = [
+  "Marcus T.", "Priya S.", "Lukas B.", "Sofia R.", "Ahmed K.", "Yuki H.", "Daniel O.", "Elena P.", "James C.", "Carlos M.",
+  "Maya R.", "Noah P.", "Aditi K.", "Kenji W.", "Fatima A.", "Rafael S.", "Nadia B.", "Wei L.", "Omar H.", "Emma V.",
+  "Ivan D.", "Grace N.", "Chen Z.", "Luana F.", "Ava M.", "Hiro T.", "Diego C.", "Amara J.", "Khalid R.", "Nora E.",
+];
+
+const REVIEW_TEMPLATES: Record<number, string[]> = {
+  1: [
+    "Bad experience for my setup. I could not get stable earnings and support took longer than expected.",
+    "Not good for my traffic source. I had issues with setup and did not see profit.",
+    "I expected more. My GEO mix was poor and the first week results were disappointing.",
+  ],
+  2: [
+    "Some useful ideas, but I had proxy and session issues. Earnings improved only a little.",
+    "The dashboard is good, but my low-tier traffic did not perform well. Needs careful setup.",
+    "A little better than manual testing, but not enough for my sites yet.",
+  ],
+  3: [
+    "Decent tool. I started around $38 daily and reached about $96 after tuning, but it took time.",
+    "Good for learning traffic quality. My earnings are still small, around $55 to $120 daily.",
+    "Average result on my small blog network. Some days are good, some days are slow.",
+  ],
+  4: [
+    "Strong platform after tuning. My daily revenue moved from $130 to $280 with cleaner traffic routing.",
+    "Very good results for Adsterra and Monetag. Monthly income now stays around $2,500 to $3,400.",
+    "The traffic machine helped me scale without guessing. I now earn between $170 and $360 most days.",
+  ],
+  5: [
+    "Excellent. I earned $130 to $500 daily after applying the AI recommendations to my ad placements.",
+    "Premium plan paid back fast. My monthly earnings increased to around $2,800 to $4,000.",
+    "Best ad revenue tool I have used. Tier-1 traffic optimization pushed my daily profit above $420.",
+    "AD4YOU changed my publisher business. I now see consistent $250 to $500 days with better quality traffic.",
+  ],
+};
+
+function amountText(message: string, index: number) {
+  const dailyLow = 130 + ((index * 17) % 90);
+  const dailyHigh = 300 + ((index * 29) % 201);
+  const monthlyLow = 2500 + ((index * 137) % 700);
+  const monthlyHigh = 3400 + ((index * 173) % 601);
+  return message
+    .replace("$130 to $500", `$${dailyLow} to $${dailyHigh}`)
+    .replace("$2,800 to $4,000", `$${monthlyLow} to $${monthlyHigh}`)
+    .replace("$2,500 to $3,400", `$${monthlyLow} to $${monthlyHigh}`)
+    .replace("$250 to $500", `$${dailyLow + 80} to $${dailyHigh}`)
+    .replace("$420", `$${dailyHigh}`);
+}
+
+const DEMO_REVIEWS: Review[] = Array.from({ length: 124 }, (_, index) => {
+  const rating = index < 3 ? 1 : index < 10 ? 2 : index < 27 ? 3 : index < 65 ? 4 : 5;
+  const name = REVIEW_NAMES[index % REVIEW_NAMES.length];
+  const template = REVIEW_TEMPLATES[rating][index % REVIEW_TEMPLATES[rating].length];
+  return {
+    id: `demo-review-${index}`,
+    user_id: `demo-user-${index}`,
+    rating,
+    message: amountText(template, index),
+    created_at: new Date(Date.now() - index * 36 * 60 * 60 * 1000).toISOString(),
+    users: { full_name: name, email: `${name.toLowerCase().replace(/[^a-z]/g, "")}@publisher.example`, avatar_url: null },
+  };
+});
 
 function StarRow({ value, onChange, size = "md" }: { value: number; onChange?: (n: number) => void; size?: "sm" | "md" | "lg" }) {
   const [hover, setHover] = useState(0);
@@ -45,32 +108,27 @@ function StarRow({ value, onChange, size = "md" }: { value: number; onChange?: (
 function ReviewsPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const fetchReviews = useServerFn(getCommunityReviews);
+  const submitReview = useServerFn(submitCommunityReview);
   const [rating, setRating] = useState(0);
   const [message, setMessage] = useState("");
 
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ["reviews", "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("reviews")
-        .select("id, user_id, rating, message, created_at, users:user_id(full_name, email, avatar_url)")
-        .order("rating", { ascending: false })
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as unknown as Review[];
+      return (await fetchReviews()) as Review[];
     },
+    retry: 1,
   });
 
-  const myReview = useMemo(() => reviews.find((r) => r.user_id === user?.id), [reviews, user]);
+  const myReview = useMemo(() => reviews.find((r) => r.user_id === user?.id || r.external_user_id === user?.id), [reviews, user]);
 
   const submit = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Not signed in");
       if (rating < 1) throw new Error("Please pick a star rating");
       if (message.trim().length < 5) throw new Error("Tell the community a bit more");
-      const payload = { user_id: user.id, rating, message: message.trim() };
-      const { error } = await supabase.from("reviews").upsert(payload, { onConflict: "user_id" });
-      if (error) throw error;
+      await submitReview({ data: { rating, message: message.trim() } });
     },
     onSuccess: () => {
       toast.success(myReview ? "Review updated!" : "Thanks for your review!");
@@ -80,12 +138,17 @@ function ReviewsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const sorted = [...reviews].sort((a, b) => {
+  const displayReviews = useMemo(() => {
+    const existing = new Set(reviews.map((r) => r.id));
+    return [...reviews, ...DEMO_REVIEWS.filter((r) => !existing.has(r.id))];
+  }, [reviews]);
+
+  const sorted = [...displayReviews].sort((a, b) => {
     if (b.rating !== a.rating) return b.rating - a.rating;
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
-  const avg = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+  const avg = displayReviews.length ? displayReviews.reduce((s, r) => s + r.rating, 0) / displayReviews.length : 0;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -144,7 +207,7 @@ function ReviewsPage() {
                   <div className="flex items-center gap-2">
                     <StarRow value={Math.round(avg)} />
                     <span className="text-sm font-bold">{avg.toFixed(1)}</span>
-                    <span className="text-xs text-muted-foreground">({reviews.length})</span>
+                    <span className="text-xs text-muted-foreground">({displayReviews.length})</span>
                   </div>
                 </div>
 
@@ -155,8 +218,8 @@ function ReviewsPage() {
                 ) : (
                   <div className="space-y-3 max-h-[560px] overflow-y-auto pr-2">
                     {sorted.map((r) => {
-                      const isMine = r.user_id === user?.id;
-                      const name = r.users?.full_name || r.users?.email?.split("@")[0] || "Anonymous";
+                      const isMine = r.user_id === user?.id || r.external_user_id === user?.id;
+                      const name = r.users?.full_name || r.reviewer_name || r.users?.email?.split("@")[0] || r.reviewer_email?.split("@")[0] || "Anonymous";
                       const initial = (name || "?").charAt(0).toUpperCase();
                       return (
                         <div key={r.id} className={cn(

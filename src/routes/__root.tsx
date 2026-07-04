@@ -14,7 +14,6 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { AriaBot } from "@/components/aria/AriaBot";
-import { FloatingNotifications } from "@/components/notifications/FloatingNotifications";
 
 
 function NotFoundComponent() {
@@ -129,7 +128,6 @@ function RootComponent() {
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
         <AriaBot />
-        <FloatingNotifications />
         <Toaster richColors position="top-right" theme="dark" />
       </AuthProvider>
 

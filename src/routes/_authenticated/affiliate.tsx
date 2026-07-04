@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
+import { FloatingNotifications } from "@/components/notifications/FloatingNotifications";
 
 export const Route = createFileRoute("/_authenticated/affiliate")({
   head: () => ({ meta: [{ title: "Affiliate Program — AD4YOU" }] }),
@@ -38,7 +39,7 @@ function AffiliatePage() {
   const { user, profile } = useAuth();
   const qc = useQueryClient();
 
-  const referralCode = (profile as { referral_code?: string } | null)?.referral_code ?? "";
+  const referralCode = (profile as { referral_code?: string } | null)?.referral_code || user?.id || "";
   const referralLink = typeof window !== "undefined" && referralCode
     ? `${window.location.origin}/register?ref=${referralCode}`
     : "";
@@ -336,6 +337,7 @@ function AffiliatePage() {
           )}
         </div>
       </main>
+      <FloatingNotifications />
       <Footer />
     </div>
   );

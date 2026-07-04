@@ -87,10 +87,15 @@ function RegisterPage() {
     if (!error && data.user && refCode) {
       // Attempt to record the referral (best effort)
       try {
-        const { data: referrer } = await supabase.from("users").select("id").eq("referral_code", refCode).maybeSingle();
-        if (referrer?.id && referrer.id !== data.user.id) {
+        let referrerId: string | undefined;
+        const { data: referrer, error: referrerError } = await supabase.from("users").select("id").eq("referral_code", refCode).maybeSingle();
+        if (!referrerError && referrer?.id) referrerId = referrer.id;
+        if (!referrerId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(refCode)) {
+          referrerId = refCode;
+        }
+        if (referrerId && referrerId !== data.user.id) {
           await supabase.from("affiliate_referrals").insert({
-            referrer_id: referrer.id,
+            referrer_id: referrerId,
             referred_id: data.user.id,
             referred_email: parsed.data.email,
             status: "free",
