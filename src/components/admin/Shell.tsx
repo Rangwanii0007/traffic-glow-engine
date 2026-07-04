@@ -15,8 +15,18 @@ export function AdminShell({ children }: { children: ReactNode }) {
     if (!loading && profile && !isAdmin) navigate({ to: "/dashboard", replace: true });
   }, [loading, isAdmin, profile, navigate]);
 
-  if (loading || !profile) {
+  if (loading) {
     return <div className="min-h-screen grid place-content-center bg-background"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+  }
+  if (!profile) {
+    return (
+      <div className="min-h-screen grid place-content-center bg-background px-4 text-center">
+        <div className="max-w-md rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+          <p className="font-semibold">Admin profile could not load</p>
+          <p className="mt-2 text-sm text-muted-foreground">Run the backend repair SQL, then refresh this page.</p>
+        </div>
+      </div>
+    );
   }
   if (!isAdmin) return null;
 

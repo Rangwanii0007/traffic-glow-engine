@@ -17,6 +17,25 @@ export const Route = createFileRoute("/_authenticated/admin/settings")({
 
 type Row = { id: string; key: string; value: string | null; type: string | null; label: string | null; description: string | null };
 
+const REQUIRED_SETTINGS: Row[] = [
+  {
+    id: "missing:aria_enabled",
+    key: "aria_enabled",
+    value: "false",
+    type: "boolean",
+    label: "Aria AI Assistant",
+    description: "Enable or disable the floating 3D assistant for users",
+  },
+  {
+    id: "missing:download_url",
+    key: "download_url",
+    value: "",
+    type: "string",
+    label: "Bot Download URL",
+    description: "Latest direct download URL used by the Download Bot button",
+  },
+];
+
 function SettingsAdmin() {
   const qc = useQueryClient();
   const [draft, setDraft] = useState<Record<string, string>>({});
@@ -24,15 +43,21 @@ function SettingsAdmin() {
   const q = useQuery({
     queryKey: ["admin-settings"],
     queryFn: async () => {
-      const { data } = await supabase.from("settings").select("*").order("key");
-      return (data ?? []) as Row[];
+      const { data, error } = await supabase.from("settings").select("*").order("key");
+      if (error) throw error;
+      const rows = (data ?? []) as Row[];
+      const keys = new Set(rows.map((r) => r.key));
+      return [...REQUIRED_SETTINGS.filter((r) => !keys.has(r.key)), ...rows];
     },
   });
 
   const save = async (r: Row, override?: string) => {
     const v = override ?? draft[r.id];
     if (v === undefined) return;
-    const { error } = await supabase.from("settings").update({ value: v } as never).eq("id", r.id);
+    const payload = { key: r.key, value: v, type: r.type ?? "string", label: r.label ?? r.key, description: r.description };
+    const { error } = r.id.startsWith("missing:")
+      ? await supabase.from("settings").upsert(payload as never, { onConflict: "key" })
+      : await supabase.from("settings").update({ value: v } as never).eq("id", r.id);
     if (error) return toast.error(error.message);
     setDraft((d) => { const n = { ...d }; delete n[r.id]; return n; });
     toast.success("Saved"); qc.invalidateQueries({ queryKey: ["admin-settings"] });
