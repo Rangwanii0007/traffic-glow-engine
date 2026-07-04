@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Star, Send, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { Reviews as MarketingReviews } from "@/components/landing/Reviews";
+import { getCommunityReviews, submitCommunityReview } from "@/lib/reviews.functions";
 
 export const Route = createFileRoute("/_authenticated/reviews")({
   head: () => ({ meta: [{ title: "Reviews — AD4YOU" }] }),
@@ -107,23 +109,17 @@ function StarRow({ value, onChange, size = "md" }: { value: number; onChange?: (
 function ReviewsPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const fetchReviews = useServerFn(getCommunityReviews);
+  const submitReview = useServerFn(submitCommunityReview);
   const [rating, setRating] = useState(0);
   const [message, setMessage] = useState("");
 
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ["reviews", "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("reviews")
-        .select("id, user_id, rating, message, created_at, users:user_id(full_name, email, avatar_url)")
-        .order("rating", { ascending: false })
-        .order("created_at", { ascending: false });
-      if (error) {
-        toast.error(error.message.includes("schema cache") ? "Backend reviews table is missing. Run the repair SQL, then refresh." : error.message);
-        return [];
-      }
-      return (data ?? []) as unknown as Review[];
+      return (await fetchReviews()) as Review[];
     },
+    retry: 1,
   });
 
   const myReview = useMemo(() => reviews.find((r) => r.user_id === user?.id), [reviews, user]);
@@ -133,9 +129,7 @@ function ReviewsPage() {
       if (!user) throw new Error("Not signed in");
       if (rating < 1) throw new Error("Please pick a star rating");
       if (message.trim().length < 5) throw new Error("Tell the community a bit more");
-      const payload = { user_id: user.id, rating, message: message.trim() };
-      const { error } = await supabase.from("reviews").upsert(payload, { onConflict: "user_id" });
-      if (error) throw error;
+      await submitReview({ data: { rating, message: message.trim() } });
     },
     onSuccess: () => {
       toast.success(myReview ? "Review updated!" : "Thanks for your review!");
