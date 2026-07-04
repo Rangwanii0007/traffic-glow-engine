@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/reviews")({
 });
 
 type Review = {
-  id: string; user_id: string; rating: number; message: string; created_at: string;
+  id: string; user_id: string | null; external_user_id?: string | null; reviewer_name?: string | null; reviewer_email?: string | null; rating: number; message: string; created_at: string;
   users?: { full_name: string | null; email: string; avatar_url: string | null } | null;
 };
 
@@ -121,7 +121,7 @@ function ReviewsPage() {
     retry: 1,
   });
 
-  const myReview = useMemo(() => reviews.find((r) => r.user_id === user?.id), [reviews, user]);
+  const myReview = useMemo(() => reviews.find((r) => r.user_id === user?.id || r.external_user_id === user?.id), [reviews, user]);
 
   const submit = useMutation({
     mutationFn: async () => {
@@ -218,8 +218,8 @@ function ReviewsPage() {
                 ) : (
                   <div className="space-y-3 max-h-[560px] overflow-y-auto pr-2">
                     {sorted.map((r) => {
-                      const isMine = r.user_id === user?.id;
-                      const name = r.users?.full_name || r.users?.email?.split("@")[0] || "Anonymous";
+                      const isMine = r.user_id === user?.id || r.external_user_id === user?.id;
+                      const name = r.users?.full_name || r.reviewer_name || r.users?.email?.split("@")[0] || r.reviewer_email?.split("@")[0] || "Anonymous";
                       const initial = (name || "?").charAt(0).toUpperCase();
                       return (
                         <div key={r.id} className={cn(

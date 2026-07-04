@@ -6,7 +6,10 @@ import type { Database } from "@/integrations/supabase/types";
 
 type SafeReview = {
   id: string;
-  user_id: string;
+  user_id: string | null;
+  external_user_id: string | null;
+  reviewer_name: string | null;
+  reviewer_email: string | null;
   rating: number;
   message: string;
   created_at: string;
@@ -46,7 +49,7 @@ export const getCommunityReviews = createServerFn({ method: "GET" }).handler(asy
   const admin = getManagedAdmin();
   const { data, error } = await admin
     .from("reviews")
-    .select("id, user_id, rating, message, created_at, users:user_id(full_name, email, avatar_url)")
+    .select("id, user_id, external_user_id, reviewer_name, reviewer_email, rating, message, created_at, users:user_id(full_name, email, avatar_url)")
     .eq("is_approved", true)
     .order("rating", { ascending: false })
     .order("created_at", { ascending: false });
@@ -72,27 +75,16 @@ export const submitCommunityReview = createServerFn({ method: "POST" })
         ? authUser.user_metadata.full_name
         : email.split("@")[0];
 
-    const { error: userError } = await admin.from("users").upsert(
-      {
-        id: authUser.id,
-        email,
-        full_name: fullName,
-        role: "user",
-        avatar_url: null,
-        referral_code: authUser.id.slice(0, 10),
-      },
-      { onConflict: "id" },
-    );
-    if (userError) throw new Error(userError.message);
-
     const { error } = await admin.from("reviews").upsert(
       {
-        user_id: authUser.id,
+        external_user_id: authUser.id,
+        reviewer_name: fullName,
+        reviewer_email: email,
         rating: data.rating,
         message: data.message,
         is_approved: true,
       },
-      { onConflict: "user_id" },
+      { onConflict: "external_user_id" },
     );
     if (error) throw new Error(error.message);
     return { ok: true };
