@@ -75,15 +75,17 @@ export const submitCommunityReview = createServerFn({ method: "POST" })
         ? authUser.user_metadata.full_name
         : email.split("@")[0];
 
+    const payload = {
+      external_user_id: authUser.id,
+      reviewer_name: fullName,
+      reviewer_email: email,
+      rating: data.rating,
+      message: data.message,
+      is_approved: true,
+    } as never;
+
     const { error } = await admin.from("reviews").upsert(
-      {
-        external_user_id: authUser.id,
-        reviewer_name: fullName,
-        reviewer_email: email,
-        rating: data.rating,
-        message: data.message,
-        is_approved: true,
-      },
+      payload,
       { onConflict: "external_user_id" },
     );
     if (error) throw new Error(error.message);
