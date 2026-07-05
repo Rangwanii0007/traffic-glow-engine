@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Download, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Navbar } from "@/components/landing/Navbar";
@@ -14,21 +13,6 @@ export const Route = createFileRoute("/_authenticated/download")({
 });
 
 function DownloadPage() {
-  const { user } = useAuth();
-  const uid = user?.id;
-
-  const subQ = useQuery({
-    queryKey: ["my-sub-active", uid],
-    enabled: !!uid,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("subscriptions")
-        .select("status, plans(name, slug)")
-        .eq("user_id", uid!)
-        .maybeSingle();
-      return data;
-    },
-  });
 
   const versionsQ = useQuery({
     queryKey: ["bot-versions"],
