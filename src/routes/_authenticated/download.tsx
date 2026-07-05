@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Download, Lock, CheckCircle2 } from "lucide-react";
+import { Download, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Navbar } from "@/components/landing/Navbar";
@@ -14,21 +13,6 @@ export const Route = createFileRoute("/_authenticated/download")({
 });
 
 function DownloadPage() {
-  const { user } = useAuth();
-  const uid = user?.id;
-
-  const subQ = useQuery({
-    queryKey: ["my-sub-active", uid],
-    enabled: !!uid,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("subscriptions")
-        .select("status, plans(name, slug)")
-        .eq("user_id", uid!)
-        .maybeSingle();
-      return data;
-    },
-  });
 
   const versionsQ = useQuery({
     queryKey: ["bot-versions"],
@@ -41,8 +25,6 @@ function DownloadPage() {
     },
   });
 
-  const isPaid = subQ.data?.status === "active" && subQ.data?.plans?.slug !== "free";
-
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
@@ -50,18 +32,8 @@ function DownloadPage() {
         <div className="max-w-5xl mx-auto space-y-6">
           <div>
             <h1 className="text-4xl font-black tracking-tight">Download Bot</h1>
-            <p className="text-muted-foreground mt-2">Get the latest desktop application for your plan.</p>
+            <p className="text-muted-foreground mt-2">Get the latest desktop application. Available on all plans.</p>
           </div>
-
-          {!isPaid && subQ.data && (
-            <div className="glass-card rounded-2xl p-5 flex items-start gap-3 border border-warning/30 bg-warning/5">
-              <Lock className="w-5 h-5 text-warning mt-0.5" />
-              <div>
-                <p className="font-medium">Upgrade required</p>
-                <p className="text-sm text-muted-foreground">Downloads are available on paid plans. Upgrade to access the bot.</p>
-              </div>
-            </div>
-          )}
 
           {versionsQ.isLoading ? (
             <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24" />)}</div>
@@ -79,14 +51,14 @@ function DownloadPage() {
                     <p className="text-xs text-muted-foreground mt-1">{v.file_size ? `${v.file_size} · ` : ""}{v.created_at ? new Date(v.created_at).toLocaleDateString() : ""}</p>
                   </div>
                   <Button
-                    disabled={!isPaid || !v.download_url}
-                    asChild={isPaid && !!v.download_url}
+                    disabled={!v.download_url}
+                    asChild={!!v.download_url}
                     className="bg-gradient-to-r from-primary to-accent text-white"
                   >
-                    {isPaid && v.download_url ? (
+                    {v.download_url ? (
                       <a href={v.download_url} target="_blank" rel="noreferrer"><Download className="w-4 h-4 mr-2" />Download</a>
                     ) : (
-                      <span><Lock className="w-4 h-4 mr-2" />Locked</span>
+                      <span>Unavailable</span>
                     )}
                   </Button>
                 </div>
