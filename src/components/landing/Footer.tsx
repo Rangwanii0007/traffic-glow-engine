@@ -1,5 +1,6 @@
 import { Zap } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { SocialPlatforms } from "@/components/landing/SocialPlatforms";
 
 export function Footer() {
   const cols = [
