@@ -587,6 +587,45 @@ export type Database = {
         }
         Relationships: []
       }
+      platforms: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          kind: string
+          logo_url: string | null
+          name: string
+          sort_order: number
+          updated_at: string
+          url: string | null
+          value: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          logo_url?: string | null
+          name: string
+          sort_order?: number
+          updated_at?: string
+          url?: string | null
+          value?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          logo_url?: string | null
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          url?: string | null
+          value?: string | null
+        }
+        Relationships: []
+      }
       reviews: {
         Row: {
           created_at: string | null

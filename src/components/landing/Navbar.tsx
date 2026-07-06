@@ -21,12 +21,12 @@ export function Navbar() {
   const links = [
     { to: "/", label: "Home" },
     { to: "/location", label: "Location" },
-    { to: "/#features", label: "Features" },
-    { to: "/#networks", label: "Networks" },
     { to: "/pricing", label: "Pricing" },
-    { to: "/download", label: "Download Bot" },
-    { to: "/affiliate", label: "Affiliate Program" },
+    { to: "/download", label: "Download" },
+    { to: "/affiliate", label: "Affiliate" },
     { to: "/reviews", label: "Reviews" },
+    { to: "/about", label: "About" },
+    { to: "/contact", label: "Contact" },
   ];
 
   const initials = (profile?.full_name || user?.email || "?")

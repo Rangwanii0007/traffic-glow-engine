@@ -1,5 +1,6 @@
 import { Zap } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { SocialPlatforms } from "@/components/landing/SocialPlatforms";
 
 export function Footer() {
   const cols = [
@@ -61,9 +62,12 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-12 pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-white/40">© {new Date().getFullYear()} AD4YOU. All rights reserved.</p>
-          <p className="text-xs text-white/40">Crypto payments by NOWPayments · Secured by enterprise-grade infrastructure</p>
+        <div className="mt-12 pt-8 border-t border-white/5 flex flex-col gap-4">
+          <SocialPlatforms iconClass="w-9 h-9" />
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-white/40">© {new Date().getFullYear()} AD4YOU. All rights reserved.</p>
+            <p className="text-xs text-white/40">Crypto payments by NOWPayments · Secured by enterprise-grade infrastructure</p>
+          </div>
         </div>
       </div>
     </footer>
