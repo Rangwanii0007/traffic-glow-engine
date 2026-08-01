@@ -95,17 +95,17 @@ export const savePaymentMethod = createServerFn({ method: "POST" })
     const { user, admin } = await requireUser();
 
     const { count } = await admin
-      .from("payment_methods")
+      .from("user_payout_methods")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id);
 
     const base = { user_id: user.id, method_type: data.methodType, details: data.details };
     let { error } = await admin
-      .from("payment_methods")
+      .from("user_payout_methods")
       .insert({ ...base, is_default: (count ?? 0) === 0 } as never);
 
     if (error && /is_default/i.test(error.message)) {
-      const retry = await admin.from("payment_methods").insert(base as never);
+      const retry = await admin.from("user_payout_methods").insert(base as never);
       error = retry.error;
     }
     if (error) throw new Error(error.message);
@@ -117,13 +117,14 @@ export const deletePaymentMethod = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { user, admin } = await requireUser();
     const { error } = await admin
-      .from("payment_methods")
+      .from("user_payout_methods")
       .delete()
       .eq("id", data.id)
       .eq("user_id", user.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
 
 const planFields = z.object({
   name: z.string().trim().min(1).max(60).optional(),
