@@ -84,7 +84,7 @@ export function Navbar() {
                     {user.email}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate({ to: "/dashboard" })}>
+                  <DropdownMenuItem onClick={() => navigate({ to: "/profile" })}>
                     <UserIcon className="w-4 h-4" /> Profile
                   </DropdownMenuItem>
                   {isAdmin && (
@@ -130,7 +130,7 @@ export function Navbar() {
             ))}
             {user ? (
               <>
-                <Link to="/dashboard" className="px-3 py-2 text-white/80">Profile</Link>
+                <Link to="/profile" className="px-3 py-2 text-white/80">Profile</Link>
                 {isAdmin && <Link to="/admin" className="px-3 py-2 text-white/80">Admin Panel</Link>}
                 <button onClick={handleSignOut} className="px-3 py-2 text-left text-destructive">
                   Sign out
