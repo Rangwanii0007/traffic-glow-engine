@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { CheckCircle2, HandCoins, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,18 @@ export const Route = createFileRoute("/_authenticated/admin/payouts")({
   component: AffiliatePayoutsAdmin,
 });
 
-type Payout = Awaited<ReturnType<typeof listAdminWithdrawals>>[number];
+type Payout = {
+  id: string;
+  user_id: string;
+  amount: number;
+  method: string;
+  method_details: unknown;
+  status: string | null;
+  admin_notes: string | null;
+  created_at: string | null;
+  processed_at: string | null;
+  users: { email: string; full_name: string } | { email: string; full_name: string }[] | null;
+};
 
 function AffiliatePayoutsAdmin() {
   const qc = useQueryClient();
@@ -82,7 +94,7 @@ function AffiliatePayoutsAdmin() {
   );
 }
 
-function PayoutTable({ title, rows, renderRow, empty }: { title: string; rows: Payout[]; renderRow: (row: Payout) => React.ReactNode; empty: string }) {
+function PayoutTable({ title, rows, renderRow, empty }: { title: string; rows: Payout[]; renderRow: (row: Payout) => ReactNode; empty: string }) {
   return (
     <section>
       <h2 className="mb-3 text-lg font-semibold">{title}</h2>
