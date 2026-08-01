@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Package, Sliders, CreditCard, Activity,
   HelpCircle, Megaphone, Mail, Download, Settings, ShieldCheck, ArrowLeft, Tag, Share2,
+  HandCoins,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
@@ -13,6 +14,7 @@ const links = [
   { to: "/admin/features", label: "Plan Features", icon: Sliders },
   { to: "/admin/offers", label: "Discount Offers", icon: Tag },
   { to: "/admin/payments", label: "Payments", icon: CreditCard },
+  { to: "/admin/payouts", label: "Affiliate Payouts", icon: HandCoins },
   { to: "/admin/sessions", label: "Bot Sessions", icon: Activity },
   { to: "/admin/tickets", label: "Support Tickets", icon: HelpCircle },
   { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
