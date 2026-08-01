@@ -77,15 +77,12 @@ function AffiliatePage() {
     queryKey: ["payment-methods", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await (supabase as unknown as {
-        from: (t: string) => { select: (c: string) => { eq: (a: string, b: string) => Promise<{ data: unknown[] | null; error: { message: string } | null }> } };
-      })
+      const { data, error } = await supabase
         .from("user_payout_methods")
-        .select("*")
+        .select("id, method_type, details")
         .eq("user_id", user!.id);
       if (error) throw error;
       return (data ?? []) as { id: string; method_type: string; details: Record<string, string> }[];
-
     },
   });
 
@@ -313,6 +310,25 @@ function AffiliatePage() {
             </div>
           </div>
 
+          {withdrawals.length > 0 && (
+            <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+              <h3 className="font-semibold mb-4 flex items-center gap-2"><CheckCircle2 className="w-4 h-4" />Payout History</h3>
+              <div className="space-y-2">
+                {withdrawals.map((w) => (
+                  <div key={w.id} className="flex flex-wrap items-center justify-between gap-2 text-sm border border-white/5 rounded-lg px-3 py-3">
+                    <div>
+                      <p className="font-medium">${Number(w.amount).toFixed(2)} · {METHODS.find((m) => m.value === w.method)?.label ?? w.method}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(w.created_at).toLocaleString()}</p>
+                    </div>
+                    <span className={cn("text-xs px-2 py-1 rounded-full capitalize",
+                      w.status === "completed" ? "bg-emerald-500/20 text-emerald-300" :
+                      w.status === "pending" ? "bg-amber-500/20 text-amber-300" : "bg-white/10 text-muted-foreground")}>{w.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {hasFirstPremium && (
             <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
               <h3 className="font-semibold mb-4 flex items-center gap-2"><Send className="w-4 h-4" />Request Withdrawal</h3>
@@ -327,21 +343,6 @@ function AffiliatePage() {
                   {requestWithdraw.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Withdraw"}
                 </Button>
               </div>
-              {withdrawals.length > 0 && (
-                <div className="mt-5 space-y-2">
-                  <p className="text-xs text-muted-foreground">RECENT WITHDRAWALS</p>
-                  {withdrawals.slice(0, 5).map((w) => (
-                    <div key={w.id} className="flex items-center justify-between text-sm border border-white/5 rounded-lg px-3 py-2">
-                      <span>${Number(w.amount).toFixed(2)} • {METHODS.find((m) => m.value === w.method)?.label ?? w.method}</span>
-                      <span className={cn("text-xs px-2 py-0.5 rounded-full",
-                        w.status === "completed" ? "bg-emerald-500/20 text-emerald-300" :
-                        w.status === "pending" ? "bg-amber-500/20 text-amber-300" : "bg-white/10")}>
-                        {w.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           )}
         </div>

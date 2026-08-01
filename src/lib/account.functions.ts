@@ -1,47 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import type { Database } from "@/integrations/supabase/types";
-
-/** Admin client for the live app database (external project the browser talks to). */
-function getAppAdmin() {
-  const url = process.env.EXTERNAL_SUPABASE_URL || process.env.SUPABASE_URL;
-  const key = process.env.EXTERNAL_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("Backend is not configured");
-  return createClient<Database>(url, key, {
-    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
-  });
-}
-
-async function requireUser() {
-  const request = getRequest();
-  const authHeader = request?.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) throw new Error("Not signed in");
-  const token = authHeader.slice("Bearer ".length).trim();
-  const admin = getAppAdmin();
-  const { data, error } = await admin.auth.getUser(token);
-  if (error || !data.user) throw new Error("Not signed in");
-  return { user: data.user, admin };
-}
-
-async function requireAdmin() {
-  const { user, admin } = await requireUser();
-  const { data } = await admin.from("users").select("role").eq("id", user.id).maybeSingle();
-  if ((data as { role?: string } | null)?.role !== "admin") throw new Error("Admin access required");
-  return { user, admin };
-}
-
-/** The live database's payout table is not in the generated types, so use a loose client. */
-type LooseQuery = {
-  select: (cols: string, opts?: Record<string, unknown>) => LooseQuery;
-  insert: (row: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
-  delete: () => LooseQuery;
-  eq: (col: string, val: string) => LooseQuery & Promise<{ count: number | null; error: { message: string } | null }>;
-};
-type LooseClient = { from: (table: string) => LooseQuery };
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { getAppAdmin, planFieldsSchema, referralCodePattern, requireAdmin, requireUser } from "./account.server";
 
 /** Records a referral after signup. Runs with service role so RLS/session state can't block it. */
 export const recordReferral = createServerFn({ method: "POST" })
@@ -65,7 +24,7 @@ export const recordReferral = createServerFn({ method: "POST" })
       .maybeSingle();
     if (byCode?.id) referrerId = byCode.id as string;
 
-    if (!referrerId && UUID_RE.test(data.refCode)) {
+    if (!referrerId && referralCodePattern.test(data.refCode)) {
       const { data: byId } = await admin.from("users").select("id").eq("id", data.refCode).maybeSingle();
       if (byId?.id) referrerId = byId.id as string;
     }
@@ -90,7 +49,6 @@ export const recordReferral = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Saves a payout method. Tolerates databases where `is_default` does not exist. */
 export const savePaymentMethod = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z
@@ -102,22 +60,14 @@ export const savePaymentMethod = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { user, admin } = await requireUser();
-    const db = admin as unknown as LooseClient;
-
-    const { count } = await db
+    const { count, error: countError } = await admin
       .from("user_payout_methods")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id);
-
-    const base = { user_id: user.id, method_type: data.methodType, details: data.details };
-    let { error } = await db
+    if (countError) throw new Error(countError.message);
+    const { error } = await admin
       .from("user_payout_methods")
-      .insert({ ...base, is_default: (count ?? 0) === 0 });
-
-    if (error && /is_default/i.test(error.message)) {
-      const retry = await db.from("user_payout_methods").insert(base);
-      error = retry.error;
-    }
+      .insert({ user_id: user.id, method_type: data.methodType, details: data.details, is_default: (count ?? 0) === 0 });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -126,8 +76,7 @@ export const deletePaymentMethod = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { user, admin } = await requireUser();
-    const db = admin as unknown as LooseClient;
-    const { error } = await db
+    const { error } = await admin
       .from("user_payout_methods")
       .delete()
       .eq("id", data.id)
@@ -138,21 +87,9 @@ export const deletePaymentMethod = createServerFn({ method: "POST" })
 
 
 
-const planFields = z.object({
-  name: z.string().trim().min(1).max(60).optional(),
-  slug: z.string().trim().regex(/^[a-z0-9-]+$/, "Slug must be lowercase letters, numbers or dashes").max(40).optional(),
-  description: z.string().trim().max(400).nullable().optional(),
-  price: z.number().min(0).max(100000).optional(),
-  duration_days: z.number().int().min(0).max(3650).optional(),
-  is_free: z.boolean().nullable().optional(),
-  is_active: z.boolean().nullable().optional(),
-  is_popular: z.boolean().nullable().optional(),
-  sort_order: z.number().int().min(0).max(9999).optional(),
-});
-
 export const adminSavePlan = createServerFn({ method: "POST" })
   .inputValidator((input) =>
-    z.object({ id: z.string().uuid().nullable().optional(), values: planFields }).parse(input),
+    z.object({ id: z.string().uuid().nullable().optional(), values: planFieldsSchema }).parse(input),
   )
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { admin } = await requireAdmin();
@@ -178,6 +115,39 @@ export const adminDeletePlan = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { admin } = await requireAdmin();
     const { error } = await admin.from("plans").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const listAdminWithdrawals = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { admin } = await requireAdmin();
+    const { data, error } = await admin
+      .from("affiliate_withdrawals")
+      .select("id, user_id, amount, method, method_details, status, admin_notes, created_at, processed_at, users(email, full_name)")
+      .order("created_at", { ascending: false })
+      .limit(250);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const releaseWithdrawal = createServerFn({ method: "POST" })
+  .inputValidator((input) => z.object({ id: z.string().uuid(), note: z.string().trim().max(500).optional() }).parse(input))
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { admin } = await requireAdmin();
+    const { data: withdrawal, error: readError } = await admin
+      .from("affiliate_withdrawals")
+      .select("status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (!withdrawal) throw new Error("Withdrawal not found");
+    if (withdrawal.status !== "pending") throw new Error("Only pending withdrawals can be released");
+    const { error } = await admin
+      .from("affiliate_withdrawals")
+      .update({ status: "completed", processed_at: new Date().toISOString(), admin_notes: data.note || "Released by admin" })
+      .eq("id", data.id)
+      .eq("status", "pending");
     if (error) throw new Error(error.message);
     return { ok: true };
   });
