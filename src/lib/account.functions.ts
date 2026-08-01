@@ -32,6 +32,15 @@ async function requireAdmin() {
   return { user, admin };
 }
 
+/** The live database's payout table is not in the generated types, so use a loose client. */
+type LooseQuery = {
+  select: (cols: string, opts?: Record<string, unknown>) => LooseQuery;
+  insert: (row: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
+  delete: () => LooseQuery;
+  eq: (col: string, val: string) => LooseQuery & Promise<{ count: number | null; error: { message: string } | null }>;
+};
+type LooseClient = { from: (table: string) => LooseQuery };
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Records a referral after signup. Runs with service role so RLS/session state can't block it. */
@@ -93,7 +102,7 @@ export const savePaymentMethod = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { user, admin } = await requireUser();
-    const db = admin as unknown as ReturnType<typeof createClient>;
+    const db = admin as unknown as LooseClient;
 
     const { count } = await db
       .from("user_payout_methods")
@@ -117,7 +126,7 @@ export const deletePaymentMethod = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { user, admin } = await requireUser();
-    const db = admin as unknown as ReturnType<typeof createClient>;
+    const db = admin as unknown as LooseClient;
     const { error } = await db
       .from("user_payout_methods")
       .delete()
