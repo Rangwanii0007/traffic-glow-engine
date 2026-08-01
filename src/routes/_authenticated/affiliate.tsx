@@ -77,9 +77,15 @@ function AffiliatePage() {
     queryKey: ["payment-methods", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase.from("payment_methods").select("*").eq("user_id", user!.id);
+      const { data, error } = await (supabase as unknown as {
+        from: (t: string) => { select: (c: string) => { eq: (a: string, b: string) => Promise<{ data: unknown[] | null; error: { message: string } | null }> } };
+      })
+        .from("user_payout_methods")
+        .select("*")
+        .eq("user_id", user!.id);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as { id: string; method_type: string; details: Record<string, string> }[];
+
     },
   });
 

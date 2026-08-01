@@ -32,6 +32,15 @@ async function requireAdmin() {
   return { user, admin };
 }
 
+/** The live database's payout table is not in the generated types, so use a loose client. */
+type LooseQuery = {
+  select: (cols: string, opts?: Record<string, unknown>) => LooseQuery;
+  insert: (row: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
+  delete: () => LooseQuery;
+  eq: (col: string, val: string) => LooseQuery & Promise<{ count: number | null; error: { message: string } | null }>;
+};
+type LooseClient = { from: (table: string) => LooseQuery };
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Records a referral after signup. Runs with service role so RLS/session state can't block it. */
@@ -93,19 +102,20 @@ export const savePaymentMethod = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { user, admin } = await requireUser();
+    const db = admin as unknown as LooseClient;
 
-    const { count } = await admin
-      .from("payment_methods")
+    const { count } = await db
+      .from("user_payout_methods")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id);
 
     const base = { user_id: user.id, method_type: data.methodType, details: data.details };
-    let { error } = await admin
-      .from("payment_methods")
-      .insert({ ...base, is_default: (count ?? 0) === 0 } as never);
+    let { error } = await db
+      .from("user_payout_methods")
+      .insert({ ...base, is_default: (count ?? 0) === 0 });
 
     if (error && /is_default/i.test(error.message)) {
-      const retry = await admin.from("payment_methods").insert(base as never);
+      const retry = await db.from("user_payout_methods").insert(base);
       error = retry.error;
     }
     if (error) throw new Error(error.message);
@@ -116,14 +126,17 @@ export const deletePaymentMethod = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { user, admin } = await requireUser();
-    const { error } = await admin
-      .from("payment_methods")
+    const db = admin as unknown as LooseClient;
+    const { error } = await db
+      .from("user_payout_methods")
       .delete()
       .eq("id", data.id)
       .eq("user_id", user.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+
 
 const planFields = z.object({
   name: z.string().trim().min(1).max(60).optional(),
