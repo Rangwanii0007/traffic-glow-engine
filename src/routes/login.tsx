@@ -35,7 +35,7 @@ function LoginPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate({ to: isAdmin ? "/admin" : "/dashboard", replace: true });
+      navigate({ to: isAdmin ? "/admin" : "/", replace: true });
     }
   }, [user, isAdmin, loading, navigate]);
 
@@ -68,7 +68,7 @@ function LoginPage() {
       .select("role")
       .eq("id", data.user!.id)
       .maybeSingle();
-    navigate({ to: profile?.role === "admin" ? "/admin" : "/dashboard", replace: true });
+    navigate({ to: profile?.role === "admin" ? "/admin" : "/", replace: true });
   };
 
   return (

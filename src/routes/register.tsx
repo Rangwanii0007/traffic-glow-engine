@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { friendlyAuthError } from "@/lib/auth-errors";
 import { useAuth } from "@/hooks/use-auth";
+import { recordReferral } from "@/lib/account.functions";
 
 export const Route = createFileRoute("/register")({
   head: () => ({ meta: [{ title: "Create account — AD4YOU" }] }),
@@ -51,7 +52,7 @@ function RegisterPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/dashboard", replace: true });
+    if (!loading && user) navigate({ to: "/", replace: true });
   }, [user, loading, navigate]);
 
   const strength = useMemo(() => scorePassword(password), [password]);
@@ -80,28 +81,16 @@ function RegisterPage() {
       email: parsed.data.email,
       password: parsed.data.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `${window.location.origin}/`,
         data: { full_name: parsed.data.full_name, referral_code: refCode },
       },
     });
     if (!error && data.user && refCode) {
-      // Attempt to record the referral (best effort)
       try {
-        let referrerId: string | undefined;
-        const { data: referrer, error: referrerError } = await supabase.from("users").select("id").eq("referral_code", refCode).maybeSingle();
-        if (!referrerError && referrer?.id) referrerId = referrer.id;
-        if (!referrerId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(refCode)) {
-          referrerId = refCode;
-        }
-        if (referrerId && referrerId !== data.user.id) {
-          await supabase.from("affiliate_referrals").insert({
-            referrer_id: referrerId,
-            referred_id: data.user.id,
-            referred_email: parsed.data.email,
-            status: "free",
-          });
-        }
-      } catch { /* ignore */ }
+        await recordReferral({
+          data: { refCode, referredId: data.user.id, referredEmail: parsed.data.email },
+        });
+      } catch { /* referral recording is best effort */ }
     }
     setSubmitting(false);
     if (error) {
@@ -109,7 +98,7 @@ function RegisterPage() {
       return;
     }
     toast.success("Account created! Check your email to verify.");
-    setTimeout(() => navigate({ to: "/dashboard", replace: true }), 2000);
+    setTimeout(() => navigate({ to: "/", replace: true }), 2000);
   };
 
 

@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { deletePaymentMethod, savePaymentMethod } from "@/lib/account.functions";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
@@ -113,11 +114,13 @@ function AffiliatePage() {
   const savePM = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Not signed in");
-      const details: Record<string, string> = { ...pmFields };
-      const { error } = await supabase.from("payment_methods").insert({
-        user_id: user.id, method_type: pmType, details, is_default: paymentMethods.length === 0,
-      });
-      if (error) throw error;
+      const details: Record<string, string> = {};
+      for (const [k, v] of Object.entries(pmFields)) {
+        const value = v.trim();
+        if (value) details[k] = value;
+      }
+      if (Object.keys(details).length === 0) throw new Error("Fill in your payout details first");
+      await savePaymentMethod({ data: { methodType: pmType as "paypal", details } });
     },
     onSuccess: () => { toast.success("Payment method saved"); setPmFields({}); qc.invalidateQueries({ queryKey: ["payment-methods"] }); },
     onError: (e: Error) => toast.error(e.message),
@@ -125,10 +128,10 @@ function AffiliatePage() {
 
   const deletePM = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("payment_methods").delete().eq("id", id);
-      if (error) throw error;
+      await deletePaymentMethod({ data: { id } });
     },
     onSuccess: () => { toast.success("Removed"); qc.invalidateQueries({ queryKey: ["payment-methods"] }); },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const [wMethod, setWMethod] = useState<string>("paypal");

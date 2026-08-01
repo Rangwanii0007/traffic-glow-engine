@@ -86,7 +86,7 @@ export const savePaymentMethod = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z
       .object({
-        methodType: z.enum(["bank", "paypal", "payoneer", "crypto"]),
+        methodType: z.enum(["wire_bank", "bank", "paypal", "payoneer", "crypto"]),
         details: z.record(z.string(), z.string().trim().min(1).max(300)),
       })
       .parse(input),

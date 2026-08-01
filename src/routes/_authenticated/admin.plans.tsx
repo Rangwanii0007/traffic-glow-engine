@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus, Trash2, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { adminDeletePlan, adminSavePlan } from "@/lib/account.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,8 +36,9 @@ function PlansAdmin() {
 
   const save = async (p: PlanRow) => {
     const patch = draft[p.id]; if (!patch) return;
-    const { error } = await supabase.from("plans").update(patch as never).eq("id", p.id);
-    if (error) return toast.error(error.message);
+    try {
+      await adminSavePlan({ data: { id: p.id, values: patch as Record<string, never> } });
+    } catch (e) { return toast.error((e as Error).message); }
     setDraft((d) => { const n = { ...d }; delete n[p.id]; return n; });
     toast.success("Plan updated");
     qc.invalidateQueries({ queryKey: ["admin-plans"] });
@@ -44,8 +46,9 @@ function PlansAdmin() {
 
   const remove = async (p: PlanRow) => {
     if (!confirm(`Delete plan "${p.name}"?`)) return;
-    const { error } = await supabase.from("plans").delete().eq("id", p.id);
-    if (error) return toast.error(error.message);
+    try {
+      await adminDeletePlan({ data: { id: p.id } });
+    } catch (e) { return toast.error((e as Error).message); }
     toast.success("Deleted");
     qc.invalidateQueries({ queryKey: ["admin-plans"] });
   };
@@ -53,11 +56,11 @@ function PlansAdmin() {
   const add = async () => {
     const slug = prompt("Plan slug (e.g. enterprise)?")?.trim();
     if (!slug) return;
-    const { error } = await supabase.from("plans").insert({
-      slug, name: slug.charAt(0).toUpperCase() + slug.slice(1),
-      price: 0, duration_days: 30, is_active: true, sort_order: 99,
-    } as never);
-    if (error) return toast.error(error.message);
+    try {
+      await adminSavePlan({
+        data: { id: null, values: { slug: slug.toLowerCase(), name: slug.charAt(0).toUpperCase() + slug.slice(1) } },
+      });
+    } catch (e) { return toast.error((e as Error).message); }
     toast.success("Plan created");
     qc.invalidateQueries({ queryKey: ["admin-plans"] });
   };
