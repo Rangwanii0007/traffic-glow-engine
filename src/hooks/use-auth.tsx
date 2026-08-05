@@ -18,7 +18,7 @@ function toFallbackProfile(authUser: User): Profile {
     full_name: (authUser.user_metadata?.full_name as string | undefined) ?? authUser.email?.split("@")[0] ?? null,
     role: "user",
     avatar_url: null,
-    referral_code: authUser.id,
+    referral_code: null,
   };
 }
 
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .maybeSingle();
 
     if (!error && data) {
-      setProfile({ ...(data as Profile), referral_code: (data as Profile).referral_code ?? authUser.id });
+      setProfile({ ...(data as Profile), referral_code: (data as Profile).referral_code ?? null });
       return;
     }
 
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq("id", authUser.id)
       .maybeSingle();
 
-    setProfile(fallbackData ? { ...(fallbackData as Omit<Profile, "referral_code">), referral_code: authUser.id } : toFallbackProfile(authUser));
+    setProfile(fallbackData ? { ...(fallbackData as Omit<Profile, "referral_code">), referral_code: null } : toFallbackProfile(authUser));
   };
 
   useEffect(() => {
