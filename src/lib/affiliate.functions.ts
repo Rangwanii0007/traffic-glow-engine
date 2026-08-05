@@ -138,7 +138,23 @@ export const checkReferralCode = createServerFn({ method: "POST" })
 
 /* ------------------------------- ADMIN CONTROLS ------------------------------- */
 
-export const adminAffiliateOverview = createServerFn({ method: "GET" }).handler(async () => {
+export type AdminWithdrawal = {
+  id: string; user_id: string; amount: number; method: string; method_details: Record<string, string>;
+  status: string; admin_notes: string | null; created_at: string; processed_at: string | null;
+  user_email: string; user_name: string | null;
+};
+export type AdminReferral = {
+  id: string; referrer_id: string; referred_id: string; status: string; commission_amount: number;
+  created_at: string; referrer_email: string; referred_email_resolved: string | null;
+};
+export type AdminUserRow = { id: string; email: string; full_name: string | null; role: string; referral_code: string | null };
+
+export const adminAffiliateOverview = createServerFn({ method: "GET" }).handler(async (): Promise<{
+  config: { minWithdrawal: number; commissionPercent: number; lockPayoutMethods: boolean };
+  users: AdminUserRow[];
+  withdrawals: AdminWithdrawal[];
+  referrals: AdminReferral[];
+}> => {
   const { admin } = await requireAdmin();
   const config = await readAffiliateConfig(admin);
 
@@ -167,13 +183,13 @@ export const adminAffiliateOverview = createServerFn({ method: "GET" }).handler(
       amount: Number(w.amount),
       user_email: byId.get(w.user_id as string)?.email ?? "unknown",
       user_name: byId.get(w.user_id as string)?.full_name ?? null,
-    })),
+    })) as AdminWithdrawal[],
     referrals: ((referrals ?? []) as Record<string, unknown>[]).map((r) => ({
       ...r,
       commission_amount: Number(r.commission_amount),
       referrer_email: byId.get(r.referrer_id as string)?.email ?? "unknown",
       referred_email_resolved: byId.get(r.referred_id as string)?.email ?? (r.referred_email as string | null),
-    })),
+    })) as AdminReferral[],
   };
 });
 

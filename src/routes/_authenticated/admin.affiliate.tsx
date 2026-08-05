@@ -119,7 +119,7 @@ function AdminAffiliatePage() {
   );
 
   return (
-    <AdminShell title="Affiliate Control" description="Referrals, commissions, subscription days and payouts">
+    <AdminShell>
       {overviewQ.isLoading ? (
         <div className="py-16 grid place-content-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
       ) : (
@@ -189,16 +189,16 @@ function AdminAffiliatePage() {
             ) : (
               <div className="space-y-2">
                 {pending.map((w) => (
-                  <div key={w.id as string} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/20 bg-amber-500/5 p-3">
+                  <div key={w.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/20 bg-amber-500/5 p-3">
                     <div>
-                      <p className="font-semibold">${Number(w.amount).toFixed(2)} · {String(w.method)}</p>
-                      <p className="text-xs text-muted-foreground">{String(w.user_name ?? w.user_email)} · {String(w.user_email)}</p>
+                      <p className="font-semibold">${Number(w.amount).toFixed(2)} · {w.method}</p>
+                      <p className="text-xs text-muted-foreground">{w.user_name ?? w.user_email} · {w.user_email}</p>
                       <p className="text-xs text-muted-foreground font-mono break-all">{JSON.stringify(w.method_details)}</p>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" onClick={() => process.mutate({ id: w.id as string, action: "release" })}
+                      <Button size="sm" onClick={() => process.mutate({ id: w.id, action: "release" })}
                         className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white">Successfully sent</Button>
-                      <Button size="sm" variant="ghost" onClick={() => process.mutate({ id: w.id as string, action: "reject" })}
+                      <Button size="sm" variant="ghost" onClick={() => process.mutate({ id: w.id, action: "reject" })}
                         className="text-destructive">Reject</Button>
                     </div>
                   </div>
@@ -210,11 +210,11 @@ function AdminAffiliatePage() {
               <div className="mt-5 space-y-2">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">History</p>
                 {processed.map((w) => (
-                  <div key={w.id as string} className="flex flex-wrap items-center justify-between gap-2 text-sm border border-white/5 rounded-lg px-3 py-2">
-                    <span>${Number(w.amount).toFixed(2)} · {String(w.user_email)}</span>
+                  <div key={w.id} className="flex flex-wrap items-center justify-between gap-2 text-sm border border-white/5 rounded-lg px-3 py-2">
+                    <span>${Number(w.amount).toFixed(2)} · {w.user_email}</span>
                     <span className={cn("text-xs px-2 py-1 rounded-full capitalize",
                       w.status === "completed" ? "bg-emerald-500/20 text-emerald-300" : "bg-destructive/20 text-destructive")}>
-                      {w.status === "completed" ? "success" : String(w.status)}
+                      {w.status === "completed" ? "success" : w.status}
                     </span>
                   </div>
                 ))}
@@ -226,18 +226,18 @@ function AdminAffiliatePage() {
             <h3 className="font-semibold mb-4 flex items-center gap-2"><Crown className="w-4 h-4" />All referrals</h3>
             <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
               {(data?.referrals ?? []).map((r) => (
-                <div key={r.id as string} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/5 p-3 text-sm">
+                <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/5 p-3 text-sm">
                   <div className="min-w-0">
-                    <p className="truncate">{String(r.referrer_email)} → {String(r.referred_email_resolved ?? "unknown")}</p>
+                    <p className="truncate">{r.referrer_email} → {r.referred_email_resolved ?? "unknown"}</p>
                     <p className="text-xs text-muted-foreground">
                       {String(r.status).toUpperCase()} · ${Number(r.commission_amount).toFixed(2)}
                     </p>
                   </div>
                   <div className="flex gap-2">
                     {r.status === "premium" ? (
-                      <Button size="sm" variant="ghost" onClick={() => setStatus.mutate({ id: r.id as string, status: "free" })}>Set free</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setStatus.mutate({ id: r.id, status: "free" })}>Set free</Button>
                     ) : (
-                      <Button size="sm" variant="ghost" onClick={() => setStatus.mutate({ id: r.id as string, status: "premium", commission: Number(effectiveMin) > 0 ? undefined : undefined })}>Set premium</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setStatus.mutate({ id: r.id, status: "premium", commission: Number(effectiveMin) > 0 ? undefined : undefined })}>Set premium</Button>
                     )}
                   </div>
                 </div>
