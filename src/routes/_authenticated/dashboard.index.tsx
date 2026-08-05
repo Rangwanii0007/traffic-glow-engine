@@ -153,7 +153,7 @@ function OverviewPage() {
           </div>
         ) : recentQ.data?.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
-            No sessions yet. <Link to="/dashboard/download" className="text-primary hover:underline">Download the bot</Link> to get started.
+            No sessions yet. <Link to="/download" className="text-primary hover:underline">Download the bot</Link> to get started.
           </p>
         ) : (
           <div className="overflow-x-auto -mx-2">

@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 
-export const Route = createFileRoute("/_authenticated/download")({
+export const Route = createFileRoute("/download")({
   head: () => ({ meta: [{ title: "Download Bot — AD4YOU" }] }),
   component: DownloadPage,
 });

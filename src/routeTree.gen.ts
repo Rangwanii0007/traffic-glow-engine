@@ -15,13 +15,13 @@ import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LocationRouteImport } from './routes/location'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as DownloadRouteImport } from './routes/download'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedReviewsRouteImport } from './routes/_authenticated/reviews'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
-import { Route as AuthenticatedDownloadRouteImport } from './routes/_authenticated/download'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAffiliateRouteImport } from './routes/_authenticated/affiliate'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -44,6 +44,7 @@ import { Route as AuthenticatedAdminOffersRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminFeaturesRouteImport } from './routes/_authenticated/admin.features'
 import { Route as AuthenticatedAdminContactRouteImport } from './routes/_authenticated/admin.contact'
 import { Route as AuthenticatedAdminAnnouncementsRouteImport } from './routes/_authenticated/admin.announcements'
+import { Route as AuthenticatedAdminAffiliateRouteImport } from './routes/_authenticated/admin.affiliate'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -75,6 +76,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DownloadRoute = DownloadRouteImport.update({
+  id: '/download',
+  path: '/download',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
@@ -102,11 +108,6 @@ const AuthenticatedReviewsRoute = AuthenticatedReviewsRouteImport.update({
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedDownloadRoute = AuthenticatedDownloadRouteImport.update({
-  id: '/download',
-  path: '/download',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -235,11 +236,18 @@ const AuthenticatedAdminAnnouncementsRoute =
     path: '/announcements',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminAffiliateRoute =
+  AuthenticatedAdminAffiliateRouteImport.update({
+    id: '/affiliate',
+    path: '/affiliate',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
+  '/download': typeof DownloadRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/location': typeof LocationRoute
   '/login': typeof LoginRoute
@@ -249,9 +257,9 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/affiliate': typeof AuthenticatedAffiliateRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
-  '/download': typeof AuthenticatedDownloadRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/reviews': typeof AuthenticatedReviewsRoute
+  '/admin/affiliate': typeof AuthenticatedAdminAffiliateRoute
   '/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
   '/admin/contact': typeof AuthenticatedAdminContactRoute
   '/admin/features': typeof AuthenticatedAdminFeaturesRoute
@@ -276,6 +284,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
+  '/download': typeof DownloadRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/location': typeof LocationRoute
   '/login': typeof LoginRoute
@@ -283,9 +292,9 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/affiliate': typeof AuthenticatedAffiliateRoute
-  '/download': typeof AuthenticatedDownloadRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/reviews': typeof AuthenticatedReviewsRoute
+  '/admin/affiliate': typeof AuthenticatedAdminAffiliateRoute
   '/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
   '/admin/contact': typeof AuthenticatedAdminContactRoute
   '/admin/features': typeof AuthenticatedAdminFeaturesRoute
@@ -312,6 +321,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
+  '/download': typeof DownloadRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/location': typeof LocationRoute
   '/login': typeof LoginRoute
@@ -321,9 +331,9 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/affiliate': typeof AuthenticatedAffiliateRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
-  '/_authenticated/download': typeof AuthenticatedDownloadRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/reviews': typeof AuthenticatedReviewsRoute
+  '/_authenticated/admin/affiliate': typeof AuthenticatedAdminAffiliateRoute
   '/_authenticated/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
   '/_authenticated/admin/contact': typeof AuthenticatedAdminContactRoute
   '/_authenticated/admin/features': typeof AuthenticatedAdminFeaturesRoute
@@ -350,6 +360,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/contact'
+    | '/download'
     | '/forgot-password'
     | '/location'
     | '/login'
@@ -359,9 +370,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/affiliate'
     | '/dashboard'
-    | '/download'
     | '/profile'
     | '/reviews'
+    | '/admin/affiliate'
     | '/admin/announcements'
     | '/admin/contact'
     | '/admin/features'
@@ -386,6 +397,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/contact'
+    | '/download'
     | '/forgot-password'
     | '/location'
     | '/login'
@@ -393,9 +405,9 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/affiliate'
-    | '/download'
     | '/profile'
     | '/reviews'
+    | '/admin/affiliate'
     | '/admin/announcements'
     | '/admin/contact'
     | '/admin/features'
@@ -421,6 +433,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/about'
     | '/contact'
+    | '/download'
     | '/forgot-password'
     | '/location'
     | '/login'
@@ -430,9 +443,9 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/affiliate'
     | '/_authenticated/dashboard'
-    | '/_authenticated/download'
     | '/_authenticated/profile'
     | '/_authenticated/reviews'
+    | '/_authenticated/admin/affiliate'
     | '/_authenticated/admin/announcements'
     | '/_authenticated/admin/contact'
     | '/_authenticated/admin/features'
@@ -459,6 +472,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   ContactRoute: typeof ContactRoute
+  DownloadRoute: typeof DownloadRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LocationRoute: typeof LocationRoute
   LoginRoute: typeof LoginRoute
@@ -511,6 +525,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/download': {
+      id: '/download'
+      path: '/download'
+      fullPath: '/download'
+      preLoaderRoute: typeof DownloadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/contact': {
       id: '/contact'
       path: '/contact'
@@ -551,13 +572,6 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/download': {
-      id: '/_authenticated/download'
-      path: '/download'
-      fullPath: '/download'
-      preLoaderRoute: typeof AuthenticatedDownloadRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -714,10 +728,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAnnouncementsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/affiliate': {
+      id: '/_authenticated/admin/affiliate'
+      path: '/affiliate'
+      fullPath: '/admin/affiliate'
+      preLoaderRoute: typeof AuthenticatedAdminAffiliateRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
   }
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminAffiliateRoute: typeof AuthenticatedAdminAffiliateRoute
   AuthenticatedAdminAnnouncementsRoute: typeof AuthenticatedAdminAnnouncementsRoute
   AuthenticatedAdminContactRoute: typeof AuthenticatedAdminContactRoute
   AuthenticatedAdminFeaturesRoute: typeof AuthenticatedAdminFeaturesRoute
@@ -735,6 +757,7 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminAffiliateRoute: AuthenticatedAdminAffiliateRoute,
   AuthenticatedAdminAnnouncementsRoute: AuthenticatedAdminAnnouncementsRoute,
   AuthenticatedAdminContactRoute: AuthenticatedAdminContactRoute,
   AuthenticatedAdminFeaturesRoute: AuthenticatedAdminFeaturesRoute,
@@ -780,7 +803,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedAffiliateRoute: typeof AuthenticatedAffiliateRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
-  AuthenticatedDownloadRoute: typeof AuthenticatedDownloadRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedReviewsRoute: typeof AuthenticatedReviewsRoute
 }
@@ -789,7 +811,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedAffiliateRoute: AuthenticatedAffiliateRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
-  AuthenticatedDownloadRoute: AuthenticatedDownloadRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedReviewsRoute: AuthenticatedReviewsRoute,
 }
@@ -802,6 +823,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   ContactRoute: ContactRoute,
+  DownloadRoute: DownloadRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LocationRoute: LocationRoute,
   LoginRoute: LoginRoute,

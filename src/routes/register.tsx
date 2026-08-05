@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { friendlyAuthError } from "@/lib/auth-errors";
 import { useAuth } from "@/hooks/use-auth";
-import { recordReferral } from "@/lib/account.functions";
+import { attachReferral } from "@/lib/affiliate.functions";
 
 export const Route = createFileRoute("/register")({
   head: () => ({ meta: [{ title: "Create account — AD4YOU" }] }),
@@ -47,6 +47,7 @@ function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [agree, setAgree] = useState(false);
+  const [refInput, setRefInput] = useState("");
   const [show, setShow] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -76,7 +77,8 @@ function RegisterPage() {
     }
     setErrors({});
     setSubmitting(true);
-    const refCode = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("ref") ?? undefined : undefined;
+    const urlRef = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("ref") : null;
+    const refCode = (refInput.trim() || urlRef || "").trim() || undefined;
     const { data, error } = await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
@@ -87,7 +89,7 @@ function RegisterPage() {
     });
     if (!error && data.user && refCode) {
       try {
-        await recordReferral({
+        await attachReferral({
           data: { refCode, referredId: data.user.id, referredEmail: parsed.data.email },
         });
       } catch { /* referral recording is best effort */ }
@@ -202,6 +204,17 @@ function RegisterPage() {
             />
           </div>
           {errors.confirm && <p className="text-xs text-destructive">{errors.confirm}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="ref">Referral code <span className="text-muted-foreground font-normal">(optional)</span></Label>
+          <Input
+            id="ref"
+            placeholder="e.g. nadeem4821"
+            value={refInput}
+            onChange={(e) => setRefInput(e.target.value)}
+            className="h-11 bg-white/5 border-white/10 font-mono focus-visible:ring-primary/50"
+          />
         </div>
 
         <label className="flex items-start gap-2 text-sm text-muted-foreground cursor-pointer">
