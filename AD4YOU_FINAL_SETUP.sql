@@ -200,14 +200,17 @@ CREATE TRIGGER trg_affiliate_on_payment AFTER INSERT OR UPDATE ON public.payment
   FOR EACH ROW EXECUTE FUNCTION public.affiliate_on_payment();
 
 -- --------------------------------------------------------- 7. DEFAULT SETTINGS
-INSERT INTO public.settings (key, value, type, label, description) VALUES
+INSERT INTO public.settings (key, value, type, label, description)
+SELECT v.key, v.value, v.type, v.label, v.description
+FROM (VALUES
   ('affiliate_min_withdrawal', '100', 'number', 'Affiliate minimum withdrawal ($)',
    'Users can request a payout only after their available balance reaches this amount.'),
   ('affiliate_commission_percent', '30', 'number', 'Affiliate commission (%)',
    'Percentage paid to the referrer on a referred user''s first premium subscription.'),
   ('affiliate_lock_payout_methods', 'true', 'boolean', 'Lock payout methods until minimum reached',
    'When enabled, payout methods stay locked until the user reaches the minimum withdrawal amount.')
-ON CONFLICT (key) DO NOTHING;
+) AS v(key, value, type, label, description)
+WHERE NOT EXISTS (SELECT 1 FROM public.settings s WHERE s.key = v.key);
 
 -- Make the API pick up the new tables immediately.
 NOTIFY pgrst, 'reload schema';
