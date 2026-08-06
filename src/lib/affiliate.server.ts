@@ -87,10 +87,24 @@ export async function ensureReferralCode(admin: Admin, userId: string, email: st
   return existing || slugFromEmail(email, fullName);
 }
 
+export const AFFILIATE_CONFIG_KEYS = [
+  "affiliate_min_withdrawal",
+  "affiliate_commission_percent",
+  "affiliate_lock_payout_methods",
+] as const;
+
 export async function readAffiliateConfig(admin: Admin) {
-  const keys = ["affiliate_min_withdrawal", "affiliate_commission_percent", "affiliate_lock_payout_methods"];
-  const { data } = await admin.from("settings").select("key, value").in("key", keys);
-  const map = new Map((data ?? []).map((r) => [(r as { key: string }).key, (r as { value: string | null }).value]));
+  const map = new Map<string, string | null>();
+
+  const primary = await admin.from("affiliate_settings").select("key, value").in("key", AFFILIATE_CONFIG_KEYS as unknown as string[]);
+  for (const r of (primary.data ?? []) as { key: string; value: string | null }[]) map.set(r.key, r.value);
+
+  // Legacy fallback: config used to live in the shared `settings` table.
+  if (map.size === 0) {
+    const legacy = await admin.from("settings").select("key, value").in("key", AFFILIATE_CONFIG_KEYS as unknown as string[]);
+    for (const r of (legacy.data ?? []) as { key: string; value: string | null }[]) map.set(r.key, r.value);
+  }
+
   const num = (k: string, d: number) => {
     const v = Number(map.get(k));
     return Number.isFinite(v) && v >= 0 ? v : d;
@@ -101,6 +115,7 @@ export async function readAffiliateConfig(admin: Admin) {
     lockPayoutMethods: (map.get("affiliate_lock_payout_methods") ?? "true") !== "false",
   };
 }
+
 
 export async function buildOverview(userId: string, email: string, fullName?: string | null): Promise<AffiliateOverview> {
   const admin = getAppAdmin();
