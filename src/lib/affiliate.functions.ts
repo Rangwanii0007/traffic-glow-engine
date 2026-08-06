@@ -209,16 +209,16 @@ export const adminSetAffiliateConfig = createServerFn({ method: "POST" })
     if (data.minWithdrawal !== undefined) rows.push({ key: "affiliate_min_withdrawal", value: String(data.minWithdrawal) });
     if (data.commissionPercent !== undefined) rows.push({ key: "affiliate_commission_percent", value: String(data.commissionPercent) });
     if (data.lockPayoutMethods !== undefined) rows.push({ key: "affiliate_lock_payout_methods", value: data.lockPayoutMethods ? "true" : "false" });
+    const loose = admin as unknown as {
+      from: (t: string) => { upsert: (v: unknown, o?: unknown) => Promise<{ error: { message: string } | null }> };
+    };
     for (const row of rows) {
-      const { data: existing } = await admin.from("settings").select("id").eq("key", row.key).maybeSingle();
-      if (existing?.id) {
-        const { error } = await admin.from("settings").update({ value: row.value } as never).eq("key", row.key);
-        if (error) throw new Error(error.message);
-      } else {
-        const { error } = await admin.from("settings").insert({ key: row.key, value: row.value, type: "number" } as never);
-        if (error) throw new Error(error.message);
-      }
+      const { error } = await loose
+        .from("affiliate_settings")
+        .upsert({ key: row.key, value: row.value, updated_at: new Date().toISOString() }, { onConflict: "key" });
+      if (error) throw new Error(error.message);
     }
+
     return { ok: true };
   });
 
