@@ -96,8 +96,12 @@ export const AFFILIATE_CONFIG_KEYS = [
 export async function readAffiliateConfig(admin: Admin) {
   const map = new Map<string, string | null>();
 
-  const primary = await admin.from("affiliate_settings").select("key, value").in("key", AFFILIATE_CONFIG_KEYS as unknown as string[]);
-  for (const r of (primary.data ?? []) as { key: string; value: string | null }[]) map.set(r.key, r.value);
+  const loose = admin as unknown as {
+    from: (t: string) => { select: (c: string) => { in: (c: string, v: string[]) => Promise<{ data: { key: string; value: string | null }[] | null }> } };
+  };
+  const primary = await loose.from("affiliate_settings").select("key, value").in("key", AFFILIATE_CONFIG_KEYS as unknown as string[]);
+  for (const r of primary.data ?? []) map.set(r.key, r.value);
+
 
   // Legacy fallback: config used to live in the shared `settings` table.
   if (map.size === 0) {
