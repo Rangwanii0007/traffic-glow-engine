@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { SocialPlatforms } from "@/components/landing/SocialPlatforms";
+import { PageGate } from "@/components/PageGate";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
@@ -14,7 +15,11 @@ export const Route = createFileRoute("/about")({
       { name: "description", content: "AD4YOU delivers AI-powered, real-time global traffic for Adsterra, Monetag and AdSense publishers." },
     ],
   }),
-  component: AboutPage,
+  component: () => (
+    <PageGate pageKey="page_about_enabled">
+      <AboutPage />
+    </PageGate>
+  ),
 });
 
 function AboutPage() {

@@ -12,10 +12,15 @@ import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { Reviews as MarketingReviews } from "@/components/landing/Reviews";
 import { getCommunityReviews, submitCommunityReview } from "@/lib/reviews.functions";
+import { PageGate } from "@/components/PageGate";
 
 export const Route = createFileRoute("/_authenticated/reviews")({
   head: () => ({ meta: [{ title: "Reviews — AD4YOU" }] }),
-  component: ReviewsPage,
+  component: () => (
+    <PageGate pageKey="page_reviews_enabled">
+      <ReviewsPage />
+    </PageGate>
+  ),
 });
 
 type Review = {

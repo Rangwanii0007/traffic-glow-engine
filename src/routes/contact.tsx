@@ -11,6 +11,7 @@ import { SocialPlatforms } from "@/components/landing/SocialPlatforms";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { PageGate } from "@/components/PageGate";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -19,7 +20,11 @@ export const Route = createFileRoute("/contact")({
       { name: "description", content: "Reach the AD4YOU team via email, WhatsApp, or the contact form. We respond within 24 hours." },
     ],
   }),
-  component: ContactPage,
+  component: () => (
+    <PageGate pageKey="page_contact_enabled">
+      <ContactPage />
+    </PageGate>
+  ),
 });
 
 function ContactPage() {

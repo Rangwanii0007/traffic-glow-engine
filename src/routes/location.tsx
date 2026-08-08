@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
+import { PageGate } from "@/components/PageGate";
 
 const GlobeScene = lazy(() => import("@/components/location/GlobeScene"));
 
@@ -17,7 +18,11 @@ export const Route = createFileRoute("/location")({
       { name: "description", content: "AD4YOU delivers global, real-time premium traffic. Live worldwide activity, your local time, and instant download." },
     ],
   }),
-  component: LocationPage,
+  component: () => (
+    <PageGate pageKey="page_location_enabled">
+      <LocationPage />
+    </PageGate>
+  ),
 });
 
 function LocationPage() {
