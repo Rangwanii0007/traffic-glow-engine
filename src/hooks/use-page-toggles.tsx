@@ -37,14 +37,21 @@ export function usePageToggles() {
   });
 
   useEffect(() => {
-    const channel = supabase
-      .channel("settings-page-toggles")
-      .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => {
-        qc.invalidateQueries({ queryKey: ["page-toggles"] });
-      })
-      .subscribe();
+    if (typeof window === "undefined") return;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(`settings-page-toggles-${Math.random().toString(36).slice(2)}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => {
+          qc.invalidateQueries({ queryKey: ["page-toggles"] });
+        })
+        .subscribe();
+    } catch {
+      // realtime unavailable — polling/staleTime still refreshes toggles
+      channel = null;
+    }
     return () => {
-      void supabase.removeChannel(channel);
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [qc]);
 
