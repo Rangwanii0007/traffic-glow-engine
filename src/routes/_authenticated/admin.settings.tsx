@@ -34,6 +34,14 @@ const REQUIRED_SETTINGS: Row[] = [
     label: "Bot Download URL",
     description: "Latest direct download URL used by the Download Bot button",
   },
+  ...PAGE_TOGGLES.map((t) => ({
+    id: `missing:${t.key}`,
+    key: t.key,
+    value: "true",
+    type: "boolean",
+    label: t.label,
+    description: `Show or hide ${t.path} for users`,
+  })),
 ];
 
 function SettingsAdmin() {
