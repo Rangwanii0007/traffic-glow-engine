@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { Zap, Menu, X, LayoutDashboard, Settings, LogOut, Shield, User as UserIcon } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { usePageToggles, PAGE_TOGGLES } from "@/hooks/use-page-toggles";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,8 +18,9 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const { user, profile, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
+  const { enabled } = usePageToggles();
 
-  const links = [
+  const allLinks = [
     { to: "/", label: "Home" },
     { to: "/location", label: "Location" },
     { to: "/pricing", label: "Pricing" },
@@ -28,6 +30,11 @@ export function Navbar() {
     { to: "/about", label: "About" },
     { to: "/contact", label: "Contact" },
   ];
+
+  const links = allLinks.filter((l) => {
+    const toggle = PAGE_TOGGLES.find((t) => t.path === l.to);
+    return !toggle || enabled[toggle.key] !== false || isAdmin;
+  });
 
   const initials = (profile?.full_name || user?.email || "?")
     .split(" ")
