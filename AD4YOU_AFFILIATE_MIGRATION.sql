@@ -20,10 +20,26 @@ RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
 BEGIN NEW.updated_at = now(); RETURN NEW; END; $$;
 
 -- is_admin() helper (security definer => no RLS recursion)
-CREATE OR REPLACE FUNCTION public.is_admin(_user_id uuid)
-RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT EXISTS (SELECT 1 FROM public.users WHERE id = _user_id AND role = 'admin');
-$$;
+-- NOTE: never CREATE OR REPLACE this blindly — an existing is_admin(uuid) may use a
+-- different parameter name (e.g. "user_id"), and Postgres refuses to rename it (42P13).
+-- Policies call it positionally, so we simply keep whatever signature already exists.
+DO $do$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname = 'is_admin'
+      AND p.pronargs = 1 AND p.proargtypes[0] = 'uuid'::regtype
+  ) THEN
+    EXECUTE $f$
+      CREATE FUNCTION public.is_admin(_user_id uuid)
+      RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $body$
+        SELECT EXISTS (SELECT 1 FROM public.users WHERE id = _user_id AND role = 'admin');
+      $body$;
+    $f$;
+  END IF;
+END
+$do$;
 
 -- ------------------------------------------------------- 1. referral codes on users
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS referral_code TEXT;
@@ -217,4 +233,17 @@ CREATE TRIGGER trg_award_referral_commission
   FOR EACH ROW EXECUTE FUNCTION public.award_referral_commission();
 
 -- ------------------------------------------------------------------- 7. cache reload
+NOTIFY pgrst, 'reload schema';
+
+-- ------------------------------------------------- 8. admin page enable/disable flags
+INSERT INTO public.settings (key, value, type, label, description) VALUES
+  ('page_location_enabled',  'true', 'boolean', 'Location Page',           'Show or hide /location for users'),
+  ('page_pricing_enabled',   'true', 'boolean', 'Pricing Page',            'Show or hide /pricing for users'),
+  ('page_download_enabled',  'true', 'boolean', 'Download Bot Page',       'Show or hide /download for users'),
+  ('page_affiliate_enabled', 'true', 'boolean', 'Affiliate Program Page',  'Show or hide /affiliate for users'),
+  ('page_reviews_enabled',   'true', 'boolean', 'Reviews Page',            'Show or hide /reviews for users'),
+  ('page_about_enabled',     'true', 'boolean', 'About Page',              'Show or hide /about for users'),
+  ('page_contact_enabled',   'true', 'boolean', 'Contact Page',            'Show or hide /contact for users')
+ON CONFLICT (key) DO NOTHING;
+
 NOTIFY pgrst, 'reload schema';

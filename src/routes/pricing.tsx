@@ -10,6 +10,7 @@ import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { CryptoCheckoutModal } from "@/components/pricing/CryptoCheckoutModal";
 import { cn } from "@/lib/utils";
+import { PageGate } from "@/components/PageGate";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
@@ -20,7 +21,11 @@ export const Route = createFileRoute("/pricing")({
       { property: "og:description", content: "Choose the plan that fits your traffic goals." },
     ],
   }),
-  component: PricingPage,
+  component: () => (
+    <PageGate pageKey="page_pricing_enabled">
+      <PricingPage />
+    </PageGate>
+  ),
 });
 
 const SLUGS = ["free", "starter", "pro", "business"] as const;

@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { FloatingNotifications } from "@/components/notifications/FloatingNotifications";
+import { PageGate } from "@/components/PageGate";
 
 export const Route = createFileRoute("/_authenticated/affiliate")({
   head: () => ({
@@ -30,7 +31,11 @@ export const Route = createFileRoute("/_authenticated/affiliate")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: AffiliatePage,
+  component: () => (
+    <PageGate pageKey="page_affiliate_enabled">
+      <AffiliatePage />
+    </PageGate>
+  ),
 });
 
 const METHODS = [

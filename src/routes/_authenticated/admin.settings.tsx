@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PAGE_TOGGLES } from "@/hooks/use-page-toggles";
 
 
 export const Route = createFileRoute("/_authenticated/admin/settings")({
@@ -34,6 +35,14 @@ const REQUIRED_SETTINGS: Row[] = [
     label: "Bot Download URL",
     description: "Latest direct download URL used by the Download Bot button",
   },
+  ...PAGE_TOGGLES.map((t) => ({
+    id: `missing:${t.key}`,
+    key: t.key,
+    value: "true",
+    type: "boolean",
+    label: t.label,
+    description: `Show or hide ${t.path} for users`,
+  })),
 ];
 
 function SettingsAdmin() {

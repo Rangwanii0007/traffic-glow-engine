@@ -8,10 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
+import { PageGate } from "@/components/PageGate";
 
 export const Route = createFileRoute("/download")({
   head: () => ({ meta: [{ title: "Download Bot — AD4YOU" }] }),
-  component: DownloadPage,
+  component: () => (
+    <PageGate pageKey="page_download_enabled">
+      <DownloadPage />
+    </PageGate>
+  ),
 });
 
 function DownloadPage() {
