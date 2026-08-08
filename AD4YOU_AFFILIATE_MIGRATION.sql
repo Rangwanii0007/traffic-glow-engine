@@ -234,3 +234,16 @@ CREATE TRIGGER trg_award_referral_commission
 
 -- ------------------------------------------------------------------- 7. cache reload
 NOTIFY pgrst, 'reload schema';
+
+-- ------------------------------------------------- 8. admin page enable/disable flags
+INSERT INTO public.settings (key, value, type, label, description) VALUES
+  ('page_location_enabled',  'true', 'boolean', 'Location Page',           'Show or hide /location for users'),
+  ('page_pricing_enabled',   'true', 'boolean', 'Pricing Page',            'Show or hide /pricing for users'),
+  ('page_download_enabled',  'true', 'boolean', 'Download Bot Page',       'Show or hide /download for users'),
+  ('page_affiliate_enabled', 'true', 'boolean', 'Affiliate Program Page',  'Show or hide /affiliate for users'),
+  ('page_reviews_enabled',   'true', 'boolean', 'Reviews Page',            'Show or hide /reviews for users'),
+  ('page_about_enabled',     'true', 'boolean', 'About Page',              'Show or hide /about for users'),
+  ('page_contact_enabled',   'true', 'boolean', 'Contact Page',            'Show or hide /contact for users')
+ON CONFLICT (key) DO NOTHING;
+
+NOTIFY pgrst, 'reload schema';
