@@ -49,6 +49,7 @@ function RegisterPage() {
   const [confirm, setConfirm] = useState("");
   const [agree, setAgree] = useState(false);
   const [refInput, setRefInput] = useState("");
+  const [refStatus, setRefStatus] = useState<{ state: "idle" | "checking" | "valid" | "invalid"; name?: string }>({ state: "idle" });
   const [show, setShow] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -56,6 +57,27 @@ function RegisterPage() {
   useEffect(() => {
     if (!loading && user) navigate({ to: "/", replace: true });
   }, [user, loading, navigate]);
+
+  // Auto-fill the invite field from ?ref= in the shared link (or a code captured earlier).
+  useEffect(() => {
+    const code = captureRefFromUrl() ?? getStoredRef();
+    if (code) setRefInput(code);
+  }, []);
+
+  // Live-validate the invite code so users see who invited them.
+  useEffect(() => {
+    const code = refInput.trim();
+    if (code.length < 3) { setRefStatus({ state: "idle" }); return; }
+    setRefStatus({ state: "checking" });
+    const t = setTimeout(async () => {
+      try {
+        const res = await checkReferralCode({ data: { code } });
+        setRefStatus(res.valid ? { state: "valid", name: res.name } : { state: "invalid" });
+      } catch { setRefStatus({ state: "idle" }); }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [refInput]);
+
 
   const strength = useMemo(() => scorePassword(password), [password]);
   const strengthLabel = ["", "Weak", "Fair", "Good", "Strong"][strength];
