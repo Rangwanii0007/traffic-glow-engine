@@ -38,6 +38,16 @@ function PricingPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState<null | { id: string; name: string; slug: string; price: number; duration_days: number }>(null);
+  const [article, setArticle] = useState<PlanArticle | null>(null);
+
+  const articlesQ = useQuery({
+    queryKey: ["plan-articles"],
+    queryFn: () => listPlanArticles(),
+    staleTime: 60_000,
+  });
+  const articleFor = (slug: string) => articlesQ.data?.find((a) => a.plan_slug === slug) ?? null;
+
+
 
   const plansQ = useQuery({
     queryKey: ["plans-public"],
