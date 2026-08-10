@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Check, X, Sparkles } from "lucide-react";
+import { Check, X, Sparkles, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { CryptoCheckoutModal } from "@/components/pricing/CryptoCheckoutModal";
+import { Markdown } from "@/components/Markdown";
+import { listPlanArticles, type PlanArticle } from "@/lib/plan-articles.functions";
 import { cn } from "@/lib/utils";
 import { PageGate } from "@/components/PageGate";
 
