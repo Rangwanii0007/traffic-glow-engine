@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { friendlyAuthError } from "@/lib/auth-errors";
 import { useAuth } from "@/hooks/use-auth";
-import { attachReferral } from "@/lib/affiliate.functions";
+import { attachReferral, checkReferralCode } from "@/lib/affiliate.functions";
+import { captureRefFromUrl, clearStoredRef, getStoredRef } from "@/lib/referral";
 
 export const Route = createFileRoute("/register")({
   head: () => ({ meta: [{ title: "Create account — AD4YOU" }] }),
