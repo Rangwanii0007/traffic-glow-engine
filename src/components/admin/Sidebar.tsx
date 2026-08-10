@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Package, Sliders, CreditCard, Activity,
   HelpCircle, Megaphone, Mail, Download, Settings, ShieldCheck, ArrowLeft, Tag, Share2,
-  HandCoins, Crown,
+  HandCoins, Crown, BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
