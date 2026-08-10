@@ -12,6 +12,7 @@ const links = [
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/plans", label: "Plans", icon: Package },
   { to: "/admin/features", label: "Plan Features", icon: Sliders },
+  { to: "/admin/plan-info", label: "Package Info", icon: BookOpen },
   { to: "/admin/offers", label: "Discount Offers", icon: Tag },
   { to: "/admin/payments", label: "Payments", icon: CreditCard },
   { to: "/admin/payouts", label: "Affiliate Payouts", icon: HandCoins },
