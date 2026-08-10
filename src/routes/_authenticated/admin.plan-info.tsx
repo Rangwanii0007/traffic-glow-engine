@@ -110,7 +110,12 @@ function AdminPlanInfoPage() {
   const current = listQ.data?.find((a) => a.plan_slug === activeSlug) ?? null;
 
   return (
-    <AdminShell title="Package Info Articles" subtitle="These articles open when a visitor clicks “Package info” on the pricing page.">
+    <AdminShell>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Package Info Articles</h1>
+        <p className="text-sm text-muted-foreground">These articles open when a visitor clicks “Package info” on the pricing page.</p>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
         <div className="glass-card rounded-2xl p-3 space-y-1 h-fit">
           {listQ.isLoading && <p className="p-3 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" /></p>}
