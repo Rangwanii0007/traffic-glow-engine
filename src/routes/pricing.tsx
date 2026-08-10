@@ -301,6 +301,35 @@ function PricingPage() {
       <Footer />
 
       <CryptoCheckoutModal plan={selectedPlan} open={!!selectedPlan} onOpenChange={(v) => !v && setSelectedPlan(null)} />
+
+      <Dialog open={!!article} onOpenChange={(v) => !v && setArticle(null)}>
+        <DialogContent className="max-w-3xl max-h-[88vh] overflow-y-auto border-white/10 bg-[oklch(0.09_0.02_270)]">
+          <DialogHeader>
+            <DialogTitle className="text-left text-2xl font-black">
+              <span className="mr-2">{article?.emoji ?? "📦"}</span>
+              {article?.title}
+            </DialogTitle>
+            {article?.subtitle && <p className="text-left text-sm text-muted-foreground">{article.subtitle}</p>}
+          </DialogHeader>
+          {article?.hero_image_url && (
+            <img src={article.hero_image_url} alt={article.title} loading="lazy" className="w-full rounded-2xl border border-white/10" />
+          )}
+          {article && <Markdown content={article.content} />}
+          <div className="sticky bottom-0 -mx-6 mt-4 border-t border-white/10 bg-[oklch(0.09_0.02_270)]/95 px-6 py-4 backdrop-blur">
+            <Button
+              className="w-full bg-gradient-to-r from-primary to-accent text-white"
+              onClick={() => {
+                const plan = plansQ.data?.find((p) => p.slug === article?.plan_slug);
+                setArticle(null);
+                if (plan) handleBuy(plan);
+              }}
+            >
+              Get this package now
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
