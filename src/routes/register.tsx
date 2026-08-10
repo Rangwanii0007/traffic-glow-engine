@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { friendlyAuthError } from "@/lib/auth-errors";
 import { useAuth } from "@/hooks/use-auth";
-import { attachReferral } from "@/lib/affiliate.functions";
+import { attachReferral, checkReferralCode } from "@/lib/affiliate.functions";
+import { captureRefFromUrl, clearStoredRef, getStoredRef } from "@/lib/referral";
 
 export const Route = createFileRoute("/register")({
   head: () => ({ meta: [{ title: "Create account — AD4YOU" }] }),
@@ -48,6 +49,7 @@ function RegisterPage() {
   const [confirm, setConfirm] = useState("");
   const [agree, setAgree] = useState(false);
   const [refInput, setRefInput] = useState("");
+  const [refStatus, setRefStatus] = useState<{ state: "idle" | "checking" | "valid" | "invalid"; name?: string }>({ state: "idle" });
   const [show, setShow] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -55,6 +57,27 @@ function RegisterPage() {
   useEffect(() => {
     if (!loading && user) navigate({ to: "/", replace: true });
   }, [user, loading, navigate]);
+
+  // Auto-fill the invite field from ?ref= in the shared link (or a code captured earlier).
+  useEffect(() => {
+    const code = captureRefFromUrl() ?? getStoredRef();
+    if (code) setRefInput(code);
+  }, []);
+
+  // Live-validate the invite code so users see who invited them.
+  useEffect(() => {
+    const code = refInput.trim();
+    if (code.length < 3) { setRefStatus({ state: "idle" }); return; }
+    setRefStatus({ state: "checking" });
+    const t = setTimeout(async () => {
+      try {
+        const res = await checkReferralCode({ data: { code } });
+        setRefStatus(res.valid ? { state: "valid", name: res.name } : { state: "invalid" });
+      } catch { setRefStatus({ state: "idle" }); }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [refInput]);
+
 
   const strength = useMemo(() => scorePassword(password), [password]);
   const strengthLabel = ["", "Weak", "Fair", "Good", "Strong"][strength];
@@ -77,14 +100,15 @@ function RegisterPage() {
     }
     setErrors({});
     setSubmitting(true);
-    const urlRef = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("ref") : null;
-    const refCode = (refInput.trim() || urlRef || "").trim() || undefined;
+    const refCode = (refInput.trim() || getStoredRef() || "").trim() || undefined;
     const { data, error } = await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
       options: {
         emailRedirectTo: `${window.location.origin}/`,
-        data: { full_name: parsed.data.full_name, referral_code: refCode },
+        // `referred_by` (never `referral_code`) so the DB trigger can't overwrite
+        // the new user's own affiliate code with their inviter's code.
+        data: { full_name: parsed.data.full_name, referred_by: refCode },
       },
     });
     if (!error && data.user && refCode) {
@@ -92,8 +116,10 @@ function RegisterPage() {
         await attachReferral({
           data: { refCode, referredId: data.user.id, referredEmail: parsed.data.email },
         });
-      } catch { /* referral recording is best effort */ }
+        clearStoredRef();
+      } catch { /* trigger fallback records it server-side */ }
     }
+
     setSubmitting(false);
     if (error) {
       toast.error(friendlyAuthError(error.message));
@@ -207,7 +233,7 @@ function RegisterPage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="ref">Referral code <span className="text-muted-foreground font-normal">(optional)</span></Label>
+          <Label htmlFor="ref">Invite / referral code <span className="text-muted-foreground font-normal">(optional)</span></Label>
           <Input
             id="ref"
             placeholder="e.g. nadeem4821"
@@ -215,7 +241,13 @@ function RegisterPage() {
             onChange={(e) => setRefInput(e.target.value)}
             className="h-11 bg-white/5 border-white/10 font-mono focus-visible:ring-primary/50"
           />
+          {refStatus.state === "checking" && <p className="text-xs text-muted-foreground">Checking invite code…</p>}
+          {refStatus.state === "valid" && (
+            <p className="text-xs text-success">✅ Invited by <strong>{refStatus.name}</strong> — your signup will be credited to them.</p>
+          )}
+          {refStatus.state === "invalid" && <p className="text-xs text-warning">We couldn't find that invite code. You can still sign up.</p>}
         </div>
+
 
         <label className="flex items-start gap-2 text-sm text-muted-foreground cursor-pointer">
           <Checkbox

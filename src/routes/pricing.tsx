@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Check, X, Sparkles } from "lucide-react";
+import { Check, X, Sparkles, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { CryptoCheckoutModal } from "@/components/pricing/CryptoCheckoutModal";
+import { Markdown } from "@/components/Markdown";
+import { listPlanArticles, type PlanArticle } from "@/lib/plan-articles.functions";
 import { cn } from "@/lib/utils";
 import { PageGate } from "@/components/PageGate";
 
@@ -35,6 +38,16 @@ function PricingPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState<null | { id: string; name: string; slug: string; price: number; duration_days: number }>(null);
+  const [article, setArticle] = useState<PlanArticle | null>(null);
+
+  const articlesQ = useQuery({
+    queryKey: ["plan-articles"],
+    queryFn: () => listPlanArticles(),
+    staleTime: 60_000,
+  });
+  const articleFor = (slug: string) => articlesQ.data?.find((a) => a.plan_slug === slug) ?? null;
+
+
 
   const plansQ = useQuery({
     queryKey: ["plans-public"],
@@ -197,6 +210,16 @@ function PricingPage() {
                     >
                       {plan.is_free ? "Get started free" : "Buy now"}
                     </Button>
+                    {articleFor(plan.slug) && (
+                      <button
+                        onClick={() => setArticle(articleFor(plan.slug))}
+                        className="w-full mb-5 -mt-3 flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+                      >
+                        <BookOpen className="w-3.5 h-3.5" />
+                        {articleFor(plan.slug)?.emoji ?? "📦"} Package info & earning guide
+                      </button>
+                    )}
+
                     <ul className="space-y-2.5 text-sm flex-1">
                       {featuresQ.data?.map((f) => {
                         const raw = f[`${slug}_value` as `${Slug}_value`] as string;
@@ -278,6 +301,35 @@ function PricingPage() {
       <Footer />
 
       <CryptoCheckoutModal plan={selectedPlan} open={!!selectedPlan} onOpenChange={(v) => !v && setSelectedPlan(null)} />
+
+      <Dialog open={!!article} onOpenChange={(v) => !v && setArticle(null)}>
+        <DialogContent className="max-w-3xl max-h-[88vh] overflow-y-auto border-white/10 bg-[oklch(0.09_0.02_270)]">
+          <DialogHeader>
+            <DialogTitle className="text-left text-2xl font-black">
+              <span className="mr-2">{article?.emoji ?? "📦"}</span>
+              {article?.title}
+            </DialogTitle>
+            {article?.subtitle && <p className="text-left text-sm text-muted-foreground">{article.subtitle}</p>}
+          </DialogHeader>
+          {article?.hero_image_url && (
+            <img src={article.hero_image_url} alt={article.title} loading="lazy" className="w-full rounded-2xl border border-white/10" />
+          )}
+          {article && <Markdown content={article.content} />}
+          <div className="sticky bottom-0 -mx-6 mt-4 border-t border-white/10 bg-[oklch(0.09_0.02_270)]/95 px-6 py-4 backdrop-blur">
+            <Button
+              className="w-full bg-gradient-to-r from-primary to-accent text-white"
+              onClick={() => {
+                const plan = plansQ.data?.find((p) => p.slug === article?.plan_slug);
+                setArticle(null);
+                if (plan) handleBuy(plan);
+              }}
+            >
+              Get this package now
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
