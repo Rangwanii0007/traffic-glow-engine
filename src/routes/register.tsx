@@ -233,7 +233,7 @@ function RegisterPage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="ref">Referral code <span className="text-muted-foreground font-normal">(optional)</span></Label>
+          <Label htmlFor="ref">Invite / referral code <span className="text-muted-foreground font-normal">(optional)</span></Label>
           <Input
             id="ref"
             placeholder="e.g. nadeem4821"
@@ -241,7 +241,13 @@ function RegisterPage() {
             onChange={(e) => setRefInput(e.target.value)}
             className="h-11 bg-white/5 border-white/10 font-mono focus-visible:ring-primary/50"
           />
+          {refStatus.state === "checking" && <p className="text-xs text-muted-foreground">Checking invite code…</p>}
+          {refStatus.state === "valid" && (
+            <p className="text-xs text-success">✅ Invited by <strong>{refStatus.name}</strong> — your signup will be credited to them.</p>
+          )}
+          {refStatus.state === "invalid" && <p className="text-xs text-warning">We couldn't find that invite code. You can still sign up.</p>}
         </div>
+
 
         <label className="flex items-start gap-2 text-sm text-muted-foreground cursor-pointer">
           <Checkbox
