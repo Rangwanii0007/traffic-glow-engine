@@ -210,6 +210,16 @@ function PricingPage() {
                     >
                       {plan.is_free ? "Get started free" : "Buy now"}
                     </Button>
+                    {articleFor(plan.slug) && (
+                      <button
+                        onClick={() => setArticle(articleFor(plan.slug))}
+                        className="w-full mb-5 -mt-3 flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+                      >
+                        <BookOpen className="w-3.5 h-3.5" />
+                        {articleFor(plan.slug)?.emoji ?? "📦"} Package info & earning guide
+                      </button>
+                    )}
+
                     <ul className="space-y-2.5 text-sm flex-1">
                       {featuresQ.data?.map((f) => {
                         const raw = f[`${slug}_value` as `${Slug}_value`] as string;
