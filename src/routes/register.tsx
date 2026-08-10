@@ -100,14 +100,15 @@ function RegisterPage() {
     }
     setErrors({});
     setSubmitting(true);
-    const urlRef = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("ref") : null;
-    const refCode = (refInput.trim() || urlRef || "").trim() || undefined;
+    const refCode = (refInput.trim() || getStoredRef() || "").trim() || undefined;
     const { data, error } = await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
       options: {
         emailRedirectTo: `${window.location.origin}/`,
-        data: { full_name: parsed.data.full_name, referral_code: refCode },
+        // `referred_by` (never `referral_code`) so the DB trigger can't overwrite
+        // the new user's own affiliate code with their inviter's code.
+        data: { full_name: parsed.data.full_name, referred_by: refCode },
       },
     });
     if (!error && data.user && refCode) {
@@ -115,8 +116,10 @@ function RegisterPage() {
         await attachReferral({
           data: { refCode, referredId: data.user.id, referredEmail: parsed.data.email },
         });
-      } catch { /* referral recording is best effort */ }
+        clearStoredRef();
+      } catch { /* trigger fallback records it server-side */ }
     }
+
     setSubmitting(false);
     if (error) {
       toast.error(friendlyAuthError(error.message));
