@@ -77,12 +77,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // Any page can carry ?ref= — keep the invite code until the signup completes.
+    captureRefFromUrl();
+
     // Synchronous listener — never call other supabase methods inside it directly
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
       if (newSession?.user) {
-        setTimeout(() => loadProfile(newSession.user), 0);
+        setTimeout(() => {
+          loadProfile(newSession.user);
+          flushPendingReferral(newSession.user);
+        }, 0);
       } else {
         setProfile(null);
       }
@@ -91,9 +97,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) loadProfile(s.user);
+      if (s?.user) {
+        loadProfile(s.user);
+        flushPendingReferral(s.user);
+      }
       setLoading(false);
     });
+
 
     return () => sub.subscription.unsubscribe();
   }, []);
