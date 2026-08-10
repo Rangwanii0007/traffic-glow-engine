@@ -1,6 +1,21 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { attachReferral } from "@/lib/affiliate.functions";
+import { captureRefFromUrl, clearStoredRef, getStoredRef } from "@/lib/referral";
+
+/** Credits a pending invite code once the invited user actually has a session. */
+async function flushPendingReferral(authUser: User) {
+  const code = getStoredRef() ?? ((authUser.user_metadata?.referred_by as string | undefined) ?? null);
+  if (!code || !authUser.email) return;
+  try {
+    const res = await attachReferral({
+      data: { refCode: code, referredId: authUser.id, referredEmail: authUser.email },
+    });
+    if (res.ok || res.reason === "self_referral") clearStoredRef();
+  } catch { /* retried on the next session load */ }
+}
+
 
 type Profile = {
   id: string;
