@@ -136,7 +136,7 @@ function AdminPlanInfoPage() {
               onClick={() => { setActiveSlug(a.plan_slug); setDraft(toDraft(a)); setPreview(false); }}
               className={`w-full rounded-xl px-3 py-2 text-left text-sm ${a.plan_slug === activeSlug ? "bg-primary/20 text-white ring-1 ring-primary/30" : "text-muted-foreground hover:bg-white/5"}`}
             >
-              <span className="mr-1.5">{a.emoji ?? "📦"}</span>{a.plan_slug}
+              <span className="mr-1.5">{a.emoji ?? "📦"}</span>{planName(a.plan_slug)}
               {a.is_published === false && <span className="ml-2 text-[10px] uppercase text-warning">draft</span>}
             </button>
           ))}
@@ -151,9 +151,21 @@ function AdminPlanInfoPage() {
         <div className="glass-card rounded-2xl p-5 space-y-4">
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-1.5">
-              <Label>Plan slug</Label>
-              <Input value={draft.plan_slug} onChange={(e) => setDraft({ ...draft, plan_slug: e.target.value })} placeholder="business" className="bg-white/5 border-white/10" />
+              <Label>Select plan</Label>
+              <Select value={draft.plan_slug || undefined} onValueChange={(v) => setDraft({ ...draft, plan_slug: v })}>
+                <SelectTrigger className="bg-white/5 border-white/10">
+                  <SelectValue placeholder={plansQ.isLoading ? "Loading plans…" : "Choose a plan"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {plansQ.data?.map((p) => (
+                    <SelectItem key={p.id} value={p.slug}>
+                      {p.name} {p.price != null && `— $${Number(p.price).toFixed(2)}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
             <div className="space-y-1.5">
               <Label>Emoji / icon</Label>
               <Input value={draft.emoji} onChange={(e) => setDraft({ ...draft, emoji: e.target.value })} className="bg-white/5 border-white/10" />
