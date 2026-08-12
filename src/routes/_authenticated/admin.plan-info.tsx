@@ -84,7 +84,7 @@ function AdminPlanInfoPage() {
 
   const save = useMutation({
     mutationFn: async () => {
-      if (!draft.plan_slug.trim()) throw new Error("Plan slug is required (free, starter, pro, business…)");
+      if (!draft.plan_slug.trim()) throw new Error("Please select a plan first");
       await adminSavePlanArticle({
         data: {
           plan_slug: draft.plan_slug.trim(),
