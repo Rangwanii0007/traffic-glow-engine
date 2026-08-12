@@ -62,9 +62,18 @@ function toDraft(a: PlanArticle): Draft {
 function AdminPlanInfoPage() {
   const qc = useQueryClient();
   const listQ = useQuery({ queryKey: ["admin-plan-articles"], queryFn: () => adminListPlanArticles() });
+  const plansQ = useQuery({
+    queryKey: ["admin-plan-options"],
+    queryFn: async () => {
+      const { data } = await supabase.from("plans").select("id,name,slug,price,sort_order").order("sort_order");
+      return (data ?? []) as { id: string; name: string; slug: string; price: number | null }[];
+    },
+  });
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [preview, setPreview] = useState(false);
+  const planName = (slug: string) => plansQ.data?.find((p) => p.slug === slug)?.name ?? slug;
+
 
   useEffect(() => {
     if (activeSlug === null && listQ.data && listQ.data.length > 0) {
