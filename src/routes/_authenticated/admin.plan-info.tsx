@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
 import { Markdown } from "@/components/Markdown";
 import {
   adminDeletePlanArticle, adminListPlanArticles, adminSavePlanArticle, type PlanArticle,
@@ -60,9 +62,18 @@ function toDraft(a: PlanArticle): Draft {
 function AdminPlanInfoPage() {
   const qc = useQueryClient();
   const listQ = useQuery({ queryKey: ["admin-plan-articles"], queryFn: () => adminListPlanArticles() });
+  const plansQ = useQuery({
+    queryKey: ["admin-plan-options"],
+    queryFn: async () => {
+      const { data } = await supabase.from("plans").select("id,name,slug,price,sort_order").order("sort_order");
+      return (data ?? []) as { id: string; name: string; slug: string; price: number | null }[];
+    },
+  });
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [preview, setPreview] = useState(false);
+  const planName = (slug: string) => plansQ.data?.find((p) => p.slug === slug)?.name ?? slug;
+
 
   useEffect(() => {
     if (activeSlug === null && listQ.data && listQ.data.length > 0) {
@@ -73,7 +84,7 @@ function AdminPlanInfoPage() {
 
   const save = useMutation({
     mutationFn: async () => {
-      if (!draft.plan_slug.trim()) throw new Error("Plan slug is required (free, starter, pro, business…)");
+      if (!draft.plan_slug.trim()) throw new Error("Please select a plan first");
       await adminSavePlanArticle({
         data: {
           plan_slug: draft.plan_slug.trim(),
@@ -125,7 +136,7 @@ function AdminPlanInfoPage() {
               onClick={() => { setActiveSlug(a.plan_slug); setDraft(toDraft(a)); setPreview(false); }}
               className={`w-full rounded-xl px-3 py-2 text-left text-sm ${a.plan_slug === activeSlug ? "bg-primary/20 text-white ring-1 ring-primary/30" : "text-muted-foreground hover:bg-white/5"}`}
             >
-              <span className="mr-1.5">{a.emoji ?? "📦"}</span>{a.plan_slug}
+              <span className="mr-1.5">{a.emoji ?? "📦"}</span>{planName(a.plan_slug)}
               {a.is_published === false && <span className="ml-2 text-[10px] uppercase text-warning">draft</span>}
             </button>
           ))}
@@ -140,9 +151,21 @@ function AdminPlanInfoPage() {
         <div className="glass-card rounded-2xl p-5 space-y-4">
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-1.5">
-              <Label>Plan slug</Label>
-              <Input value={draft.plan_slug} onChange={(e) => setDraft({ ...draft, plan_slug: e.target.value })} placeholder="business" className="bg-white/5 border-white/10" />
+              <Label>Select plan</Label>
+              <Select value={draft.plan_slug || undefined} onValueChange={(v) => setDraft({ ...draft, plan_slug: v })}>
+                <SelectTrigger className="bg-white/5 border-white/10">
+                  <SelectValue placeholder={plansQ.isLoading ? "Loading plans…" : "Choose a plan"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {plansQ.data?.map((p) => (
+                    <SelectItem key={p.id} value={p.slug}>
+                      {p.name} {p.price != null && `— $${Number(p.price).toFixed(2)}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
             <div className="space-y-1.5">
               <Label>Emoji / icon</Label>
               <Input value={draft.emoji} onChange={(e) => setDraft({ ...draft, emoji: e.target.value })} className="bg-white/5 border-white/10" />
