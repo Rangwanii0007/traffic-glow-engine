@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { createCryptoInvoice, getPaymentStatus, checkReferralCode } from "@/lib/nowpayments.functions";
 import { Input } from "@/components/ui/input";
-import { getStoredReferral } from "@/lib/referral";
+import { getStoredRef } from "@/lib/referral";
 import { cn } from "@/lib/utils";
 
 type Plan = { id: string; name: string; slug: string; price: number; duration_days: number };
@@ -56,7 +56,7 @@ export function CryptoCheckoutModal({
       setSecondsLeft(20 * 60);
       setRefState({ status: "idle" });
     } else {
-      const stored = getStoredReferral();
+      const stored = getStoredRef();
       if (stored) setRefCode(stored);
     }
   }, [open]);
