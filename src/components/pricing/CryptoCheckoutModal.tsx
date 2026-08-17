@@ -5,7 +5,9 @@ import { Loader2, Check, Copy, AlertCircle, Clock } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { createCryptoInvoice, getPaymentStatus } from "@/lib/nowpayments.functions";
+import { createCryptoInvoice, getPaymentStatus, checkReferralCode } from "@/lib/nowpayments.functions";
+import { Input } from "@/components/ui/input";
+import { getStoredRef } from "@/lib/referral";
 import { cn } from "@/lib/utils";
 
 type Plan = { id: string; name: string; slug: string; price: number; duration_days: number };
@@ -32,6 +34,7 @@ export function CryptoCheckoutModal({
 }) {
   const createInvoice = useServerFn(createCryptoInvoice);
   const checkStatus = useServerFn(getPaymentStatus);
+  const verifyRef = useServerFn(checkReferralCode);
 
   const [step, setStep] = useState<"select" | "pay" | "success">("select");
   const [selected, setSelected] = useState<string | null>(null);
@@ -39,6 +42,10 @@ export function CryptoCheckoutModal({
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [status, setStatus] = useState<string>("waiting");
   const [secondsLeft, setSecondsLeft] = useState(20 * 60);
+  const [refCode, setRefCode] = useState("");
+  const [refState, setRefState] = useState<
+    { status: "idle" | "checking" } | { status: "valid"; name: string | null; percent: number } | { status: "invalid"; reason: string }
+  >({ status: "idle" });
 
   useEffect(() => {
     if (!open) {
@@ -47,8 +54,25 @@ export function CryptoCheckoutModal({
       setInvoice(null);
       setStatus("waiting");
       setSecondsLeft(20 * 60);
+      setRefState({ status: "idle" });
+    } else {
+      const stored = getStoredRef();
+      if (stored) setRefCode(stored);
     }
   }, [open]);
+
+  async function applyRef() {
+    const code = refCode.trim();
+    if (!code) return;
+    setRefState({ status: "checking" });
+    try {
+      const r = await verifyRef({ data: { code } });
+      if (r.valid) setRefState({ status: "valid", name: r.referrerName, percent: r.discountPercent });
+      else setRefState({ status: "invalid", reason: r.reason ?? "Invalid referral code" });
+    } catch (e) {
+      setRefState({ status: "invalid", reason: e instanceof Error ? e.message : "Could not verify code" });
+    }
+  }
 
   // countdown
   useEffect(() => {
@@ -86,6 +110,7 @@ export function CryptoCheckoutModal({
         data: {
           planId: plan.id,
           payCurrency: selected,
+          referralCode: refState.status === "valid" ? refCode.trim() : null,
           successUrl: `${window.location.origin}/dashboard/billing?success=true`,
           cancelUrl: `${window.location.origin}/dashboard/billing?cancelled=true`,
         },
@@ -119,7 +144,19 @@ export function CryptoCheckoutModal({
           </DialogTitle>
           {plan && step === "select" && (
             <p className="text-sm text-muted-foreground">
-              ${plan.price.toFixed(2)} · {plan.duration_days} days
+              {refState.status === "valid" ? (
+                <>
+                  <span className="line-through opacity-60">${plan.price.toFixed(2)}</span>{" "}
+                  <span className="text-success font-semibold">
+                    ${(plan.price * (1 - refState.percent / 100)).toFixed(2)}
+                  </span>{" "}
+                  · {plan.duration_days} days · {refState.percent}% off
+                </>
+              ) : (
+                <>
+                  ${plan.price.toFixed(2)} · {plan.duration_days} days
+                </>
+              )}
             </p>
           )}
         </DialogHeader>
@@ -151,6 +188,46 @@ export function CryptoCheckoutModal({
                 );
               })}
             </div>
+            <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-3">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                Referral code (optional) — get 5% off
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  value={refCode}
+                  onChange={(e) => {
+                    setRefCode(e.target.value);
+                    setRefState({ status: "idle" });
+                  }}
+                  placeholder="friend-code"
+                  className="flex-1 bg-transparent"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={applyRef}
+                  disabled={!refCode.trim() || refState.status === "checking"}
+                  className="sm:w-28"
+                >
+                  {refState.status === "checking" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
+                </Button>
+              </div>
+              {refState.status === "valid" && (
+                <p className="text-xs text-success flex items-center gap-1">
+                  <Check className="w-3 h-3" />
+                  {refState.percent}% discount applied
+                  {refState.name ? ` — invited by ${refState.name}` : ""}
+                </p>
+              )}
+              {refState.status === "invalid" && (
+                <p className="text-xs text-destructive flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" /> {refState.reason}
+                </p>
+              )}
+            </div>
+
             <Button
               onClick={handleContinue}
               disabled={!selected || loading}

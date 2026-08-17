@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { resolveReferralDiscount, applyDiscount } from "./referral-discount.server";
 
 const NP_API = "https://api.nowpayments.io/v1";
 
@@ -10,6 +11,7 @@ type InvoiceInput = {
   payCurrency: string;
   successUrl: string;
   cancelUrl: string;
+  referralCode?: string | null;
 };
 
 type InvoiceResult = {
@@ -22,6 +24,9 @@ type InvoiceResult = {
   order_id: string;
   expiration_estimate_date?: string;
   invoice_url?: string;
+  discount_percent: number;
+  original_amount: number;
+  referral_code?: string | null;
 };
 
 function getExternalEnv() {
@@ -78,6 +83,11 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
     if (plan.is_free || Number(plan.price) <= 0) throw new Error("Cannot purchase a free plan");
     if (!plan.is_active) throw new Error("Plan not available");
 
+    // Referral discount is resolved and applied on the SERVER only.
+    const discount = await resolveReferralDiscount(admin, userId, data.referralCode);
+    const originalPrice = Number(plan.price);
+    const finalPrice = applyDiscount(originalPrice, discount.valid ? discount.discountPercent : 0);
+
     const orderId = `sub_${userId}_${plan.slug}_${Date.now()}`;
     const { url: externalUrl } = getExternalEnv();
     // IPN must hit our edge function. Webhook is hosted on Lovable Cloud infra
@@ -85,7 +95,7 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
     const ipnBase = process.env.SUPABASE_URL || externalUrl;
 
     const body = {
-      price_amount: Number(plan.price),
+      price_amount: finalPrice,
       price_currency: "usd",
       pay_currency: data.payCurrency,
       order_id: orderId,
@@ -122,7 +132,7 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
     await admin.from("payments").insert({
       user_id: userId,
       plan_id: plan.id,
-      amount: Number(plan.price),
+      amount: finalPrice,
       currency: "USD",
       crypto_type: data.payCurrency,
       nowpayments_id: String(np.payment_id),
@@ -140,6 +150,9 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
       order_id: np.order_id,
       expiration_estimate_date: np.expiration_estimate_date,
       invoice_url: np.invoice_url,
+      discount_percent: discount.valid ? discount.discountPercent : 0,
+      original_amount: originalPrice,
+      referral_code: discount.valid ? (discount.code ?? null) : null,
     };
   });
 
@@ -165,4 +178,17 @@ export const getPaymentStatus = createServerFn({ method: "POST" })
     if (!res.ok) throw new Error(`Status fetch failed (${res.status})`);
     const j = (await res.json()) as { payment_status: string; actually_paid?: number };
     return { status: j.payment_status, actually_paid: j.actually_paid ?? 0 };
+  });
+
+export const checkReferralCode = createServerFn({ method: "POST" })
+  .inputValidator((d: { code: string; planId?: string }) => d)
+  .handler(async ({ data }) => {
+    const { userId, admin } = await authenticateRequest();
+    const r = await resolveReferralDiscount(admin, userId, data.code);
+    return {
+      valid: r.valid,
+      reason: r.reason ?? null,
+      referrerName: r.referrerName ?? null,
+      discountPercent: r.valid ? r.discountPercent : 0,
+    };
   });
