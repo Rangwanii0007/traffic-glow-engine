@@ -3,6 +3,7 @@
 // override .env, so env-based config is bypassed intentionally here.
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
+import { brokeredPreviewStorage } from './previewAuthStorage';
 
 const SUPABASE_URL = 'https://sxaaamdvzajyanaxmecy.supabase.co';
 const SUPABASE_ANON_KEY =
@@ -11,7 +12,7 @@ const SUPABASE_ANON_KEY =
 function createSupabaseClient() {
   return createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
-      storage: typeof window !== 'undefined' ? localStorage : undefined,
+      storage: brokeredPreviewStorage(),
       persistSession: true,
       autoRefreshToken: true,
     },
