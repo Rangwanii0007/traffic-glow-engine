@@ -75,15 +75,18 @@ export async function requireBusinessOwner() {
   const isSiteAdmin = (profile as { role?: string } | null)?.role === "admin";
   if (isSiteAdmin) return { user, admin, isSiteAdmin: true };
 
-  const { data: sub } = await admin
+  const { data: subs } = await admin
     .from("subscriptions")
     .select("status, end_date, plans(slug)")
     .eq("user_id", user.id)
     .eq("status", "active")
-    .maybeSingle();
-  const planRow = (sub as { plans?: { slug?: string } | { slug?: string }[] } | null)?.plans;
-  const slug = Array.isArray(planRow) ? planRow[0]?.slug : planRow?.slug;
-  if (slug !== "business") throw new Error("Business plan required");
+    .order("end_date", { ascending: false })
+    .limit(5);
+  const slugs = (subs ?? []).map((row) => {
+    const planRow = (row as { plans?: { slug?: string } | { slug?: string }[] }).plans;
+    return Array.isArray(planRow) ? planRow[0]?.slug : planRow?.slug;
+  });
+  if (!slugs.includes("business")) throw new Error("Business plan required");
   return { user, admin, isSiteAdmin: false };
 }
 
