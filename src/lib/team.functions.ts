@@ -233,7 +233,7 @@ export const getTeamConfig = createServerFn({ method: "POST" })
       urls: list,
       traffic_rules: (config as { traffic_rules?: unknown } | null)?.traffic_rules ?? {},
       device_rules: (config as { device_rules?: unknown } | null)?.device_rules ?? {},
-      team,
+      team: team as Row,
     };
   });
 
