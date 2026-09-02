@@ -13,6 +13,9 @@ import {
   type UrlEntry,
 } from "./team.server";
 
+type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
+type Row = Record<string, Json>;
+
 const uuid = z.string().uuid();
 
 /* ───────────────────────── access + teams ───────────────────────── */
@@ -32,7 +35,7 @@ export const listMyTeams = createServerFn({ method: "GET" }).handler(async () =>
   if (!isSiteAdmin) query = query.eq("owner_id", user.id);
   const { data, error } = await query;
   throwIf(error);
-  return (data ?? []) as Record<string, unknown>[];
+  return (data ?? []) as Row[];
 });
 
 const teamFields = z.object({
@@ -91,7 +94,7 @@ export const listMembers = createServerFn({ method: "POST" })
       .order("created_at", { ascending: true });
     throwIf(error);
     return (rows ?? []).map((row) => {
-      const member = row as Record<string, unknown>;
+      const member = row as Row;
       delete member['password_hash'];
       return member;
     });
@@ -175,7 +178,7 @@ export const updateMember = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { admin } = await requireTeam(data.teamId);
     const { password, ...rest } = data.values;
-    const patch: Record<string, unknown> = { ...rest, updated_at: new Date().toISOString() };
+    const patch: Row = { ...rest, updated_at: new Date().toISOString() };
     if (password) patch['password_hash'] = hashMemberPassword(password);
 
     if (data.values.role === "team_leader") {
@@ -230,7 +233,7 @@ export const getTeamConfig = createServerFn({ method: "POST" })
       urls: list,
       traffic_rules: (config as { traffic_rules?: unknown } | null)?.traffic_rules ?? {},
       device_rules: (config as { device_rules?: unknown } | null)?.device_rules ?? {},
-      team,
+      team: team as Row,
     };
   });
 
@@ -270,7 +273,7 @@ export const saveTeamRules = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { teamId, concurrent_tabs, ...rules } = data;
     const { admin, team } = await requireTeam(teamId);
-    const settings = { ...((team['settings'] as Record<string, unknown> | null) ?? {}) };
+    const settings = { ...((team['settings'] as Row | null) ?? {}) };
     if (concurrent_tabs !== undefined) settings['concurrent_tabs'] = concurrent_tabs;
     const { error } = await admin
       .from("teams")
@@ -306,7 +309,7 @@ export const getEarningsConfig = createServerFn({ method: "POST" })
       .eq("team_id", data.teamId)
       .order("created_at", { ascending: false })
       .limit(30);
-    return { config: (config ?? null) as Record<string, unknown> | null, history: (history ?? []) as Record<string, unknown>[] };
+    return { config: (config ?? null) as Row | null, history: (history ?? []) as Row[] };
   });
 
 export const saveEarningsConfig = createServerFn({ method: "POST" })
@@ -377,7 +380,7 @@ export const getTeamOverview = createServerFn({ method: "POST" })
       earningsTotal: sum("calculated_earnings_total"),
       pendingWithdrawals: (pending.data ?? []).length,
       pendingAmount: ((pending.data ?? []) as { amount?: number }[]).reduce((t, w) => t + Number(w.amount ?? 0), 0),
-      daily: ((earnings.data ?? []) as Record<string, unknown>[]).reverse(),
+      daily: ((earnings.data ?? []) as Row[]).reverse(),
     };
   });
 
@@ -390,14 +393,14 @@ export const getLeaderboard = createServerFn({ method: "POST" })
       .select("*")
       .eq("team_id", data.teamId)
       .order("current_rank", { ascending: true });
-    if (!error && board) return board as Record<string, unknown>[];
+    if (!error && board) return board as Row[];
     // Fall back to raw member rows if the leaderboard view is unavailable.
     const { data: rows } = await admin
       .from("team_members")
       .select("id, name, role, is_online, avatar_url, last_seen, visits_today, visits_total, self_points_today, self_points_total, ads_viewed_today, ads_viewed_total, ads_clicked_today, ads_clicked_total, hours_today, hours_lifetime, calculated_earnings_today, calculated_earnings_total, withdrawal_total, pending_withdrawal")
       .eq("team_id", data.teamId)
       .order("calculated_earnings_total", { ascending: false });
-    return (rows ?? []) as Record<string, unknown>[];
+    return (rows ?? []) as Row[];
   });
 
 /* ───────────────────────── withdrawals + company ───────────────────────── */
@@ -415,7 +418,7 @@ export const listTeamWithdrawals = createServerFn({ method: "POST" })
     throwIf(error);
     const members = await admin.from("team_members").select("id, name, email").eq("team_id", data.teamId);
     const byId = new Map(((members.data ?? []) as { id: string; name: string; email: string }[]).map((m) => [m.id, m]));
-    return ((rows ?? []) as Record<string, unknown>[]).map((row) => ({
+    return ((rows ?? []) as Row[]).map((row) => ({
       ...row,
       member: byId.get(String(row['member_id'])) ?? null,
     }));
@@ -436,7 +439,7 @@ export const decideWithdrawal = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { admin, user } = await requireTeam(data.teamId);
     const now = new Date().toISOString();
-    const patch: Record<string, unknown> = {
+    const patch: Row = {
       status: data.decision,
       admin_notes: data.note ?? null,
       updated_at: now,
@@ -452,13 +455,13 @@ export const decideWithdrawal = createServerFn({ method: "POST" })
 export const getCompany = createServerFn({ method: "GET" }).handler(async () => {
   const { user, admin } = await requireBusinessOwner();
   const { data: company } = await admin.from("companies").select("*").eq("owner_id", user.id).maybeSingle();
-  if (!company) return { company: null, methods: [] as Record<string, unknown>[] };
+  if (!company) return { company: null, methods: [] as Row[] };
   const { data: methods } = await admin
     .from("company_payment_methods")
     .select("*")
     .eq("company_id", (company as { id: string }).id)
     .order("created_at", { ascending: true });
-  return { company: company as Record<string, unknown>, methods: (methods ?? []) as Record<string, unknown>[] };
+  return { company: company as Row, methods: (methods ?? []) as Row[] };
 });
 
 export const saveCompany = createServerFn({ method: "POST" })
@@ -527,9 +530,9 @@ export const listTeamActivity = createServerFn({ method: "POST" })
       admin.from("team_pcs").select("*").eq("team_id", data.teamId).order("last_heartbeat", { ascending: false }),
     ]);
     return {
-      logs: (logs.data ?? []) as Record<string, unknown>[],
-      sessions: (sessions.data ?? []) as Record<string, unknown>[],
-      pcs: (pcs.data ?? []) as Record<string, unknown>[],
+      logs: (logs.data ?? []) as Row[],
+      sessions: (sessions.data ?? []) as Row[],
+      pcs: (pcs.data ?? []) as Row[],
     };
   });
 
