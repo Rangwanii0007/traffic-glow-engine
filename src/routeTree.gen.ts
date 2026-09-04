@@ -33,7 +33,11 @@ import { Route as AuthenticatedDashboardSupportRouteImport } from './routes/_aut
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
 import { Route as AuthenticatedDashboardSessionsRouteImport } from './routes/_authenticated/dashboard.sessions'
 import { Route as AuthenticatedDashboardBillingRouteImport } from './routes/_authenticated/dashboard.billing'
+import { Route as AuthenticatedBusinessUrlsRouteImport } from './routes/_authenticated/business.urls'
 import { Route as AuthenticatedBusinessTeamsRouteImport } from './routes/_authenticated/business.teams'
+import { Route as AuthenticatedBusinessRulesRouteImport } from './routes/_authenticated/business.rules'
+import { Route as AuthenticatedBusinessMembersRouteImport } from './routes/_authenticated/business.members'
+import { Route as AuthenticatedBusinessEarningsRouteImport } from './routes/_authenticated/business.earnings'
 import { Route as AuthenticatedAdminVersionsRouteImport } from './routes/_authenticated/admin.versions'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedAdminTicketsRouteImport } from './routes/_authenticated/admin.tickets'
@@ -175,10 +179,34 @@ const AuthenticatedDashboardBillingRoute =
     path: '/billing',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedBusinessUrlsRoute =
+  AuthenticatedBusinessUrlsRouteImport.update({
+    id: '/urls',
+    path: '/urls',
+    getParentRoute: () => AuthenticatedBusinessRoute,
+  } as any)
 const AuthenticatedBusinessTeamsRoute =
   AuthenticatedBusinessTeamsRouteImport.update({
     id: '/teams',
     path: '/teams',
+    getParentRoute: () => AuthenticatedBusinessRoute,
+  } as any)
+const AuthenticatedBusinessRulesRoute =
+  AuthenticatedBusinessRulesRouteImport.update({
+    id: '/rules',
+    path: '/rules',
+    getParentRoute: () => AuthenticatedBusinessRoute,
+  } as any)
+const AuthenticatedBusinessMembersRoute =
+  AuthenticatedBusinessMembersRouteImport.update({
+    id: '/members',
+    path: '/members',
+    getParentRoute: () => AuthenticatedBusinessRoute,
+  } as any)
+const AuthenticatedBusinessEarningsRoute =
+  AuthenticatedBusinessEarningsRouteImport.update({
+    id: '/earnings',
+    path: '/earnings',
     getParentRoute: () => AuthenticatedBusinessRoute,
   } as any)
 const AuthenticatedAdminVersionsRoute =
@@ -302,7 +330,11 @@ export interface FileRoutesByFullPath {
   '/admin/tickets': typeof AuthenticatedAdminTicketsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/versions': typeof AuthenticatedAdminVersionsRoute
+  '/business/earnings': typeof AuthenticatedBusinessEarningsRoute
+  '/business/members': typeof AuthenticatedBusinessMembersRoute
+  '/business/rules': typeof AuthenticatedBusinessRulesRoute
   '/business/teams': typeof AuthenticatedBusinessTeamsRoute
+  '/business/urls': typeof AuthenticatedBusinessUrlsRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
@@ -340,7 +372,11 @@ export interface FileRoutesByTo {
   '/admin/tickets': typeof AuthenticatedAdminTicketsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/versions': typeof AuthenticatedAdminVersionsRoute
+  '/business/earnings': typeof AuthenticatedBusinessEarningsRoute
+  '/business/members': typeof AuthenticatedBusinessMembersRoute
+  '/business/rules': typeof AuthenticatedBusinessRulesRoute
   '/business/teams': typeof AuthenticatedBusinessTeamsRoute
+  '/business/urls': typeof AuthenticatedBusinessUrlsRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
@@ -383,7 +419,11 @@ export interface FileRoutesById {
   '/_authenticated/admin/tickets': typeof AuthenticatedAdminTicketsRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/versions': typeof AuthenticatedAdminVersionsRoute
+  '/_authenticated/business/earnings': typeof AuthenticatedBusinessEarningsRoute
+  '/_authenticated/business/members': typeof AuthenticatedBusinessMembersRoute
+  '/_authenticated/business/rules': typeof AuthenticatedBusinessRulesRoute
   '/_authenticated/business/teams': typeof AuthenticatedBusinessTeamsRoute
+  '/_authenticated/business/urls': typeof AuthenticatedBusinessUrlsRoute
   '/_authenticated/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/_authenticated/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
@@ -426,7 +466,11 @@ export interface FileRouteTypes {
     | '/admin/tickets'
     | '/admin/users'
     | '/admin/versions'
+    | '/business/earnings'
+    | '/business/members'
+    | '/business/rules'
     | '/business/teams'
+    | '/business/urls'
     | '/dashboard/billing'
     | '/dashboard/sessions'
     | '/dashboard/settings'
@@ -464,7 +508,11 @@ export interface FileRouteTypes {
     | '/admin/tickets'
     | '/admin/users'
     | '/admin/versions'
+    | '/business/earnings'
+    | '/business/members'
+    | '/business/rules'
     | '/business/teams'
+    | '/business/urls'
     | '/dashboard/billing'
     | '/dashboard/sessions'
     | '/dashboard/settings'
@@ -506,7 +554,11 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/tickets'
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/versions'
+    | '/_authenticated/business/earnings'
+    | '/_authenticated/business/members'
+    | '/_authenticated/business/rules'
     | '/_authenticated/business/teams'
+    | '/_authenticated/business/urls'
     | '/_authenticated/dashboard/billing'
     | '/_authenticated/dashboard/sessions'
     | '/_authenticated/dashboard/settings'
@@ -700,11 +752,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardBillingRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/business/urls': {
+      id: '/_authenticated/business/urls'
+      path: '/urls'
+      fullPath: '/business/urls'
+      preLoaderRoute: typeof AuthenticatedBusinessUrlsRouteImport
+      parentRoute: typeof AuthenticatedBusinessRoute
+    }
     '/_authenticated/business/teams': {
       id: '/_authenticated/business/teams'
       path: '/teams'
       fullPath: '/business/teams'
       preLoaderRoute: typeof AuthenticatedBusinessTeamsRouteImport
+      parentRoute: typeof AuthenticatedBusinessRoute
+    }
+    '/_authenticated/business/rules': {
+      id: '/_authenticated/business/rules'
+      path: '/rules'
+      fullPath: '/business/rules'
+      preLoaderRoute: typeof AuthenticatedBusinessRulesRouteImport
+      parentRoute: typeof AuthenticatedBusinessRoute
+    }
+    '/_authenticated/business/members': {
+      id: '/_authenticated/business/members'
+      path: '/members'
+      fullPath: '/business/members'
+      preLoaderRoute: typeof AuthenticatedBusinessMembersRouteImport
+      parentRoute: typeof AuthenticatedBusinessRoute
+    }
+    '/_authenticated/business/earnings': {
+      id: '/_authenticated/business/earnings'
+      path: '/earnings'
+      fullPath: '/business/earnings'
+      preLoaderRoute: typeof AuthenticatedBusinessEarningsRouteImport
       parentRoute: typeof AuthenticatedBusinessRoute
     }
     '/_authenticated/admin/versions': {
@@ -857,12 +937,20 @@ const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
 interface AuthenticatedBusinessRouteChildren {
+  AuthenticatedBusinessEarningsRoute: typeof AuthenticatedBusinessEarningsRoute
+  AuthenticatedBusinessMembersRoute: typeof AuthenticatedBusinessMembersRoute
+  AuthenticatedBusinessRulesRoute: typeof AuthenticatedBusinessRulesRoute
   AuthenticatedBusinessTeamsRoute: typeof AuthenticatedBusinessTeamsRoute
+  AuthenticatedBusinessUrlsRoute: typeof AuthenticatedBusinessUrlsRoute
   AuthenticatedBusinessIndexRoute: typeof AuthenticatedBusinessIndexRoute
 }
 
 const AuthenticatedBusinessRouteChildren: AuthenticatedBusinessRouteChildren = {
+  AuthenticatedBusinessEarningsRoute: AuthenticatedBusinessEarningsRoute,
+  AuthenticatedBusinessMembersRoute: AuthenticatedBusinessMembersRoute,
+  AuthenticatedBusinessRulesRoute: AuthenticatedBusinessRulesRoute,
   AuthenticatedBusinessTeamsRoute: AuthenticatedBusinessTeamsRoute,
+  AuthenticatedBusinessUrlsRoute: AuthenticatedBusinessUrlsRoute,
   AuthenticatedBusinessIndexRoute: AuthenticatedBusinessIndexRoute,
 }
 
