@@ -34,6 +34,7 @@ import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_au
 import { Route as AuthenticatedDashboardSessionsRouteImport } from './routes/_authenticated/dashboard.sessions'
 import { Route as AuthenticatedDashboardBillingRouteImport } from './routes/_authenticated/dashboard.billing'
 import { Route as AuthenticatedBusinessTeamsRouteImport } from './routes/_authenticated/business.teams'
+import { Route as AuthenticatedBusinessMembersRouteImport } from './routes/_authenticated/business.members'
 import { Route as AuthenticatedAdminVersionsRouteImport } from './routes/_authenticated/admin.versions'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedAdminTicketsRouteImport } from './routes/_authenticated/admin.tickets'
@@ -181,6 +182,12 @@ const AuthenticatedBusinessTeamsRoute =
     path: '/teams',
     getParentRoute: () => AuthenticatedBusinessRoute,
   } as any)
+const AuthenticatedBusinessMembersRoute =
+  AuthenticatedBusinessMembersRouteImport.update({
+    id: '/members',
+    path: '/members',
+    getParentRoute: () => AuthenticatedBusinessRoute,
+  } as any)
 const AuthenticatedAdminVersionsRoute =
   AuthenticatedAdminVersionsRouteImport.update({
     id: '/versions',
@@ -302,6 +309,7 @@ export interface FileRoutesByFullPath {
   '/admin/tickets': typeof AuthenticatedAdminTicketsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/versions': typeof AuthenticatedAdminVersionsRoute
+  '/business/members': typeof AuthenticatedBusinessMembersRoute
   '/business/teams': typeof AuthenticatedBusinessTeamsRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
@@ -340,6 +348,7 @@ export interface FileRoutesByTo {
   '/admin/tickets': typeof AuthenticatedAdminTicketsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/versions': typeof AuthenticatedAdminVersionsRoute
+  '/business/members': typeof AuthenticatedBusinessMembersRoute
   '/business/teams': typeof AuthenticatedBusinessTeamsRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
@@ -383,6 +392,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/tickets': typeof AuthenticatedAdminTicketsRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/versions': typeof AuthenticatedAdminVersionsRoute
+  '/_authenticated/business/members': typeof AuthenticatedBusinessMembersRoute
   '/_authenticated/business/teams': typeof AuthenticatedBusinessTeamsRoute
   '/_authenticated/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/_authenticated/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
@@ -426,6 +436,7 @@ export interface FileRouteTypes {
     | '/admin/tickets'
     | '/admin/users'
     | '/admin/versions'
+    | '/business/members'
     | '/business/teams'
     | '/dashboard/billing'
     | '/dashboard/sessions'
@@ -464,6 +475,7 @@ export interface FileRouteTypes {
     | '/admin/tickets'
     | '/admin/users'
     | '/admin/versions'
+    | '/business/members'
     | '/business/teams'
     | '/dashboard/billing'
     | '/dashboard/sessions'
@@ -506,6 +518,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/tickets'
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/versions'
+    | '/_authenticated/business/members'
     | '/_authenticated/business/teams'
     | '/_authenticated/dashboard/billing'
     | '/_authenticated/dashboard/sessions'
@@ -707,6 +720,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBusinessTeamsRouteImport
       parentRoute: typeof AuthenticatedBusinessRoute
     }
+    '/_authenticated/business/members': {
+      id: '/_authenticated/business/members'
+      path: '/members'
+      fullPath: '/business/members'
+      preLoaderRoute: typeof AuthenticatedBusinessMembersRouteImport
+      parentRoute: typeof AuthenticatedBusinessRoute
+    }
     '/_authenticated/admin/versions': {
       id: '/_authenticated/admin/versions'
       path: '/versions'
@@ -857,11 +877,13 @@ const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
 interface AuthenticatedBusinessRouteChildren {
+  AuthenticatedBusinessMembersRoute: typeof AuthenticatedBusinessMembersRoute
   AuthenticatedBusinessTeamsRoute: typeof AuthenticatedBusinessTeamsRoute
   AuthenticatedBusinessIndexRoute: typeof AuthenticatedBusinessIndexRoute
 }
 
 const AuthenticatedBusinessRouteChildren: AuthenticatedBusinessRouteChildren = {
+  AuthenticatedBusinessMembersRoute: AuthenticatedBusinessMembersRoute,
   AuthenticatedBusinessTeamsRoute: AuthenticatedBusinessTeamsRoute,
   AuthenticatedBusinessIndexRoute: AuthenticatedBusinessIndexRoute,
 }
