@@ -33,6 +33,7 @@ import { Route as AuthenticatedDashboardSupportRouteImport } from './routes/_aut
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
 import { Route as AuthenticatedDashboardSessionsRouteImport } from './routes/_authenticated/dashboard.sessions'
 import { Route as AuthenticatedDashboardBillingRouteImport } from './routes/_authenticated/dashboard.billing'
+import { Route as AuthenticatedBusinessUrlsRouteImport } from './routes/_authenticated/business.urls'
 import { Route as AuthenticatedBusinessTeamsRouteImport } from './routes/_authenticated/business.teams'
 import { Route as AuthenticatedBusinessMembersRouteImport } from './routes/_authenticated/business.members'
 import { Route as AuthenticatedAdminVersionsRouteImport } from './routes/_authenticated/admin.versions'
@@ -176,6 +177,12 @@ const AuthenticatedDashboardBillingRoute =
     path: '/billing',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedBusinessUrlsRoute =
+  AuthenticatedBusinessUrlsRouteImport.update({
+    id: '/urls',
+    path: '/urls',
+    getParentRoute: () => AuthenticatedBusinessRoute,
+  } as any)
 const AuthenticatedBusinessTeamsRoute =
   AuthenticatedBusinessTeamsRouteImport.update({
     id: '/teams',
@@ -311,6 +318,7 @@ export interface FileRoutesByFullPath {
   '/admin/versions': typeof AuthenticatedAdminVersionsRoute
   '/business/members': typeof AuthenticatedBusinessMembersRoute
   '/business/teams': typeof AuthenticatedBusinessTeamsRoute
+  '/business/urls': typeof AuthenticatedBusinessUrlsRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
@@ -350,6 +358,7 @@ export interface FileRoutesByTo {
   '/admin/versions': typeof AuthenticatedAdminVersionsRoute
   '/business/members': typeof AuthenticatedBusinessMembersRoute
   '/business/teams': typeof AuthenticatedBusinessTeamsRoute
+  '/business/urls': typeof AuthenticatedBusinessUrlsRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
@@ -394,6 +403,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/versions': typeof AuthenticatedAdminVersionsRoute
   '/_authenticated/business/members': typeof AuthenticatedBusinessMembersRoute
   '/_authenticated/business/teams': typeof AuthenticatedBusinessTeamsRoute
+  '/_authenticated/business/urls': typeof AuthenticatedBusinessUrlsRoute
   '/_authenticated/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/_authenticated/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
@@ -438,6 +448,7 @@ export interface FileRouteTypes {
     | '/admin/versions'
     | '/business/members'
     | '/business/teams'
+    | '/business/urls'
     | '/dashboard/billing'
     | '/dashboard/sessions'
     | '/dashboard/settings'
@@ -477,6 +488,7 @@ export interface FileRouteTypes {
     | '/admin/versions'
     | '/business/members'
     | '/business/teams'
+    | '/business/urls'
     | '/dashboard/billing'
     | '/dashboard/sessions'
     | '/dashboard/settings'
@@ -520,6 +532,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/versions'
     | '/_authenticated/business/members'
     | '/_authenticated/business/teams'
+    | '/_authenticated/business/urls'
     | '/_authenticated/dashboard/billing'
     | '/_authenticated/dashboard/sessions'
     | '/_authenticated/dashboard/settings'
@@ -713,6 +726,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardBillingRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/business/urls': {
+      id: '/_authenticated/business/urls'
+      path: '/urls'
+      fullPath: '/business/urls'
+      preLoaderRoute: typeof AuthenticatedBusinessUrlsRouteImport
+      parentRoute: typeof AuthenticatedBusinessRoute
+    }
     '/_authenticated/business/teams': {
       id: '/_authenticated/business/teams'
       path: '/teams'
@@ -879,12 +899,14 @@ const AuthenticatedAdminRouteWithChildren =
 interface AuthenticatedBusinessRouteChildren {
   AuthenticatedBusinessMembersRoute: typeof AuthenticatedBusinessMembersRoute
   AuthenticatedBusinessTeamsRoute: typeof AuthenticatedBusinessTeamsRoute
+  AuthenticatedBusinessUrlsRoute: typeof AuthenticatedBusinessUrlsRoute
   AuthenticatedBusinessIndexRoute: typeof AuthenticatedBusinessIndexRoute
 }
 
 const AuthenticatedBusinessRouteChildren: AuthenticatedBusinessRouteChildren = {
   AuthenticatedBusinessMembersRoute: AuthenticatedBusinessMembersRoute,
   AuthenticatedBusinessTeamsRoute: AuthenticatedBusinessTeamsRoute,
+  AuthenticatedBusinessUrlsRoute: AuthenticatedBusinessUrlsRoute,
   AuthenticatedBusinessIndexRoute: AuthenticatedBusinessIndexRoute,
 }
 
