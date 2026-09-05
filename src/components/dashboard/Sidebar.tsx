@@ -10,8 +10,10 @@ const links: NavLink[] = [
   { to: "/dashboard/sessions", label: "My Sessions", icon: Activity },
   { to: "/dashboard/settings", label: "Settings", icon: Settings },
   { to: "/dashboard/support", label: "Support", icon: HelpCircle },
+  { to: "/business", label: "Business Panel", icon: Crown },
 ];
-void Download; void Crown; void Star;
+void Download; void Star;
+
 
 
 export function DashboardSidebar({ onNavigate }: { onNavigate?: () => void }) {
