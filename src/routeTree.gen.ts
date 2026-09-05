@@ -37,6 +37,7 @@ import { Route as AuthenticatedBusinessUrlsRouteImport } from './routes/_authent
 import { Route as AuthenticatedBusinessTeamsRouteImport } from './routes/_authenticated/business.teams'
 import { Route as AuthenticatedBusinessRulesRouteImport } from './routes/_authenticated/business.rules'
 import { Route as AuthenticatedBusinessMembersRouteImport } from './routes/_authenticated/business.members'
+import { Route as AuthenticatedBusinessLeaderboardRouteImport } from './routes/_authenticated/business.leaderboard'
 import { Route as AuthenticatedBusinessEarningsRouteImport } from './routes/_authenticated/business.earnings'
 import { Route as AuthenticatedAdminVersionsRouteImport } from './routes/_authenticated/admin.versions'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
@@ -203,6 +204,12 @@ const AuthenticatedBusinessMembersRoute =
     path: '/members',
     getParentRoute: () => AuthenticatedBusinessRoute,
   } as any)
+const AuthenticatedBusinessLeaderboardRoute =
+  AuthenticatedBusinessLeaderboardRouteImport.update({
+    id: '/leaderboard',
+    path: '/leaderboard',
+    getParentRoute: () => AuthenticatedBusinessRoute,
+  } as any)
 const AuthenticatedBusinessEarningsRoute =
   AuthenticatedBusinessEarningsRouteImport.update({
     id: '/earnings',
@@ -331,6 +338,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/versions': typeof AuthenticatedAdminVersionsRoute
   '/business/earnings': typeof AuthenticatedBusinessEarningsRoute
+  '/business/leaderboard': typeof AuthenticatedBusinessLeaderboardRoute
   '/business/members': typeof AuthenticatedBusinessMembersRoute
   '/business/rules': typeof AuthenticatedBusinessRulesRoute
   '/business/teams': typeof AuthenticatedBusinessTeamsRoute
@@ -373,6 +381,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/versions': typeof AuthenticatedAdminVersionsRoute
   '/business/earnings': typeof AuthenticatedBusinessEarningsRoute
+  '/business/leaderboard': typeof AuthenticatedBusinessLeaderboardRoute
   '/business/members': typeof AuthenticatedBusinessMembersRoute
   '/business/rules': typeof AuthenticatedBusinessRulesRoute
   '/business/teams': typeof AuthenticatedBusinessTeamsRoute
@@ -420,6 +429,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/versions': typeof AuthenticatedAdminVersionsRoute
   '/_authenticated/business/earnings': typeof AuthenticatedBusinessEarningsRoute
+  '/_authenticated/business/leaderboard': typeof AuthenticatedBusinessLeaderboardRoute
   '/_authenticated/business/members': typeof AuthenticatedBusinessMembersRoute
   '/_authenticated/business/rules': typeof AuthenticatedBusinessRulesRoute
   '/_authenticated/business/teams': typeof AuthenticatedBusinessTeamsRoute
@@ -467,6 +477,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/versions'
     | '/business/earnings'
+    | '/business/leaderboard'
     | '/business/members'
     | '/business/rules'
     | '/business/teams'
@@ -509,6 +520,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/versions'
     | '/business/earnings'
+    | '/business/leaderboard'
     | '/business/members'
     | '/business/rules'
     | '/business/teams'
@@ -555,6 +567,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/versions'
     | '/_authenticated/business/earnings'
+    | '/_authenticated/business/leaderboard'
     | '/_authenticated/business/members'
     | '/_authenticated/business/rules'
     | '/_authenticated/business/teams'
@@ -780,6 +793,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBusinessMembersRouteImport
       parentRoute: typeof AuthenticatedBusinessRoute
     }
+    '/_authenticated/business/leaderboard': {
+      id: '/_authenticated/business/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/business/leaderboard'
+      preLoaderRoute: typeof AuthenticatedBusinessLeaderboardRouteImport
+      parentRoute: typeof AuthenticatedBusinessRoute
+    }
     '/_authenticated/business/earnings': {
       id: '/_authenticated/business/earnings'
       path: '/earnings'
@@ -938,6 +958,7 @@ const AuthenticatedAdminRouteWithChildren =
 
 interface AuthenticatedBusinessRouteChildren {
   AuthenticatedBusinessEarningsRoute: typeof AuthenticatedBusinessEarningsRoute
+  AuthenticatedBusinessLeaderboardRoute: typeof AuthenticatedBusinessLeaderboardRoute
   AuthenticatedBusinessMembersRoute: typeof AuthenticatedBusinessMembersRoute
   AuthenticatedBusinessRulesRoute: typeof AuthenticatedBusinessRulesRoute
   AuthenticatedBusinessTeamsRoute: typeof AuthenticatedBusinessTeamsRoute
@@ -947,6 +968,7 @@ interface AuthenticatedBusinessRouteChildren {
 
 const AuthenticatedBusinessRouteChildren: AuthenticatedBusinessRouteChildren = {
   AuthenticatedBusinessEarningsRoute: AuthenticatedBusinessEarningsRoute,
+  AuthenticatedBusinessLeaderboardRoute: AuthenticatedBusinessLeaderboardRoute,
   AuthenticatedBusinessMembersRoute: AuthenticatedBusinessMembersRoute,
   AuthenticatedBusinessRulesRoute: AuthenticatedBusinessRulesRoute,
   AuthenticatedBusinessTeamsRoute: AuthenticatedBusinessTeamsRoute,
