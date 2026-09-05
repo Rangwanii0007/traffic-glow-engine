@@ -40,6 +40,7 @@ import { Route as AuthenticatedBusinessRulesRouteImport } from './routes/_authen
 import { Route as AuthenticatedBusinessMembersRouteImport } from './routes/_authenticated/business.members'
 import { Route as AuthenticatedBusinessLeaderboardRouteImport } from './routes/_authenticated/business.leaderboard'
 import { Route as AuthenticatedBusinessEarningsRouteImport } from './routes/_authenticated/business.earnings'
+import { Route as AuthenticatedBusinessActivityRouteImport } from './routes/_authenticated/business.activity'
 import { Route as AuthenticatedAdminVersionsRouteImport } from './routes/_authenticated/admin.versions'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedAdminTicketsRouteImport } from './routes/_authenticated/admin.tickets'
@@ -223,6 +224,12 @@ const AuthenticatedBusinessEarningsRoute =
     path: '/earnings',
     getParentRoute: () => AuthenticatedBusinessRoute,
   } as any)
+const AuthenticatedBusinessActivityRoute =
+  AuthenticatedBusinessActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => AuthenticatedBusinessRoute,
+  } as any)
 const AuthenticatedAdminVersionsRoute =
   AuthenticatedAdminVersionsRouteImport.update({
     id: '/versions',
@@ -344,6 +351,7 @@ export interface FileRoutesByFullPath {
   '/admin/tickets': typeof AuthenticatedAdminTicketsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/versions': typeof AuthenticatedAdminVersionsRoute
+  '/business/activity': typeof AuthenticatedBusinessActivityRoute
   '/business/earnings': typeof AuthenticatedBusinessEarningsRoute
   '/business/leaderboard': typeof AuthenticatedBusinessLeaderboardRoute
   '/business/members': typeof AuthenticatedBusinessMembersRoute
@@ -388,6 +396,7 @@ export interface FileRoutesByTo {
   '/admin/tickets': typeof AuthenticatedAdminTicketsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/versions': typeof AuthenticatedAdminVersionsRoute
+  '/business/activity': typeof AuthenticatedBusinessActivityRoute
   '/business/earnings': typeof AuthenticatedBusinessEarningsRoute
   '/business/leaderboard': typeof AuthenticatedBusinessLeaderboardRoute
   '/business/members': typeof AuthenticatedBusinessMembersRoute
@@ -437,6 +446,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/tickets': typeof AuthenticatedAdminTicketsRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/versions': typeof AuthenticatedAdminVersionsRoute
+  '/_authenticated/business/activity': typeof AuthenticatedBusinessActivityRoute
   '/_authenticated/business/earnings': typeof AuthenticatedBusinessEarningsRoute
   '/_authenticated/business/leaderboard': typeof AuthenticatedBusinessLeaderboardRoute
   '/_authenticated/business/members': typeof AuthenticatedBusinessMembersRoute
@@ -486,6 +496,7 @@ export interface FileRouteTypes {
     | '/admin/tickets'
     | '/admin/users'
     | '/admin/versions'
+    | '/business/activity'
     | '/business/earnings'
     | '/business/leaderboard'
     | '/business/members'
@@ -530,6 +541,7 @@ export interface FileRouteTypes {
     | '/admin/tickets'
     | '/admin/users'
     | '/admin/versions'
+    | '/business/activity'
     | '/business/earnings'
     | '/business/leaderboard'
     | '/business/members'
@@ -578,6 +590,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/tickets'
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/versions'
+    | '/_authenticated/business/activity'
     | '/_authenticated/business/earnings'
     | '/_authenticated/business/leaderboard'
     | '/_authenticated/business/members'
@@ -827,6 +840,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBusinessEarningsRouteImport
       parentRoute: typeof AuthenticatedBusinessRoute
     }
+    '/_authenticated/business/activity': {
+      id: '/_authenticated/business/activity'
+      path: '/activity'
+      fullPath: '/business/activity'
+      preLoaderRoute: typeof AuthenticatedBusinessActivityRouteImport
+      parentRoute: typeof AuthenticatedBusinessRoute
+    }
     '/_authenticated/admin/versions': {
       id: '/_authenticated/admin/versions'
       path: '/versions'
@@ -977,6 +997,7 @@ const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
 interface AuthenticatedBusinessRouteChildren {
+  AuthenticatedBusinessActivityRoute: typeof AuthenticatedBusinessActivityRoute
   AuthenticatedBusinessEarningsRoute: typeof AuthenticatedBusinessEarningsRoute
   AuthenticatedBusinessLeaderboardRoute: typeof AuthenticatedBusinessLeaderboardRoute
   AuthenticatedBusinessMembersRoute: typeof AuthenticatedBusinessMembersRoute
@@ -988,6 +1009,7 @@ interface AuthenticatedBusinessRouteChildren {
 }
 
 const AuthenticatedBusinessRouteChildren: AuthenticatedBusinessRouteChildren = {
+  AuthenticatedBusinessActivityRoute: AuthenticatedBusinessActivityRoute,
   AuthenticatedBusinessEarningsRoute: AuthenticatedBusinessEarningsRoute,
   AuthenticatedBusinessLeaderboardRoute: AuthenticatedBusinessLeaderboardRoute,
   AuthenticatedBusinessMembersRoute: AuthenticatedBusinessMembersRoute,
