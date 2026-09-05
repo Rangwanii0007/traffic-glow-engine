@@ -33,6 +33,7 @@ import { Route as AuthenticatedDashboardSupportRouteImport } from './routes/_aut
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
 import { Route as AuthenticatedDashboardSessionsRouteImport } from './routes/_authenticated/dashboard.sessions'
 import { Route as AuthenticatedDashboardBillingRouteImport } from './routes/_authenticated/dashboard.billing'
+import { Route as AuthenticatedBusinessWithdrawalsRouteImport } from './routes/_authenticated/business.withdrawals'
 import { Route as AuthenticatedBusinessUrlsRouteImport } from './routes/_authenticated/business.urls'
 import { Route as AuthenticatedBusinessTeamsRouteImport } from './routes/_authenticated/business.teams'
 import { Route as AuthenticatedBusinessRulesRouteImport } from './routes/_authenticated/business.rules'
@@ -179,6 +180,12 @@ const AuthenticatedDashboardBillingRoute =
     id: '/billing',
     path: '/billing',
     getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedBusinessWithdrawalsRoute =
+  AuthenticatedBusinessWithdrawalsRouteImport.update({
+    id: '/withdrawals',
+    path: '/withdrawals',
+    getParentRoute: () => AuthenticatedBusinessRoute,
   } as any)
 const AuthenticatedBusinessUrlsRoute =
   AuthenticatedBusinessUrlsRouteImport.update({
@@ -343,6 +350,7 @@ export interface FileRoutesByFullPath {
   '/business/rules': typeof AuthenticatedBusinessRulesRoute
   '/business/teams': typeof AuthenticatedBusinessTeamsRoute
   '/business/urls': typeof AuthenticatedBusinessUrlsRoute
+  '/business/withdrawals': typeof AuthenticatedBusinessWithdrawalsRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
@@ -386,6 +394,7 @@ export interface FileRoutesByTo {
   '/business/rules': typeof AuthenticatedBusinessRulesRoute
   '/business/teams': typeof AuthenticatedBusinessTeamsRoute
   '/business/urls': typeof AuthenticatedBusinessUrlsRoute
+  '/business/withdrawals': typeof AuthenticatedBusinessWithdrawalsRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
@@ -434,6 +443,7 @@ export interface FileRoutesById {
   '/_authenticated/business/rules': typeof AuthenticatedBusinessRulesRoute
   '/_authenticated/business/teams': typeof AuthenticatedBusinessTeamsRoute
   '/_authenticated/business/urls': typeof AuthenticatedBusinessUrlsRoute
+  '/_authenticated/business/withdrawals': typeof AuthenticatedBusinessWithdrawalsRoute
   '/_authenticated/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/_authenticated/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
@@ -482,6 +492,7 @@ export interface FileRouteTypes {
     | '/business/rules'
     | '/business/teams'
     | '/business/urls'
+    | '/business/withdrawals'
     | '/dashboard/billing'
     | '/dashboard/sessions'
     | '/dashboard/settings'
@@ -525,6 +536,7 @@ export interface FileRouteTypes {
     | '/business/rules'
     | '/business/teams'
     | '/business/urls'
+    | '/business/withdrawals'
     | '/dashboard/billing'
     | '/dashboard/sessions'
     | '/dashboard/settings'
@@ -572,6 +584,7 @@ export interface FileRouteTypes {
     | '/_authenticated/business/rules'
     | '/_authenticated/business/teams'
     | '/_authenticated/business/urls'
+    | '/_authenticated/business/withdrawals'
     | '/_authenticated/dashboard/billing'
     | '/_authenticated/dashboard/sessions'
     | '/_authenticated/dashboard/settings'
@@ -764,6 +777,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/billing'
       preLoaderRoute: typeof AuthenticatedDashboardBillingRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/business/withdrawals': {
+      id: '/_authenticated/business/withdrawals'
+      path: '/withdrawals'
+      fullPath: '/business/withdrawals'
+      preLoaderRoute: typeof AuthenticatedBusinessWithdrawalsRouteImport
+      parentRoute: typeof AuthenticatedBusinessRoute
     }
     '/_authenticated/business/urls': {
       id: '/_authenticated/business/urls'
@@ -963,6 +983,7 @@ interface AuthenticatedBusinessRouteChildren {
   AuthenticatedBusinessRulesRoute: typeof AuthenticatedBusinessRulesRoute
   AuthenticatedBusinessTeamsRoute: typeof AuthenticatedBusinessTeamsRoute
   AuthenticatedBusinessUrlsRoute: typeof AuthenticatedBusinessUrlsRoute
+  AuthenticatedBusinessWithdrawalsRoute: typeof AuthenticatedBusinessWithdrawalsRoute
   AuthenticatedBusinessIndexRoute: typeof AuthenticatedBusinessIndexRoute
 }
 
@@ -973,6 +994,7 @@ const AuthenticatedBusinessRouteChildren: AuthenticatedBusinessRouteChildren = {
   AuthenticatedBusinessRulesRoute: AuthenticatedBusinessRulesRoute,
   AuthenticatedBusinessTeamsRoute: AuthenticatedBusinessTeamsRoute,
   AuthenticatedBusinessUrlsRoute: AuthenticatedBusinessUrlsRoute,
+  AuthenticatedBusinessWithdrawalsRoute: AuthenticatedBusinessWithdrawalsRoute,
   AuthenticatedBusinessIndexRoute: AuthenticatedBusinessIndexRoute,
 }
 
