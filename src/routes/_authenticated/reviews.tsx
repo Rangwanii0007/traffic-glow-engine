@@ -224,7 +224,7 @@ function ReviewsPage() {
                   <div className="space-y-3 max-h-[560px] overflow-y-auto pr-2">
                     {sorted.map((r) => {
                       const isMine = r.user_id === user?.id || r.external_user_id === user?.id;
-                      const name = r.users?.full_name || r.reviewer_name || r.users?.email?.split("@")[0] || r.reviewer_email?.split("@")[0] || "Anonymous";
+                      const name = r.users?.full_name || r.reviewer_name || "Anonymous";
                       const initial = (name || "?").charAt(0).toUpperCase();
                       return (
                         <div key={r.id} className={cn(
