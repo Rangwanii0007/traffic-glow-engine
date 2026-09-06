@@ -136,6 +136,8 @@ export async function buildOverview(userId: string, email: string, fullName?: st
   const refRes = await admin
     .from("affiliate_referrals")
     .select("id, referred_id, referred_email, status, commission_amount, activated_at, created_at")
+    // NOTE: referred_email is only used to build a masked label below; the raw
+    // address is never returned to the referrer.
     .eq("referrer_id", userId)
     .order("created_at", { ascending: false });
   if (refRes.error && isSetupError(refRes.error.message)) setupRequired = true;
