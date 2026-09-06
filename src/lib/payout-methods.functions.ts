@@ -79,7 +79,7 @@ export const listAllMemberWithdrawals = createServerFn({ method: "GET" }).handle
     ? await admin.from("team_members").select("id, name, email, team_id").in("id", ids)
     : { data: [] };
   const byId = new Map(((members ?? []) as Row[]).map((m) => [String(m['id']), m]));
-  return rows.map((r) => ({ ...r, member: byId.get(String(r['member_id'])) ?? null }));
+  return rows.map((r) => ({ ...r, member: byId.get(String(r['member_id'])) ?? null })) as (Row & { member: Row | null })[];
 });
 
 export const adminDecideMemberWithdrawal = createServerFn({ method: "POST" })
