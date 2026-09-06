@@ -469,7 +469,13 @@ BEGIN
   LOOP
     EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON public.%I TO authenticated', t);
     EXECUTE format('GRANT ALL ON public.%I TO service_role', t);
-    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
+    -- Turn RLS on only for tables that are still empty (i.e. created by this
+    -- script). Tables your desktop software is already using are left exactly
+    -- as they are, so nothing in the software can break.
+    EXECUTE format('SELECT NOT EXISTS (SELECT 1 FROM public.%I LIMIT 1)', t) INTO is_empty;
+    IF is_empty THEN
+      EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
+    END IF;
   END LOOP;
 END $$;
 
