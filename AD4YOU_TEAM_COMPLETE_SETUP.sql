@@ -259,7 +259,7 @@ ALTER TABLE public.earnings_config ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP
 
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_earnings_config_team ON public.earnings_config(team_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_team_configurations_team ON public.team_configurations(team_id);
-CREATE UNIQUE INDEX IF NOT EXISTS uniq_team_member_email ON public.team_members(lower(email));
+CREATE INDEX IF NOT EXISTS idx_team_members_email_lower ON public.team_members(lower(email));
 CREATE INDEX IF NOT EXISTS idx_team_members_team ON public.team_members(team_id);
 CREATE INDEX IF NOT EXISTS idx_team_members_user_id ON public.team_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_teams_owner ON public.teams(owner_id);
