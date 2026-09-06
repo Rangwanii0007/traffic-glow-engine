@@ -153,12 +153,14 @@ export async function buildOverview(userId: string, email: string, fullName?: st
   }
   const referrals: ReferralRow[] = rawReferrals.map((r) => {
     const p = profiles.get(r.referred_id);
-    const mail = p?.email || r.referred_email || "user";
+    const mail = p?.email || r.referred_email || "";
+    const local = mail.split("@")[0] || "user";
     return {
       ...r,
+      referred_email: null,
       commission_amount: Number(r.commission_amount || 0),
-      email: mail,
-      name: p?.full_name || mail.split("@")[0],
+      email: maskEmail(mail),
+      name: p?.full_name || local,
     };
   });
 
