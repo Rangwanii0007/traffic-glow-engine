@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TeamLoginRouteImport } from './routes/team-login'
+import { Route as TeamRouteImport } from './routes/team'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PricingRouteImport } from './routes/pricing'
@@ -20,6 +22,13 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TeamIndexRouteImport } from './routes/team.index'
+import { Route as TeamWithdrawRouteImport } from './routes/team.withdraw'
+import { Route as TeamProfileRouteImport } from './routes/team.profile'
+import { Route as TeamPaymentsRouteImport } from './routes/team.payments'
+import { Route as TeamLeaderboardRouteImport } from './routes/team.leaderboard'
+import { Route as TeamEarningsRouteImport } from './routes/team.earnings'
+import { Route as TeamEarningInfoRouteImport } from './routes/team.earning-info'
 import { Route as AuthenticatedReviewsRouteImport } from './routes/_authenticated/reviews'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -36,8 +45,10 @@ import { Route as AuthenticatedDashboardBillingRouteImport } from './routes/_aut
 import { Route as AuthenticatedBusinessWithdrawalsRouteImport } from './routes/_authenticated/business.withdrawals'
 import { Route as AuthenticatedBusinessUrlsRouteImport } from './routes/_authenticated/business.urls'
 import { Route as AuthenticatedBusinessTeamsRouteImport } from './routes/_authenticated/business.teams'
+import { Route as AuthenticatedBusinessTeamEarningsRouteImport } from './routes/_authenticated/business.team-earnings'
 import { Route as AuthenticatedBusinessRulesRouteImport } from './routes/_authenticated/business.rules'
 import { Route as AuthenticatedBusinessMembersRouteImport } from './routes/_authenticated/business.members'
+import { Route as AuthenticatedBusinessMemberPayoutsRouteImport } from './routes/_authenticated/business.member-payouts'
 import { Route as AuthenticatedBusinessLeaderboardRouteImport } from './routes/_authenticated/business.leaderboard'
 import { Route as AuthenticatedBusinessEarningsRouteImport } from './routes/_authenticated/business.earnings'
 import { Route as AuthenticatedBusinessActivityRouteImport } from './routes/_authenticated/business.activity'
@@ -50,6 +61,7 @@ import { Route as AuthenticatedAdminPlatformsRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminPlansRouteImport } from './routes/_authenticated/admin.plans'
 import { Route as AuthenticatedAdminPlanInfoRouteImport } from './routes/_authenticated/admin.plan-info'
 import { Route as AuthenticatedAdminPayoutsRouteImport } from './routes/_authenticated/admin.payouts'
+import { Route as AuthenticatedAdminPayoutMethodsRouteImport } from './routes/_authenticated/admin.payout-methods'
 import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authenticated/admin.payments'
 import { Route as AuthenticatedAdminOffersRouteImport } from './routes/_authenticated/admin.offers'
 import { Route as AuthenticatedAdminFeaturesRouteImport } from './routes/_authenticated/admin.features'
@@ -57,6 +69,16 @@ import { Route as AuthenticatedAdminContactRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminAnnouncementsRouteImport } from './routes/_authenticated/admin.announcements'
 import { Route as AuthenticatedAdminAffiliateRouteImport } from './routes/_authenticated/admin.affiliate'
 
+const TeamLoginRoute = TeamLoginRouteImport.update({
+  id: '/team-login',
+  path: '/team-login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TeamRoute = TeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -110,6 +132,41 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const TeamIndexRoute = TeamIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TeamRoute,
+} as any)
+const TeamWithdrawRoute = TeamWithdrawRouteImport.update({
+  id: '/withdraw',
+  path: '/withdraw',
+  getParentRoute: () => TeamRoute,
+} as any)
+const TeamProfileRoute = TeamProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => TeamRoute,
+} as any)
+const TeamPaymentsRoute = TeamPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => TeamRoute,
+} as any)
+const TeamLeaderboardRoute = TeamLeaderboardRouteImport.update({
+  id: '/leaderboard',
+  path: '/leaderboard',
+  getParentRoute: () => TeamRoute,
+} as any)
+const TeamEarningsRoute = TeamEarningsRouteImport.update({
+  id: '/earnings',
+  path: '/earnings',
+  getParentRoute: () => TeamRoute,
+} as any)
+const TeamEarningInfoRoute = TeamEarningInfoRouteImport.update({
+  id: '/earning-info',
+  path: '/earning-info',
+  getParentRoute: () => TeamRoute,
 } as any)
 const AuthenticatedReviewsRoute = AuthenticatedReviewsRouteImport.update({
   id: '/reviews',
@@ -200,6 +257,12 @@ const AuthenticatedBusinessTeamsRoute =
     path: '/teams',
     getParentRoute: () => AuthenticatedBusinessRoute,
   } as any)
+const AuthenticatedBusinessTeamEarningsRoute =
+  AuthenticatedBusinessTeamEarningsRouteImport.update({
+    id: '/team-earnings',
+    path: '/team-earnings',
+    getParentRoute: () => AuthenticatedBusinessRoute,
+  } as any)
 const AuthenticatedBusinessRulesRoute =
   AuthenticatedBusinessRulesRouteImport.update({
     id: '/rules',
@@ -210,6 +273,12 @@ const AuthenticatedBusinessMembersRoute =
   AuthenticatedBusinessMembersRouteImport.update({
     id: '/members',
     path: '/members',
+    getParentRoute: () => AuthenticatedBusinessRoute,
+  } as any)
+const AuthenticatedBusinessMemberPayoutsRoute =
+  AuthenticatedBusinessMemberPayoutsRouteImport.update({
+    id: '/member-payouts',
+    path: '/member-payouts',
     getParentRoute: () => AuthenticatedBusinessRoute,
   } as any)
 const AuthenticatedBusinessLeaderboardRoute =
@@ -282,6 +351,12 @@ const AuthenticatedAdminPayoutsRoute =
     path: '/payouts',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminPayoutMethodsRoute =
+  AuthenticatedAdminPayoutMethodsRouteImport.update({
+    id: '/payout-methods',
+    path: '/payout-methods',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminPaymentsRoute =
   AuthenticatedAdminPaymentsRouteImport.update({
     id: '/payments',
@@ -330,18 +405,28 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/team': typeof TeamRouteWithChildren
+  '/team-login': typeof TeamLoginRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/affiliate': typeof AuthenticatedAffiliateRoute
   '/business': typeof AuthenticatedBusinessRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/profile': typeof AuthenticatedProfileRoute
   '/reviews': typeof AuthenticatedReviewsRoute
+  '/team/earning-info': typeof TeamEarningInfoRoute
+  '/team/earnings': typeof TeamEarningsRoute
+  '/team/leaderboard': typeof TeamLeaderboardRoute
+  '/team/payments': typeof TeamPaymentsRoute
+  '/team/profile': typeof TeamProfileRoute
+  '/team/withdraw': typeof TeamWithdrawRoute
+  '/team/': typeof TeamIndexRoute
   '/admin/affiliate': typeof AuthenticatedAdminAffiliateRoute
   '/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
   '/admin/contact': typeof AuthenticatedAdminContactRoute
   '/admin/features': typeof AuthenticatedAdminFeaturesRoute
   '/admin/offers': typeof AuthenticatedAdminOffersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
+  '/admin/payout-methods': typeof AuthenticatedAdminPayoutMethodsRoute
   '/admin/payouts': typeof AuthenticatedAdminPayoutsRoute
   '/admin/plan-info': typeof AuthenticatedAdminPlanInfoRoute
   '/admin/plans': typeof AuthenticatedAdminPlansRoute
@@ -354,8 +439,10 @@ export interface FileRoutesByFullPath {
   '/business/activity': typeof AuthenticatedBusinessActivityRoute
   '/business/earnings': typeof AuthenticatedBusinessEarningsRoute
   '/business/leaderboard': typeof AuthenticatedBusinessLeaderboardRoute
+  '/business/member-payouts': typeof AuthenticatedBusinessMemberPayoutsRoute
   '/business/members': typeof AuthenticatedBusinessMembersRoute
   '/business/rules': typeof AuthenticatedBusinessRulesRoute
+  '/business/team-earnings': typeof AuthenticatedBusinessTeamEarningsRoute
   '/business/teams': typeof AuthenticatedBusinessTeamsRoute
   '/business/urls': typeof AuthenticatedBusinessUrlsRoute
   '/business/withdrawals': typeof AuthenticatedBusinessWithdrawalsRoute
@@ -378,15 +465,24 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/team-login': typeof TeamLoginRoute
   '/affiliate': typeof AuthenticatedAffiliateRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/reviews': typeof AuthenticatedReviewsRoute
+  '/team/earning-info': typeof TeamEarningInfoRoute
+  '/team/earnings': typeof TeamEarningsRoute
+  '/team/leaderboard': typeof TeamLeaderboardRoute
+  '/team/payments': typeof TeamPaymentsRoute
+  '/team/profile': typeof TeamProfileRoute
+  '/team/withdraw': typeof TeamWithdrawRoute
+  '/team': typeof TeamIndexRoute
   '/admin/affiliate': typeof AuthenticatedAdminAffiliateRoute
   '/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
   '/admin/contact': typeof AuthenticatedAdminContactRoute
   '/admin/features': typeof AuthenticatedAdminFeaturesRoute
   '/admin/offers': typeof AuthenticatedAdminOffersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
+  '/admin/payout-methods': typeof AuthenticatedAdminPayoutMethodsRoute
   '/admin/payouts': typeof AuthenticatedAdminPayoutsRoute
   '/admin/plan-info': typeof AuthenticatedAdminPlanInfoRoute
   '/admin/plans': typeof AuthenticatedAdminPlansRoute
@@ -399,8 +495,10 @@ export interface FileRoutesByTo {
   '/business/activity': typeof AuthenticatedBusinessActivityRoute
   '/business/earnings': typeof AuthenticatedBusinessEarningsRoute
   '/business/leaderboard': typeof AuthenticatedBusinessLeaderboardRoute
+  '/business/member-payouts': typeof AuthenticatedBusinessMemberPayoutsRoute
   '/business/members': typeof AuthenticatedBusinessMembersRoute
   '/business/rules': typeof AuthenticatedBusinessRulesRoute
+  '/business/team-earnings': typeof AuthenticatedBusinessTeamEarningsRoute
   '/business/teams': typeof AuthenticatedBusinessTeamsRoute
   '/business/urls': typeof AuthenticatedBusinessUrlsRoute
   '/business/withdrawals': typeof AuthenticatedBusinessWithdrawalsRoute
@@ -425,18 +523,28 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/team': typeof TeamRouteWithChildren
+  '/team-login': typeof TeamLoginRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/affiliate': typeof AuthenticatedAffiliateRoute
   '/_authenticated/business': typeof AuthenticatedBusinessRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/reviews': typeof AuthenticatedReviewsRoute
+  '/team/earning-info': typeof TeamEarningInfoRoute
+  '/team/earnings': typeof TeamEarningsRoute
+  '/team/leaderboard': typeof TeamLeaderboardRoute
+  '/team/payments': typeof TeamPaymentsRoute
+  '/team/profile': typeof TeamProfileRoute
+  '/team/withdraw': typeof TeamWithdrawRoute
+  '/team/': typeof TeamIndexRoute
   '/_authenticated/admin/affiliate': typeof AuthenticatedAdminAffiliateRoute
   '/_authenticated/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
   '/_authenticated/admin/contact': typeof AuthenticatedAdminContactRoute
   '/_authenticated/admin/features': typeof AuthenticatedAdminFeaturesRoute
   '/_authenticated/admin/offers': typeof AuthenticatedAdminOffersRoute
   '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
+  '/_authenticated/admin/payout-methods': typeof AuthenticatedAdminPayoutMethodsRoute
   '/_authenticated/admin/payouts': typeof AuthenticatedAdminPayoutsRoute
   '/_authenticated/admin/plan-info': typeof AuthenticatedAdminPlanInfoRoute
   '/_authenticated/admin/plans': typeof AuthenticatedAdminPlansRoute
@@ -449,8 +557,10 @@ export interface FileRoutesById {
   '/_authenticated/business/activity': typeof AuthenticatedBusinessActivityRoute
   '/_authenticated/business/earnings': typeof AuthenticatedBusinessEarningsRoute
   '/_authenticated/business/leaderboard': typeof AuthenticatedBusinessLeaderboardRoute
+  '/_authenticated/business/member-payouts': typeof AuthenticatedBusinessMemberPayoutsRoute
   '/_authenticated/business/members': typeof AuthenticatedBusinessMembersRoute
   '/_authenticated/business/rules': typeof AuthenticatedBusinessRulesRoute
+  '/_authenticated/business/team-earnings': typeof AuthenticatedBusinessTeamEarningsRoute
   '/_authenticated/business/teams': typeof AuthenticatedBusinessTeamsRoute
   '/_authenticated/business/urls': typeof AuthenticatedBusinessUrlsRoute
   '/_authenticated/business/withdrawals': typeof AuthenticatedBusinessWithdrawalsRoute
@@ -475,18 +585,28 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/register'
     | '/reset-password'
+    | '/team'
+    | '/team-login'
     | '/admin'
     | '/affiliate'
     | '/business'
     | '/dashboard'
     | '/profile'
     | '/reviews'
+    | '/team/earning-info'
+    | '/team/earnings'
+    | '/team/leaderboard'
+    | '/team/payments'
+    | '/team/profile'
+    | '/team/withdraw'
+    | '/team/'
     | '/admin/affiliate'
     | '/admin/announcements'
     | '/admin/contact'
     | '/admin/features'
     | '/admin/offers'
     | '/admin/payments'
+    | '/admin/payout-methods'
     | '/admin/payouts'
     | '/admin/plan-info'
     | '/admin/plans'
@@ -499,8 +619,10 @@ export interface FileRouteTypes {
     | '/business/activity'
     | '/business/earnings'
     | '/business/leaderboard'
+    | '/business/member-payouts'
     | '/business/members'
     | '/business/rules'
+    | '/business/team-earnings'
     | '/business/teams'
     | '/business/urls'
     | '/business/withdrawals'
@@ -523,15 +645,24 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/register'
     | '/reset-password'
+    | '/team-login'
     | '/affiliate'
     | '/profile'
     | '/reviews'
+    | '/team/earning-info'
+    | '/team/earnings'
+    | '/team/leaderboard'
+    | '/team/payments'
+    | '/team/profile'
+    | '/team/withdraw'
+    | '/team'
     | '/admin/affiliate'
     | '/admin/announcements'
     | '/admin/contact'
     | '/admin/features'
     | '/admin/offers'
     | '/admin/payments'
+    | '/admin/payout-methods'
     | '/admin/payouts'
     | '/admin/plan-info'
     | '/admin/plans'
@@ -544,8 +675,10 @@ export interface FileRouteTypes {
     | '/business/activity'
     | '/business/earnings'
     | '/business/leaderboard'
+    | '/business/member-payouts'
     | '/business/members'
     | '/business/rules'
+    | '/business/team-earnings'
     | '/business/teams'
     | '/business/urls'
     | '/business/withdrawals'
@@ -569,18 +702,28 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/register'
     | '/reset-password'
+    | '/team'
+    | '/team-login'
     | '/_authenticated/admin'
     | '/_authenticated/affiliate'
     | '/_authenticated/business'
     | '/_authenticated/dashboard'
     | '/_authenticated/profile'
     | '/_authenticated/reviews'
+    | '/team/earning-info'
+    | '/team/earnings'
+    | '/team/leaderboard'
+    | '/team/payments'
+    | '/team/profile'
+    | '/team/withdraw'
+    | '/team/'
     | '/_authenticated/admin/affiliate'
     | '/_authenticated/admin/announcements'
     | '/_authenticated/admin/contact'
     | '/_authenticated/admin/features'
     | '/_authenticated/admin/offers'
     | '/_authenticated/admin/payments'
+    | '/_authenticated/admin/payout-methods'
     | '/_authenticated/admin/payouts'
     | '/_authenticated/admin/plan-info'
     | '/_authenticated/admin/plans'
@@ -593,8 +736,10 @@ export interface FileRouteTypes {
     | '/_authenticated/business/activity'
     | '/_authenticated/business/earnings'
     | '/_authenticated/business/leaderboard'
+    | '/_authenticated/business/member-payouts'
     | '/_authenticated/business/members'
     | '/_authenticated/business/rules'
+    | '/_authenticated/business/team-earnings'
     | '/_authenticated/business/teams'
     | '/_authenticated/business/urls'
     | '/_authenticated/business/withdrawals'
@@ -619,10 +764,26 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  TeamRoute: typeof TeamRouteWithChildren
+  TeamLoginRoute: typeof TeamLoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/team-login': {
+      id: '/team-login'
+      path: '/team-login'
+      fullPath: '/team-login'
+      preLoaderRoute: typeof TeamLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/team': {
+      id: '/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof TeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -699,6 +860,55 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/team/': {
+      id: '/team/'
+      path: '/'
+      fullPath: '/team/'
+      preLoaderRoute: typeof TeamIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/team/withdraw': {
+      id: '/team/withdraw'
+      path: '/withdraw'
+      fullPath: '/team/withdraw'
+      preLoaderRoute: typeof TeamWithdrawRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/team/profile': {
+      id: '/team/profile'
+      path: '/profile'
+      fullPath: '/team/profile'
+      preLoaderRoute: typeof TeamProfileRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/team/payments': {
+      id: '/team/payments'
+      path: '/payments'
+      fullPath: '/team/payments'
+      preLoaderRoute: typeof TeamPaymentsRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/team/leaderboard': {
+      id: '/team/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/team/leaderboard'
+      preLoaderRoute: typeof TeamLeaderboardRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/team/earnings': {
+      id: '/team/earnings'
+      path: '/earnings'
+      fullPath: '/team/earnings'
+      preLoaderRoute: typeof TeamEarningsRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/team/earning-info': {
+      id: '/team/earning-info'
+      path: '/earning-info'
+      fullPath: '/team/earning-info'
+      preLoaderRoute: typeof TeamEarningInfoRouteImport
+      parentRoute: typeof TeamRoute
     }
     '/_authenticated/reviews': {
       id: '/_authenticated/reviews'
@@ -812,6 +1022,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBusinessTeamsRouteImport
       parentRoute: typeof AuthenticatedBusinessRoute
     }
+    '/_authenticated/business/team-earnings': {
+      id: '/_authenticated/business/team-earnings'
+      path: '/team-earnings'
+      fullPath: '/business/team-earnings'
+      preLoaderRoute: typeof AuthenticatedBusinessTeamEarningsRouteImport
+      parentRoute: typeof AuthenticatedBusinessRoute
+    }
     '/_authenticated/business/rules': {
       id: '/_authenticated/business/rules'
       path: '/rules'
@@ -824,6 +1041,13 @@ declare module '@tanstack/react-router' {
       path: '/members'
       fullPath: '/business/members'
       preLoaderRoute: typeof AuthenticatedBusinessMembersRouteImport
+      parentRoute: typeof AuthenticatedBusinessRoute
+    }
+    '/_authenticated/business/member-payouts': {
+      id: '/_authenticated/business/member-payouts'
+      path: '/member-payouts'
+      fullPath: '/business/member-payouts'
+      preLoaderRoute: typeof AuthenticatedBusinessMemberPayoutsRouteImport
       parentRoute: typeof AuthenticatedBusinessRoute
     }
     '/_authenticated/business/leaderboard': {
@@ -910,6 +1134,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPayoutsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/payout-methods': {
+      id: '/_authenticated/admin/payout-methods'
+      path: '/payout-methods'
+      fullPath: '/admin/payout-methods'
+      preLoaderRoute: typeof AuthenticatedAdminPayoutMethodsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/payments': {
       id: '/_authenticated/admin/payments'
       path: '/payments'
@@ -962,6 +1193,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminFeaturesRoute: typeof AuthenticatedAdminFeaturesRoute
   AuthenticatedAdminOffersRoute: typeof AuthenticatedAdminOffersRoute
   AuthenticatedAdminPaymentsRoute: typeof AuthenticatedAdminPaymentsRoute
+  AuthenticatedAdminPayoutMethodsRoute: typeof AuthenticatedAdminPayoutMethodsRoute
   AuthenticatedAdminPayoutsRoute: typeof AuthenticatedAdminPayoutsRoute
   AuthenticatedAdminPlanInfoRoute: typeof AuthenticatedAdminPlanInfoRoute
   AuthenticatedAdminPlansRoute: typeof AuthenticatedAdminPlansRoute
@@ -981,6 +1213,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminFeaturesRoute: AuthenticatedAdminFeaturesRoute,
   AuthenticatedAdminOffersRoute: AuthenticatedAdminOffersRoute,
   AuthenticatedAdminPaymentsRoute: AuthenticatedAdminPaymentsRoute,
+  AuthenticatedAdminPayoutMethodsRoute: AuthenticatedAdminPayoutMethodsRoute,
   AuthenticatedAdminPayoutsRoute: AuthenticatedAdminPayoutsRoute,
   AuthenticatedAdminPlanInfoRoute: AuthenticatedAdminPlanInfoRoute,
   AuthenticatedAdminPlansRoute: AuthenticatedAdminPlansRoute,
@@ -1000,8 +1233,10 @@ interface AuthenticatedBusinessRouteChildren {
   AuthenticatedBusinessActivityRoute: typeof AuthenticatedBusinessActivityRoute
   AuthenticatedBusinessEarningsRoute: typeof AuthenticatedBusinessEarningsRoute
   AuthenticatedBusinessLeaderboardRoute: typeof AuthenticatedBusinessLeaderboardRoute
+  AuthenticatedBusinessMemberPayoutsRoute: typeof AuthenticatedBusinessMemberPayoutsRoute
   AuthenticatedBusinessMembersRoute: typeof AuthenticatedBusinessMembersRoute
   AuthenticatedBusinessRulesRoute: typeof AuthenticatedBusinessRulesRoute
+  AuthenticatedBusinessTeamEarningsRoute: typeof AuthenticatedBusinessTeamEarningsRoute
   AuthenticatedBusinessTeamsRoute: typeof AuthenticatedBusinessTeamsRoute
   AuthenticatedBusinessUrlsRoute: typeof AuthenticatedBusinessUrlsRoute
   AuthenticatedBusinessWithdrawalsRoute: typeof AuthenticatedBusinessWithdrawalsRoute
@@ -1012,8 +1247,12 @@ const AuthenticatedBusinessRouteChildren: AuthenticatedBusinessRouteChildren = {
   AuthenticatedBusinessActivityRoute: AuthenticatedBusinessActivityRoute,
   AuthenticatedBusinessEarningsRoute: AuthenticatedBusinessEarningsRoute,
   AuthenticatedBusinessLeaderboardRoute: AuthenticatedBusinessLeaderboardRoute,
+  AuthenticatedBusinessMemberPayoutsRoute:
+    AuthenticatedBusinessMemberPayoutsRoute,
   AuthenticatedBusinessMembersRoute: AuthenticatedBusinessMembersRoute,
   AuthenticatedBusinessRulesRoute: AuthenticatedBusinessRulesRoute,
+  AuthenticatedBusinessTeamEarningsRoute:
+    AuthenticatedBusinessTeamEarningsRoute,
   AuthenticatedBusinessTeamsRoute: AuthenticatedBusinessTeamsRoute,
   AuthenticatedBusinessUrlsRoute: AuthenticatedBusinessUrlsRoute,
   AuthenticatedBusinessWithdrawalsRoute: AuthenticatedBusinessWithdrawalsRoute,
@@ -1068,6 +1307,28 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface TeamRouteChildren {
+  TeamEarningInfoRoute: typeof TeamEarningInfoRoute
+  TeamEarningsRoute: typeof TeamEarningsRoute
+  TeamLeaderboardRoute: typeof TeamLeaderboardRoute
+  TeamPaymentsRoute: typeof TeamPaymentsRoute
+  TeamProfileRoute: typeof TeamProfileRoute
+  TeamWithdrawRoute: typeof TeamWithdrawRoute
+  TeamIndexRoute: typeof TeamIndexRoute
+}
+
+const TeamRouteChildren: TeamRouteChildren = {
+  TeamEarningInfoRoute: TeamEarningInfoRoute,
+  TeamEarningsRoute: TeamEarningsRoute,
+  TeamLeaderboardRoute: TeamLeaderboardRoute,
+  TeamPaymentsRoute: TeamPaymentsRoute,
+  TeamProfileRoute: TeamProfileRoute,
+  TeamWithdrawRoute: TeamWithdrawRoute,
+  TeamIndexRoute: TeamIndexRoute,
+}
+
+const TeamRouteWithChildren = TeamRoute._addFileChildren(TeamRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
@@ -1080,6 +1341,8 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  TeamRoute: TeamRouteWithChildren,
+  TeamLoginRoute: TeamLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
