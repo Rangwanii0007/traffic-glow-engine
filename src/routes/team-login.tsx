@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { KeyRound, Loader2, LogIn, Users } from "lucide-react";
+import { Eye, EyeOff, KeyRound, Loader2, Lock, LogIn, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PremiumLoginExperience } from "@/components/auth/PremiumLoginExperience";
 import { memberLogin, memberLoginWithAccount } from "@/lib/member.functions";
 import { writeMemberToken } from "@/hooks/use-member";
 
@@ -27,6 +28,7 @@ function TeamLoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [show, setShow] = useState(false);
 
   const done = (token: string) => {
     writeMemberToken(token);
@@ -47,51 +49,43 @@ function TeamLoginPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background text-foreground grid place-content-center px-4 py-12">
-      <div className="w-full max-w-md space-y-6">
-        <div className="text-center space-y-2">
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-[oklch(0.72_0.17_200)] to-[oklch(0.6_0.2_275)] grid place-content-center">
-            <Users className="w-6 h-6 text-black" />
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Team member login</h1>
-          <p className="text-sm text-muted-foreground">
-            Use the same email and password your team owner set for you in the AD4YOU software.
-          </p>
-        </div>
-
+    <PremiumLoginExperience mode="team" footer={<>Personal customer? <Link to="/login" className="text-primary hover:underline font-medium">Use personal access</Link></>}>
         <form
           onSubmit={(e) => { e.preventDefault(); login.mutate(); }}
-          className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 space-y-4"
+          className="login-form"
         >
-          <div className="space-y-1.5">
+          <div className="login-field">
             <Label htmlFor="member-email">Email</Label>
-            <Input id="member-email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
+            <div className="login-field__control">
+              <span className="login-field__icon"><Mail /></span>
+              <Input className="login-field__input" id="member-email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
+            </div>
           </div>
-          <div className="space-y-1.5">
+          <div className="login-field">
             <Label htmlFor="member-password">Password</Label>
-            <Input id="member-password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+            <div className="login-field__control">
+              <span className="login-field__icon"><Lock /></span>
+              <Input className="login-field__input pr-12" id="member-password" type={show ? "text" : "password"} autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+              <Button type="button" variant="ghost" size="icon" aria-label={show ? "Hide password" : "Show password"} onClick={() => setShow((value) => !value)} className="login-field__reveal">
+                {show ? <EyeOff /> : <Eye />}
+              </Button>
+            </div>
           </div>
-          <Button type="submit" className="w-full" disabled={login.isPending}>
-            {login.isPending ? <Loader2 className="animate-spin" /> : <LogIn className="w-4 h-4" />}Sign in to team area
+          <Button type="submit" className="login-submit" disabled={login.isPending}>
+            {login.isPending ? <><Loader2 className="animate-spin" /> Authenticating</> : <><LogIn /> Sign in to team area</>}
           </Button>
 
-          <div className="relative py-1 text-center">
-            <span className="text-[11px] uppercase tracking-wider text-muted-foreground bg-background px-2">or</span>
+          <div className="login-divider">
+            <span>or use linked account</span>
           </div>
 
-          <Button type="button" variant="outline" className="w-full" disabled={linked.isPending} onClick={() => linked.mutate()}>
+          <Button type="button" variant="outline" className="login-linked" disabled={linked.isPending} onClick={() => linked.mutate()}>
             {linked.isPending ? <Loader2 className="animate-spin" /> : <KeyRound className="w-4 h-4" />}Continue with my AD4YOU account
           </Button>
-          <p className="text-[11px] text-muted-foreground text-center">
+          <p className="login-form__note">
             Works when your team owner linked a personal AD4YOU account to your team profile and you are already signed in.
           </p>
         </form>
-
-        <p className="text-center text-xs text-muted-foreground">
-          Personal customer?{" "}
-          <Link to="/login" className="text-primary hover:underline">Sign in here</Link>
-        </p>
-      </div>
-    </div>
+    </PremiumLoginExperience>
   );
 }
