@@ -1,6 +1,14 @@
 import { z } from "zod";
 import { getAppAdmin, requireAdmin, requireUser } from "./account.server";
 
+/** Masks a referred user's email so a referrer never sees someone else's address. */
+function maskEmail(mail: string): string {
+  const [local, domain] = mail.split("@");
+  if (!local || !domain) return "hidden";
+  const head = local.slice(0, 2);
+  return `${head}${"*".repeat(Math.max(3, local.length - 2))}@${domain}`;
+}
+
 export type PayoutMethodRow = {
   id: string;
   method_type: string;
