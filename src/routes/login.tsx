@@ -4,7 +4,7 @@ import { Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { AuthShell } from "@/components/auth/AuthShell";
+import { PremiumLoginExperience } from "@/components/auth/PremiumLoginExperience";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,14 @@ import { friendlyAuthError } from "@/lib/auth-errors";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Sign in — AD4YOU" }] }),
+  head: () => ({ meta: [
+    { title: "Sign In — AD4YOU Traffic Machine" },
+    { name: "description", content: "Sign in securely to your AD4YOU personal traffic workspace." },
+    { property: "og:title", content: "Sign In — AD4YOU Traffic Machine" },
+    { property: "og:description", content: "Secure access to your AD4YOU traffic workspace." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: LoginPage,
 });
 
@@ -72,29 +79,22 @@ function LoginPage() {
   };
 
   return (
-    <AuthShell
-      title="Welcome back"
-      subtitle="Sign in to your AD4YOU account"
+    <PremiumLoginExperience
+      mode="personal"
       footer={
         <>
-          Don't have an account?{" "}
+          New to AD4YOU?{" "}
           <Link to="/register" className="text-primary hover:underline font-medium">
-            Sign up
+            Create your account
           </Link>
-          <span className="block mt-2 text-xs">
-            Team member?{" "}
-            <Link to="/team-login" className="text-primary hover:underline font-medium">
-              Sign in to the team area
-            </Link>
-          </span>
         </>
       }
     >
-      <form onSubmit={onSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      <form onSubmit={onSubmit} className="login-form">
+        <div className="login-field">
+          <Label htmlFor="email">Email address</Label>
+          <div className="login-field__control">
+            <span className="login-field__icon"><Mail /></span>
             <Input
               id="email"
               type="email"
@@ -102,16 +102,16 @@ function LoginPage() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="pl-9 h-11 bg-white/5 border-white/10 focus-visible:ring-primary/50 focus-visible:border-primary/50 transition"
+              className="login-field__input"
             />
           </div>
           {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="login-field">
+          <div className="login-field__label-row"><Label htmlFor="password">Password</Label><Link to="/forgot-password">Forgot password?</Link></div>
+          <div className="login-field__control">
+            <span className="login-field__icon"><Lock /></span>
             <Input
               id="password"
               type={show ? "text" : "password"}
@@ -119,41 +119,40 @@ function LoginPage() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="pl-9 pr-10 h-11 bg-white/5 border-white/10 focus-visible:ring-primary/50 focus-visible:border-primary/50 transition"
+              className="login-field__input pr-12"
             />
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               aria-label={show ? "Hide password" : "Show password"}
               onClick={() => setShow((s) => !s)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="login-field__reveal"
             >
               {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
+            </Button>
           </div>
           {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
         </div>
 
-        <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+        <div className="login-form__options">
+          <label>
             <Checkbox
               checked={remember}
               onCheckedChange={(v) => setRemember(Boolean(v))}
             />
             Remember me
           </label>
-          <Link to="/forgot-password" className="text-sm text-primary hover:underline">
-            Forgot password?
-          </Link>
         </div>
 
         <Button
           type="submit"
           disabled={submitting}
-          className="w-full h-11 bg-gradient-to-r from-[oklch(0.65_0.24_295)] to-[oklch(0.6_0.22_250)] hover:opacity-90 text-white font-semibold shadow-[var(--shadow-glow-primary)]"
+          className="login-submit"
         >
-          {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sign In"}
+          {submitting ? <><Loader2 className="animate-spin" /> Authenticating</> : <>Sign In <span aria-hidden="true">→</span></>}
         </Button>
       </form>
-    </AuthShell>
+    </PremiumLoginExperience>
   );
 }
