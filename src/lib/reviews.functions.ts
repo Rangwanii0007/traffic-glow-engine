@@ -9,11 +9,10 @@ type SafeReview = {
   user_id: string | null;
   external_user_id: string | null;
   reviewer_name: string | null;
-  reviewer_email: string | null;
   rating: number;
   message: string;
   created_at: string;
-  users: { full_name: string | null; email: string; avatar_url: string | null } | null;
+  users: { full_name: string | null; avatar_url: string | null } | null;
 };
 
 function getManagedAdmin() {
@@ -49,7 +48,7 @@ export const getCommunityReviews = createServerFn({ method: "GET" }).handler(asy
   const admin = getManagedAdmin();
   const { data, error } = await admin
     .from("reviews")
-    .select("id, user_id, external_user_id, reviewer_name, reviewer_email, rating, message, created_at, users:user_id(full_name, email, avatar_url)")
+    .select("id, user_id, external_user_id, reviewer_name, rating, message, created_at, users:user_id(full_name, avatar_url)")
     .eq("is_approved", true)
     .order("rating", { ascending: false })
     .order("created_at", { ascending: false });

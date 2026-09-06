@@ -24,8 +24,8 @@ export const Route = createFileRoute("/_authenticated/reviews")({
 });
 
 type Review = {
-  id: string; user_id: string | null; external_user_id?: string | null; reviewer_name?: string | null; reviewer_email?: string | null; rating: number; message: string; created_at: string;
-  users?: { full_name: string | null; email: string; avatar_url: string | null } | null;
+  id: string; user_id: string | null; external_user_id?: string | null; reviewer_name?: string | null; rating: number; message: string; created_at: string;
+  users?: { full_name: string | null; avatar_url: string | null } | null;
 };
 
 const REVIEW_NAMES = [
@@ -86,7 +86,7 @@ const DEMO_REVIEWS: Review[] = Array.from({ length: 124 }, (_, index) => {
     rating,
     message: amountText(template, index),
     created_at: new Date(Date.now() - index * 36 * 60 * 60 * 1000).toISOString(),
-    users: { full_name: name, email: `${name.toLowerCase().replace(/[^a-z]/g, "")}@publisher.example`, avatar_url: null },
+    users: { full_name: name, avatar_url: null },
   };
 });
 
@@ -224,7 +224,7 @@ function ReviewsPage() {
                   <div className="space-y-3 max-h-[560px] overflow-y-auto pr-2">
                     {sorted.map((r) => {
                       const isMine = r.user_id === user?.id || r.external_user_id === user?.id;
-                      const name = r.users?.full_name || r.reviewer_name || r.users?.email?.split("@")[0] || r.reviewer_email?.split("@")[0] || "Anonymous";
+                      const name = r.users?.full_name || r.reviewer_name || "Anonymous";
                       const initial = (name || "?").charAt(0).toUpperCase();
                       return (
                         <div key={r.id} className={cn(

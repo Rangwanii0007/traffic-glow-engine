@@ -1,6 +1,14 @@
 import { z } from "zod";
 import { getAppAdmin, requireAdmin, requireUser } from "./account.server";
 
+/** Masks a referred user's email so a referrer never sees someone else's address. */
+function maskEmail(mail: string): string {
+  const [local, domain] = mail.split("@");
+  if (!local || !domain) return "hidden";
+  const head = local.slice(0, 2);
+  return `${head}${"*".repeat(Math.max(3, local.length - 2))}@${domain}`;
+}
+
 export type PayoutMethodRow = {
   id: string;
   method_type: string;
@@ -136,6 +144,8 @@ export async function buildOverview(userId: string, email: string, fullName?: st
   const refRes = await admin
     .from("affiliate_referrals")
     .select("id, referred_id, referred_email, status, commission_amount, activated_at, created_at")
+    // NOTE: referred_email is only used to build a masked label below; the raw
+    // address is never returned to the referrer.
     .eq("referrer_id", userId)
     .order("created_at", { ascending: false });
   if (refRes.error && isSetupError(refRes.error.message)) setupRequired = true;
@@ -151,12 +161,14 @@ export async function buildOverview(userId: string, email: string, fullName?: st
   }
   const referrals: ReferralRow[] = rawReferrals.map((r) => {
     const p = profiles.get(r.referred_id);
-    const mail = p?.email || r.referred_email || "user";
+    const mail = p?.email || r.referred_email || "";
+    const local = mail.split("@")[0] || "user";
     return {
       ...r,
+      referred_email: null,
       commission_amount: Number(r.commission_amount || 0),
-      email: mail,
-      name: p?.full_name || mail.split("@")[0],
+      email: maskEmail(mail),
+      name: p?.full_name || local,
     };
   });
 
