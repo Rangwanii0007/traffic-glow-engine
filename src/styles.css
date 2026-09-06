@@ -268,6 +268,7 @@
 .mode-switcher::before { content: ""; position: absolute; inset: .35rem 50% .35rem .35rem; border-radius: .75rem; background: linear-gradient(135deg, var(--login-accent-soft), transparent); border: 1px solid color-mix(in oklab, var(--login-accent) 30%, transparent); box-shadow: inset 0 0 20px var(--login-accent-soft); transition: inset 650ms cubic-bezier(.22, 1, .36, 1); }
 .mode-switcher--team::before { inset: .35rem .35rem .35rem 50%; }
 .mode-switcher__option { position: relative; z-index: 1; width: 100%; height: 3.7rem; padding: .35rem .45rem; color: var(--muted-foreground); gap: .45rem; border-radius: .75rem; }
+.mode-switcher__option:hover { background: transparent; color: color-mix(in oklab, var(--foreground) 74%, transparent); }
 .mode-switcher__option[aria-pressed="true"] { color: var(--foreground); }
 .mode-switcher__option span:last-child { min-width: 0; text-align: left; }
 .mode-switcher__option strong, .mode-switcher__option small { display: block; letter-spacing: 0; }
