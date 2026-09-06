@@ -9,11 +9,10 @@ type SafeReview = {
   user_id: string | null;
   external_user_id: string | null;
   reviewer_name: string | null;
-  reviewer_email: string | null;
   rating: number;
   message: string;
   created_at: string;
-  users: { full_name: string | null; email: string; avatar_url: string | null } | null;
+  users: { full_name: string | null; avatar_url: string | null } | null;
 };
 
 function getManagedAdmin() {
