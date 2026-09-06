@@ -461,7 +461,7 @@ CREATE TRIGGER trg_member_withdrawals_touch BEFORE UPDATE ON public.member_withd
 -- F. RLS + GRANTS FOR THE BASE TEAM TABLES (owner-scoped isolation)
 -- =====================================================================
 DO $$
-DECLARE t TEXT;
+DECLARE t TEXT; is_empty BOOLEAN;
 BEGIN
   FOREACH t IN ARRAY ARRAY['teams','team_members','earnings_config','earnings_rate_history',
                            'team_configurations','team_activity_logs','team_earnings','team_pcs',
