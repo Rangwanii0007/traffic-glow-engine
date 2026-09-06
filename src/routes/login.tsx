@@ -81,6 +81,12 @@ function LoginPage() {
           <Link to="/register" className="text-primary hover:underline font-medium">
             Sign up
           </Link>
+          <span className="block mt-2 text-xs">
+            Team member?{" "}
+            <Link to="/team-login" className="text-primary hover:underline font-medium">
+              Sign in to the team area
+            </Link>
+          </span>
         </>
       }
     >
