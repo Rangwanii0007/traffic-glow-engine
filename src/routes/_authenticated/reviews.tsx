@@ -86,7 +86,7 @@ const DEMO_REVIEWS: Review[] = Array.from({ length: 124 }, (_, index) => {
     rating,
     message: amountText(template, index),
     created_at: new Date(Date.now() - index * 36 * 60 * 60 * 1000).toISOString(),
-    users: { full_name: name, email: `${name.toLowerCase().replace(/[^a-z]/g, "")}@publisher.example`, avatar_url: null },
+    users: { full_name: name, avatar_url: null },
   };
 });
 
