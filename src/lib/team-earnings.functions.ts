@@ -5,6 +5,12 @@ import { getRates, hashMemberPassword, type Row } from "./member.server";
 
 const uuid = z.string().uuid();
 
+export type MemberEarningRow = Row & {
+  balance: number; totalEarnings: number; monthEarnings: number; tasks: number;
+  pending: number; paid: number; withdrawals: number; hasAccount: boolean;
+};
+export type MemberWithdrawalRow = Row & { member: Row | null };
+
 /* ───────── owner view of every member's money ───────── */
 
 export const listTeamMemberEarnings = createServerFn({ method: "POST" })
@@ -35,7 +41,7 @@ export const listTeamMemberEarnings = createServerFn({ method: "POST" })
     }
 
     const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
-    const rows = list.map((m) => {
+    const rows: MemberEarningRow[] = list.map((m) => {
       const id = String(m['id']);
       const mine = entries.filter((e) => String(e['member_id']) === id);
       const w = withdrawals.filter((x) => String(x['member_id']) === id);
@@ -59,7 +65,7 @@ export const listTeamMemberEarnings = createServerFn({ method: "POST" })
       rates,
       totals: {
         members: rows.length,
-        active: rows.filter((r) => (r as unknown as Row)['is_active'] !== false).length,
+        active: rows.filter((r) => r['is_active'] !== false).length,
         earnings: rows.reduce((t, r) => t + r.totalEarnings, 0),
         month: rows.reduce((t, r) => t + r.monthEarnings, 0),
         pending: rows.reduce((t, r) => t + r.pending, 0),
@@ -114,7 +120,7 @@ export const listMemberWithdrawals = createServerFn({ method: "POST" })
     const byId = new Map(((members ?? []) as Row[]).map((m) => [String(m['id']), m]));
     const rates = await getRates(admin, data.teamId);
     return {
-      rows: ((rows ?? []) as Row[]).map((r) => ({ ...r, member: byId.get(String(r['member_id'])) ?? null })),
+      rows: ((rows ?? []) as Row[]).map((r) => ({ ...r, member: byId.get(String(r['member_id'])) ?? null })) as MemberWithdrawalRow[],
       rates,
     };
   });
