@@ -24,8 +24,8 @@ export const Route = createFileRoute("/_authenticated/reviews")({
 });
 
 type Review = {
-  id: string; user_id: string | null; external_user_id?: string | null; reviewer_name?: string | null; reviewer_email?: string | null; rating: number; message: string; created_at: string;
-  users?: { full_name: string | null; email: string; avatar_url: string | null } | null;
+  id: string; user_id: string | null; external_user_id?: string | null; reviewer_name?: string | null; rating: number; message: string; created_at: string;
+  users?: { full_name: string | null; avatar_url: string | null } | null;
 };
 
 const REVIEW_NAMES = [
