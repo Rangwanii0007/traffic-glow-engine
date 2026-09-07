@@ -351,7 +351,16 @@ export const saveEarningsConfig = createServerFn({ method: "POST" })
       new_per_ad_click_rate: data.values.per_ad_click_rate,
       new_bonus_multiplier: data.values.bonus_multiplier,
       changed_by_name: who,
+      old_visit_enabled: (old as Record<string, unknown>)['visit_enabled'] ?? null,
+      old_point_enabled: (old as Record<string, unknown>)['point_enabled'] ?? null,
+      old_ad_view_enabled: (old as Record<string, unknown>)['ad_view_enabled'] ?? null,
+      old_ad_click_enabled: (old as Record<string, unknown>)['ad_click_enabled'] ?? null,
+      new_visit_enabled: data.values.visit_enabled,
+      new_point_enabled: data.values.point_enabled,
+      new_ad_view_enabled: data.values.ad_view_enabled,
+      new_ad_click_enabled: data.values.ad_click_enabled,
       change_reason: data.reason ?? null,
+
     });
     await logActivity(admin, data.teamId, "earnings_rates_updated", "Earning rates updated from web panel");
     return { ok: true as const };
