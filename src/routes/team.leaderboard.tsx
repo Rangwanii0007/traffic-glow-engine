@@ -67,7 +67,7 @@ function LeaderboardPage() {
               </thead>
               <tbody>
                 {rows.length === 0 ? (
-                  <tr><td colSpan={8} className="p-6 text-center text-xs text-muted-foreground">No team members yet.</td></tr>
+                  <tr><td colSpan={10} className="p-6 text-center text-xs text-muted-foreground">No team members yet.</td></tr>
                 ) : rows.map((r) => (
                   <tr key={r.id} className={`border-t border-white/5 ${r.isMe ? "bg-primary/5" : ""}`}>
                     <td className="p-2 font-semibold">{r.rank}</td>
@@ -78,11 +78,13 @@ function LeaderboardPage() {
                       </span>
                     </td>
                     <td className="p-2 capitalize text-muted-foreground">{r.role.replace("_", " ")}</td>
-                    <td className="p-2">{qty(r.tasks)}</td>
-                    <td className="p-2 font-medium text-primary">{money(r.periodEarnings, s)}</td>
+                    <td className="p-2">{qty(r.activity.visitsToday)}</td>
+                    <td className="p-2">{qty(r.activity.visitsTotal)}</td>
+                    <td className="p-2">{qty(r.activity.adsViewedTotal)}</td>
+                    <td className="p-2">{qty(r.activity.adsClickedTotal)}</td>
+                    <td className="p-2">{qty(r.activity.hoursTotal)}</td>
                     <td className="p-2">{money(r.todayEarnings, s)}</td>
-                    <td className="p-2">{money(r.monthEarnings, s)}</td>
-                    <td className="p-2">{money(r.totalEarnings, s)}</td>
+                    <td className="p-2 font-medium text-primary">{money(r.totalEarnings, s)}</td>
                   </tr>
                 ))}
               </tbody>
