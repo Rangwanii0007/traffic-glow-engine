@@ -19,14 +19,15 @@ export const listTeamMemberEarnings = createServerFn({ method: "POST" })
     const { admin } = await requireTeam(data.teamId);
     const { data: members } = await admin
       .from("team_members")
-      .select("id, name, email, role, is_active, is_online, created_at, user_id")
+      .select("*")
       .eq("team_id", data.teamId)
       .order("created_at", { ascending: true });
     const list = (members ?? []) as Row[];
+    const teamRates = await getRates(admin, data.teamId);
 
     const [entriesRes, withdrawalsRes] = await Promise.all([
       (async () => {
-        for (const m of list) await admin.rpc("sync_member_bot_earnings", { p_member: String(m['id']) });
+        for (const m of list) await syncMemberEarnings(admin, m, teamRates);
         return admin.from("member_earning_entries").select("member_id, amount, quantity, entry_type, occurred_at").eq("team_id", data.teamId).limit(20000);
       })(),
       admin.from("member_withdrawals").select("member_id, amount, status").eq("team_id", data.teamId).limit(5000),
