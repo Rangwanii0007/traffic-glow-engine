@@ -21,7 +21,7 @@ const PUBLIC_MEMBER_FIELDS = [
   "allowed_tools", "created_at", "last_seen", "last_web_login", "user_id",
   "visits_today", "visits_total", "self_points_today", "self_points_total",
   "ads_viewed_today", "ads_viewed_total", "ads_clicked_today", "ads_clicked_total",
-  "hours_today", "hours_lifetime",
+  "hours_today", "hours_lifetime", "must_set_password",
 ];
 
 export function publicMember(member: Row): Row {
