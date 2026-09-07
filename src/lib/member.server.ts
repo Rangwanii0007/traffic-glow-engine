@@ -94,9 +94,36 @@ export const RATE_DEFAULTS: EarningsRates = {
   visit_enabled: true, point_enabled: true, ad_view_enabled: true, ad_click_enabled: true,
 };
 
+/** Platform seed rates — used only when a team has no earnings_config row yet. */
+const SEED_CONFIG = {
+  per_visit_rate: 0.002,
+  per_point_rate: 0.00003,
+  per_ad_view_rate: 0.0005,
+  per_ad_click_rate: 0.01,
+  bonus_multiplier: 1,
+  min_withdrawal: 5,
+  currency_symbol: "$",
+  currency_code: "USD",
+  is_active: true,
+  visit_enabled: true,
+  point_enabled: true,
+  ad_view_enabled: true,
+  ad_click_enabled: true,
+};
+
+/**
+ * Rates for ONE team. A team whose owner never opened the earnings page has no
+ * config row at all — that was silently zeroing every member's earnings, so we
+ * create the row once with the platform seed instead of guessing per request.
+ */
 export async function getRates(admin: SupabaseClient, teamId: string): Promise<EarningsRates> {
-  const { data } = await admin.from("earnings_config").select("*").eq("team_id", teamId).maybeSingle();
-  const c = (data ?? {}) as Record<string, unknown>;
+  let { data } = await admin.from("earnings_config").select("*").eq("team_id", teamId).maybeSingle();
+  if (!data) {
+    await admin.from("earnings_config").insert({ team_id: teamId, ...SEED_CONFIG });
+    const retry = await admin.from("earnings_config").select("*").eq("team_id", teamId).maybeSingle();
+    data = retry.data;
+  }
+  const c = (data ?? SEED_CONFIG) as Record<string, unknown>;
   const flag = (key: string) => c[key] !== false;
   return {
     per_visit_rate: Number(c['per_visit_rate'] ?? 0),
