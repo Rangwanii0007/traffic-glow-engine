@@ -18,22 +18,31 @@ export function TeamShell({ children }: { children: ReactNode }) {
     if (ready && !token) navigate({ to: "/team-login", replace: true });
   }, [ready, token, navigate]);
 
-  // live updates when the owner or admin changes money-related rows
+  // live updates: software activity counters, ledger money and owner settings
   useEffect(() => {
     if (!token) return;
+    const refresh = () => { void qc.invalidateQueries({ queryKey: ["member"] }); };
     const channel = supabase
       .channel("member-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "member_withdrawals" }, () => {
-        void qc.invalidateQueries({ queryKey: ["member"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "member_ledger" }, () => {
-        void qc.invalidateQueries({ queryKey: ["member"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "earnings_config" }, () => {
-        void qc.invalidateQueries({ queryKey: ["member"] });
-      })
-      .subscribe();
-    return () => { void supabase.removeChannel(channel); };
+      .on("postgres_changes", { event: "*", schema: "public", table: "team_members" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "member_earning_entries" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "member_withdrawals" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "member_ledger" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "earnings_config" }, refresh)
+      .subscribe((status) => { if (status === "SUBSCRIBED") refresh(); });
+
+    // safe fallbacks — reading again never double-credits, the server only
+    // writes the not-yet-credited difference
+    const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", refresh);
+    const timer = window.setInterval(refresh, 45000);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", refresh);
+      window.clearInterval(timer);
+      void supabase.removeChannel(channel);
+    };
   }, [token, qc]);
 
   if (!ready || !token) {
