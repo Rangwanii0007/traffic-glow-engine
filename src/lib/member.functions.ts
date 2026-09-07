@@ -74,8 +74,9 @@ export const memberDashboard = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { admin, member, team } = await requireMemberSession(data.token);
     const memberId = String(member['id']);
-    const balance = await syncAndGetBalance(admin, memberId);
     const rates = await getRates(admin, String(member['team_id']));
+    const balance = await syncAndGetBalance(admin, memberId, member);
+    const activity = memberActivity(member);
 
     const [entriesRes, withdrawalsRes] = await Promise.all([
       admin.from("member_earning_entries").select("*").eq("member_id", memberId).order("occurred_at", { ascending: false }).limit(500),
