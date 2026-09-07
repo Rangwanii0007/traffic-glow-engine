@@ -191,12 +191,14 @@ export const saveEmailSettings = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { admin } = await requireTeam(data.teamId);
+    const values = Object.fromEntries(Object.entries(data.values).filter(([, v]) => v !== undefined));
     const { error } = await admin
       .from("team_email_settings")
-      .upsert({ team_id: data.teamId, ...data.values, updated_at: new Date().toISOString() }, { onConflict: "team_id" });
+      .upsert({ team_id: data.teamId, ...values, updated_at: new Date().toISOString() }, { onConflict: "team_id" });
     throwIf(error);
     return { ok: true as const };
   });
+
 
 export const saveEmailTemplate = createServerFn({ method: "POST" })
   .inputValidator((input) =>
