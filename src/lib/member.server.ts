@@ -143,9 +143,120 @@ export async function getRates(admin: SupabaseClient, teamId: string): Promise<E
 }
 
 
+/* ─────────────── ONE activity source: the team_members counters ───────────────
+   The desktop software writes its activity onto the team_members row. The owner
+   panel/leaderboard reads those columns, so every member-facing screen reads the
+   exact same columns instead of a second, web-only history.                    */
+
+export type MemberActivity = {
+  visitsToday: number; visitsTotal: number;
+  adsViewedToday: number; adsViewedTotal: number;
+  adsClickedToday: number; adsClickedTotal: number;
+  pointsToday: number; pointsTotal: number;
+  hoursToday: number; hoursTotal: number;
+  successfulVisitsToday: number; failedVisitsToday: number;
+  isOnline: boolean; lastSeen: string | null;
+};
+
+const num = (row: Record<string, unknown>, ...keys: string[]) => {
+  for (const key of keys) if (row[key] !== undefined && row[key] !== null) return Number(row[key]) || 0;
+  return 0;
+};
+
+export function memberActivity(row: Record<string, unknown>): MemberActivity {
+  return {
+    visitsToday: num(row, "visits_today"),
+    visitsTotal: num(row, "visits_total", "display_visits_total"),
+    adsViewedToday: num(row, "ads_viewed_today"),
+    adsViewedTotal: num(row, "ads_viewed_total"),
+    adsClickedToday: num(row, "ads_clicked_today"),
+    adsClickedTotal: num(row, "ads_clicked_total"),
+    pointsToday: num(row, "self_points_today"),
+    pointsTotal: num(row, "self_points_total", "display_points_total"),
+    hoursToday: num(row, "hours_today"),
+    hoursTotal: num(row, "hours_lifetime", "hours_total"),
+    successfulVisitsToday: num(row, "successful_visits_today"),
+    failedVisitsToday: num(row, "failed_visits_today"),
+    isOnline: Boolean(row['is_online']),
+    lastSeen: (row['last_seen'] as string | null) ?? null,
+  };
+}
+
+const BOT_KINDS: { kind: string; counter: string; rate: keyof EarningsRates; toggle: keyof EarningsRates }[] = [
+  { kind: "visit", counter: "visits_total", rate: "per_visit_rate", toggle: "visit_enabled" },
+  { kind: "point", counter: "self_points_total", rate: "per_point_rate", toggle: "point_enabled" },
+  { kind: "ad_view", counter: "ads_viewed_total", rate: "per_ad_view_rate", toggle: "ad_view_enabled" },
+  { kind: "ad_click", counter: "ads_clicked_total", rate: "per_ad_click_rate", toggle: "ad_click_enabled" },
+];
+
+/**
+ * Turns new software activity into money using THIS team's rates and feature
+ * switches. Only the not-yet-credited difference is written, so refreshing or a
+ * realtime burst can never pay twice. When the owner has a feature switched off
+ * the activity is still marked as counted at zero, so switching it back on never
+ * back-pays the disabled period.
+ */
+export async function syncMemberEarnings(admin: SupabaseClient, memberRow: Record<string, unknown>, rates: EarningsRates) {
+  const memberId = String(memberRow['id']);
+  const teamId = String(memberRow['team_id']);
+  const ownerId = (memberRow['owner_id'] as string | null) ?? null;
+  const { data: credited } = await admin
+    .from("member_earning_entries")
+    .select("entry_type, quantity")
+    .eq("member_id", memberId)
+    .eq("source", "bot")
+    .limit(20000);
+
+  const done = new Map<string, number>();
+  for (const row of (credited ?? []) as Row[]) {
+    const key = String(row['entry_type']);
+    done.set(key, (done.get(key) ?? 0) + Number(row['quantity'] ?? 0));
+  }
+
+  for (const item of BOT_KINDS) {
+    const counter = Number(memberRow[item.counter] ?? 0) || 0;
+    const delta = counter - (done.get(item.kind) ?? 0);
+    if (delta <= 0) continue;
+    const enabled = rates[item.toggle] !== false;
+    const rate = enabled ? Number(rates[item.rate] ?? 0) * Number(rates.bonus_multiplier ?? 1) : 0;
+    const amount = Math.round(delta * rate * 10000) / 10000;
+    const { error } = await admin.from("member_earning_entries").insert({
+      team_id: teamId,
+      owner_id: ownerId,
+      member_id: memberId,
+      entry_type: item.kind,
+      quantity: delta,
+      rate,
+      amount,
+      source: "bot",
+      note: enabled ? "Auto-credited from software activity" : "Earning feature switched off by team owner",
+    });
+    if (error) throw new Error(error.message);
+    if (amount !== 0) {
+      await admin.from("member_ledger").insert({
+        team_id: teamId,
+        owner_id: ownerId,
+        member_id: memberId,
+        kind: "earning",
+        amount,
+        reference_type: "bot_sync",
+        note: `${item.kind} x ${delta}`,
+      });
+    }
+  }
+}
+
 /** Credits any new bot activity, then returns the trusted ledger balance. */
-export async function syncAndGetBalance(admin: SupabaseClient, memberId: string) {
-  await admin.rpc("sync_member_bot_earnings", { p_member: memberId });
+export async function syncAndGetBalance(admin: SupabaseClient, memberId: string, memberRow?: Record<string, unknown>) {
+  let row = memberRow;
+  if (!row) {
+    const { data } = await admin.from("team_members").select("*").eq("id", memberId).maybeSingle();
+    row = (data ?? undefined) as Record<string, unknown> | undefined;
+  }
+  if (row) {
+    const rates = await getRates(admin, String(row['team_id']));
+    await syncMemberEarnings(admin, row, rates);
+  }
   const { data, error } = await admin.rpc("member_balance", { p_member: memberId });
   if (error) throw new Error(error.message);
   return Number(data ?? 0);
