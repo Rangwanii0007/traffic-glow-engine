@@ -35,11 +35,12 @@ function EarningInfo() {
   const s = r.currency_symbol;
 
   const lines = [
-    { label: "Ad view", rate: r.per_ad_view_rate, count: d.adViews, amount: d.adViewEarnings },
-    { label: "Ad click", rate: r.per_ad_click_rate, count: d.adClicks, amount: d.adClickEarnings },
-    { label: "Website visit", rate: r.per_visit_rate, count: d.visits, amount: d.visitEarnings },
-    { label: "Task / point", rate: r.per_point_rate, count: d.tasks, amount: d.taskEarnings },
-  ];
+    { label: "Ad view", rate: r.per_ad_view_rate, count: d.adViews, amount: d.adViewEarnings, on: r.ad_view_enabled },
+    { label: "Ad click", rate: r.per_ad_click_rate, count: d.adClicks, amount: d.adClickEarnings, on: r.ad_click_enabled },
+    { label: "Website visit", rate: r.per_visit_rate, count: d.visits, amount: d.visitEarnings, on: r.visit_enabled },
+    { label: "Task / point", rate: r.per_point_rate, count: d.tasks, amount: d.taskEarnings, on: r.point_enabled },
+  ].filter((l) => l.on !== false);
+
 
   return (
     <div className="space-y-6">

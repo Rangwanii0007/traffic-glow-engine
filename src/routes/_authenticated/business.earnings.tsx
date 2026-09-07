@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Coins, History, Loader2, Save } from "lucide-react";
+import { Coins, History, Loader2, Save, ToggleRight } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,12 +30,15 @@ export const Route = createFileRoute("/_authenticated/business/earnings")({
 type Values = {
   per_visit_rate: number; per_point_rate: number; per_ad_view_rate: number; per_ad_click_rate: number;
   bonus_multiplier: number; min_withdrawal: number; currency_symbol: string; currency_code: string; admin_notes: string;
+  visit_enabled: boolean; point_enabled: boolean; ad_view_enabled: boolean; ad_click_enabled: boolean;
 };
 
 const defaults: Values = {
   per_visit_rate: 0.002, per_point_rate: 0.01, per_ad_view_rate: 0.005, per_ad_click_rate: 0.05,
   bonus_multiplier: 1, min_withdrawal: 50, currency_symbol: "$", currency_code: "USD", admin_notes: "",
+  visit_enabled: true, point_enabled: true, ad_view_enabled: true, ad_click_enabled: true,
 };
+
 
 function EarningsPage() {
   const { teamId } = useBusiness();
@@ -57,7 +62,12 @@ function EarningsPage() {
       currency_symbol: String(c['currency_symbol'] ?? "$"),
       currency_code: String(c['currency_code'] ?? "USD"),
       admin_notes: String(c['admin_notes'] ?? ""),
+      visit_enabled: c['visit_enabled'] !== false,
+      point_enabled: c['point_enabled'] !== false,
+      ad_view_enabled: c['ad_view_enabled'] !== false,
+      ad_click_enabled: c['ad_click_enabled'] !== false,
     });
+
   }, [query.dataUpdatedAt]);
 
   const save = useMutation({
@@ -74,6 +84,16 @@ function EarningsPage() {
     </div>
   );
 
+  const toggle = (k: keyof Values, label: string) => (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5">
+      <Label className="text-sm font-normal">{label}</Label>
+      <Switch checked={values[k] as boolean}
+        onCheckedChange={(on) => setValues((v) => ({ ...v, [k]: on }))} />
+    </div>
+  );
+
+
+
   if (!teamId) return <NoTeamNotice />;
 
   return (
@@ -85,8 +105,18 @@ function EarningsPage() {
 
       {query.isLoading ? <Skeleton className="h-64 rounded-2xl" /> : (
         <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-6 space-y-5">
-          <div className="flex items-center gap-2"><Coins className="w-4 h-4 text-primary" /><h2 className="font-semibold">Rates</h2></div>
+          <div className="flex items-center gap-2"><ToggleRight className="w-4 h-4 text-primary" /><h2 className="font-semibold">Earning features</h2></div>
+          <p className="text-xs text-muted-foreground -mt-3">Turn a feature off and your members stop earning from it straight away. Money already earned is never touched.</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {toggle("visit_enabled", "Visits")}
+            {toggle("point_enabled", "Self clicks / points")}
+            {toggle("ad_view_enabled", "Ad views")}
+            {toggle("ad_click_enabled", "Ad clicks")}
+          </div>
+
+          <div className="flex items-center gap-2 pt-2"><Coins className="w-4 h-4 text-primary" /><h2 className="font-semibold">Rates</h2></div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
             {num("per_visit_rate", "Per visit")}
             {num("per_point_rate", "Per point")}
             {num("per_ad_view_rate", "Per ad view")}

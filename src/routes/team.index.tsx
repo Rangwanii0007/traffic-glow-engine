@@ -66,11 +66,12 @@ function TeamDashboard() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { icon: Eye, label: "Ad views", count: d.adViews, amount: d.adViewEarnings },
-          { icon: MousePointerClick, label: "Ad clicks", count: d.adClicks, amount: d.adClickEarnings },
-          { icon: Globe, label: "Website visits", count: d.visits, amount: d.visitEarnings },
-          { icon: Activity, label: "Tasks / points", count: d.tasks, amount: d.taskEarnings },
-        ].map(({ icon: Icon, label, count, amount }) => (
+          { icon: Eye, label: "Ad views", count: d.adViews, amount: d.adViewEarnings, on: d.rates.ad_view_enabled },
+          { icon: MousePointerClick, label: "Ad clicks", count: d.adClicks, amount: d.adClickEarnings, on: d.rates.ad_click_enabled },
+          { icon: Globe, label: "Website visits", count: d.visits, amount: d.visitEarnings, on: d.rates.visit_enabled },
+          { icon: Activity, label: "Tasks / points", count: d.tasks, amount: d.taskEarnings, on: d.rates.point_enabled },
+        ].filter((c) => c.on !== false).map(({ icon: Icon, label, count, amount }) => (
+
           <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground"><Icon className="w-4 h-4 text-primary" />{label}</div>
             <p className="text-xl font-bold mt-2">{qty(count)}</p>
