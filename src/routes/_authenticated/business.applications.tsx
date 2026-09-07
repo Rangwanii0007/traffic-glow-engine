@@ -82,15 +82,33 @@ function ApplicationsPage() {
 
   const accept = useMutation({
     mutationFn: (id: string) => acceptApplication({ data: { teamId: teamId!, id, role: acceptRole as never, sendEmail: sendAccept, createMember } }),
-    onSuccess: () => { toast.success("Application accepted"); setAcceptOpen(false); setOpenId(null); setSelected([]); refresh(); },
+    onSuccess: (res) => {
+      toast.success(
+        res.temporaryPassword
+          ? `Accepted — account created. Temporary password: ${res.temporaryPassword}`
+          : "Application accepted",
+      );
+      if (res.email && res.email.status !== "sent") {
+        toast.warning(res.email.error ?? "The email could not be delivered. It is saved in the email history.");
+      } else if (res.email?.status === "sent") {
+        toast.success("Acceptance email delivered");
+      }
+      setAcceptOpen(false); setOpenId(null); setSelected([]); refresh();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const reject = useMutation({
     mutationFn: (ids: string[]) => rejectApplication({ data: { teamId: teamId!, ids, reason, sendEmail: sendReject } }),
-    onSuccess: (res) => { toast.success(`${res.count} application(s) rejected`); setRejectOpen(false); setReason(""); setOpenId(null); setSelected([]); refresh(); },
+    onSuccess: (res) => {
+      toast.success(`${res.count} application(s) rejected`);
+      if (res.emailFailed > 0) toast.warning(res.emailError ?? `${res.emailFailed} email(s) could not be delivered.`);
+      else if (res.emailSent > 0) toast.success(`${res.emailSent} email(s) delivered`);
+      setRejectOpen(false); setReason(""); setOpenId(null); setSelected([]); refresh();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const bulkStatus = useMutation({
     mutationFn: (next: string) => setApplicationStatus({ data: { teamId: teamId!, ids: selected, status: next as never } }),
