@@ -48,7 +48,11 @@ export const listTeamMemberEarnings = createServerFn({ method: "POST" })
       const w = withdrawals.filter((x) => String(x['member_id']) === id);
       const sum = (rs: Row[]) => rs.reduce((t, r) => t + Number(r['amount'] ?? 0), 0);
       return {
-        ...m,
+        // never ship secrets to the browser — pick only what the panel renders
+        id, name: m['name'] ?? null, email: m['email'] ?? null, role: m['role'] ?? null,
+        is_active: m['is_active'] ?? true, is_online: m['is_online'] ?? false,
+        created_at: m['created_at'] ?? null, user_id: m['user_id'] ?? null,
+        activity: memberActivity(m),
         balance: balances.get(id) ?? 0,
         totalEarnings: sum(mine.filter((e) => Number(e['amount'] ?? 0) > 0)),
         monthEarnings: sum(mine.filter((e) => new Date(String(e['occurred_at'])).getTime() >= monthStart)),
