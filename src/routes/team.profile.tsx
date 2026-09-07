@@ -57,7 +57,12 @@ function ProfilePage() {
 
   const savePassword = useMutation({
     mutationFn: () => memberUpdateProfile({ data: { token: token!, currentPassword, newPassword } }),
-    onSuccess: () => { toast.success("Password changed — use it in the software too"); setCurrentPassword(""); setNewPassword(""); },
+    onSuccess: () => {
+      toast.success("Password changed — use it in the software too");
+      setCurrentPassword(""); setNewPassword("");
+      void qc.invalidateQueries({ queryKey: ["member"] });
+    },
+
     onError: (error: Error) => toast.error(error.message),
   });
 
