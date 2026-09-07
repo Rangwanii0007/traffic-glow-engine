@@ -11,9 +11,14 @@ export function getTeamAdmin(): SupabaseClient {
   return createClient(url, key, { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } });
 }
 
+/** The exact hashing the desktop software and web team login already verify. */
 export function hashMemberPassword(password: string) {
   return createHash("sha256").update(password).digest("hex");
 }
+
+/** Temporary password given to a newly accepted team member. Never stored raw. */
+export const DEFAULT_MEMBER_PASSWORD = "admin";
+
 
 export const WORKER_ROLES = ["team_leader", "editor", "runner", "viewer"] as const;
 export type WorkerRole = (typeof WORKER_ROLES)[number];
