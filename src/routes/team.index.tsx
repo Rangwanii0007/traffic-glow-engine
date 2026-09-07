@@ -62,6 +62,22 @@ function TeamDashboard() {
 
 
 
+      <section className="rounded-2xl border border-primary/25 bg-primary/[0.04] p-4 sm:p-6">
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <span className={`w-2 h-2 rounded-full ${d.activity.isOnline ? "bg-emerald-400 animate-pulse" : "bg-white/20"}`} />
+          <h2 className="font-semibold">My live software activity</h2>
+          <span className="text-[11px] text-muted-foreground">
+            {d.activity.isOnline ? "Bot running now" : d.activity.lastSeen ? `Last active ${new Date(d.activity.lastSeen).toLocaleString()}` : "Not started yet"}
+          </span>
+        </div>
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+          <StatCard label="Visits today" value={qty(d.activity.visitsToday)} hint={`${qty(d.activity.visitsTotal)} all time`} />
+          <StatCard label="Ads viewed today" value={qty(d.activity.adsViewedToday)} hint={`${qty(d.activity.adsViewedTotal)} all time`} />
+          <StatCard label="Ads clicked today" value={qty(d.activity.adsClickedToday)} hint={`${qty(d.activity.adsClickedTotal)} all time`} />
+          <StatCard label="Hours today" value={qty(d.activity.hoursToday)} hint={`${qty(d.activity.hoursTotal)} lifetime`} />
+        </div>
+      </section>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Available balance" value={money(d.balance, s)} hint={`Minimum withdrawal ${money(d.rates.min_withdrawal, s)}`} />
         <StatCard label="Total earned" value={money(d.totalEarnings, s)} />
