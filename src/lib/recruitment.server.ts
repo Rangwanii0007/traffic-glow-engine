@@ -392,15 +392,26 @@ export function renderEmailHtml(brand: EmailBrand, bodyText: string) {
   </td></tr></table></body></html>`;
 }
 
+export type EmailResult = {
+  id: string | null;
+  status: "sent" | "failed" | "queued";
+  error: string | null;
+};
+
+export function emailProviderConfigured() {
+  return Boolean(process.env['RESEND_API_KEY'] && process.env['EMAIL_FROM']);
+}
+
 /**
  * Renders and stores the branded email, then tries to deliver it with the
- * platform's transactional provider when one is configured. Nothing is ever
- * lost: unsent mail stays queued in team_email_outbox and can be retried.
+ * platform's transactional provider. Nothing is ever lost: unsent mail stays
+ * in team_email_outbox with a clear status so the owner never sees a false
+ * "email sent" message.
  */
 export async function queueEmail(
   admin: SupabaseClient,
   args: { teamId: string; applicationId?: string | null; kind: string; to: string; subject: string; bodyText: string; brand: EmailBrand },
-) {
+): Promise<EmailResult> {
   const html = renderEmailHtml(args.brand, args.bodyText);
   const { data } = await admin
     .from("team_email_outbox")
@@ -417,19 +428,25 @@ export async function queueEmail(
     .select("id")
     .single();
   const id = data ? String((data as Row)['id']) : null;
-  if (id) await trySend(admin, id, args, html);
-  return { id, html };
+
+  if (!emailProviderConfigured()) {
+    const message = "Email sending is not configured yet, so this message is saved in the outbox instead of being delivered.";
+    if (id) await admin.from("team_email_outbox").update({ status: "failed", error: message }).eq("id", id);
+    return { id, status: "failed", error: message };
+  }
+
+  const sent = await trySend(admin, id, args, html);
+  return { id, ...sent };
 }
 
 async function trySend(
   admin: SupabaseClient,
-  id: string,
+  id: string | null,
   args: { to: string; subject: string; brand: EmailBrand },
   html: string,
-) {
-  const apiKey = process.env['RESEND_API_KEY'];
-  const from = process.env['EMAIL_FROM'];
-  if (!apiKey || !from) return; // stays queued until sending is configured
+): Promise<{ status: "sent" | "failed"; error: string | null }> {
+  const apiKey = process.env['RESEND_API_KEY']!;
+  const from = process.env['EMAIL_FROM']!;
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -442,12 +459,16 @@ async function trySend(
         ...(args.brand.reply_to ? { reply_to: args.brand.reply_to } : {}),
       }),
     });
-    if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
-    await admin.from("team_email_outbox").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", id);
+    if (!res.ok) throw new Error(`Email provider rejected the message (${res.status}): ${(await res.text()).slice(0, 200)}`);
+    if (id) await admin.from("team_email_outbox").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", id);
+    return { status: "sent", error: null };
   } catch (error) {
-    await admin.from("team_email_outbox").update({ status: "failed", error: (error as Error).message.slice(0, 500) }).eq("id", id);
+    const message = (error as Error).message.slice(0, 500);
+    if (id) await admin.from("team_email_outbox").update({ status: "failed", error: message }).eq("id", id);
+    return { status: "failed", error: message };
   }
 }
+
 
 export async function logEvent(
   admin: SupabaseClient,
