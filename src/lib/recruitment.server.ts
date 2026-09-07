@@ -226,7 +226,52 @@ function pickAnswer(questions: Row[], answers: Record<string, Json>, keys: strin
 }
 
 
+/* ───────────────────── global email uniqueness (server-side) ───────────────── */
+
+export function normEmail(value: unknown) {
+  return String(value ?? "").trim().replace(/\s+/g, "").toLowerCase();
+}
+
+/** Escapes an email so it can be used safely inside a PostgREST ilike pattern. */
+function likeSafe(email: string) {
+  return email.replace(/[%_,]/g, (c) => `\\${c}`);
+}
+
+export type EmailOwner =
+  | { taken: false }
+  | { taken: true; kind: "account" | "member"; teamId: string | null };
+
+/**
+ * Is this email already used anywhere on AD4YOU? Checked with the service role
+ * so it cannot be bypassed from the browser. Case-insensitive and space-safe.
+ * Uses the database helper when present, otherwise falls back to direct reads.
+ */
+export async function findEmailOwner(admin: SupabaseClient, rawEmail: string): Promise<EmailOwner> {
+  const email = normEmail(rawEmail);
+  if (!email) return { taken: false };
+
+  const rpc = await admin.rpc("ad4you_email_owner", { p_email: email });
+  if (!rpc.error && rpc.data) {
+    const row = rpc.data as { kind?: string | null; team_id?: string | null };
+    if (row.kind === "account" || row.kind === "member") {
+      return { taken: true, kind: row.kind, teamId: row.team_id ?? null };
+    }
+    if (row.kind === null || row.kind === "none") return { taken: false };
+  }
+
+  const pattern = likeSafe(email);
+  const members = await admin.from("team_members").select("id, team_id").ilike("email", pattern).limit(1);
+  const member = (members.data ?? [])[0] as { team_id?: string } | undefined;
+  if (member) return { taken: true, kind: "member", teamId: member.team_id ?? null };
+
+  const users = await admin.from("users").select("id").ilike("email", pattern).limit(1);
+  if ((users.data ?? []).length) return { taken: true, kind: "account", teamId: null };
+
+  return { taken: false };
+}
+
 /* ───────────────────────── member capacity (reuses plan limits) ───────────── */
+
 
 export async function memberCapacity(admin: SupabaseClient, team: Row) {
   const { data: activeRows } = await admin
