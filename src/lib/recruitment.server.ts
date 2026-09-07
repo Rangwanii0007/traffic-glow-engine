@@ -190,15 +190,41 @@ function matchesRule(value: Json, rule: { op?: string; value?: string }) {
   }
 }
 
+function norm(s: string) {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 function pickAnswer(questions: Row[], answers: Record<string, Json>, keys: string[], type: FieldType) {
-  for (const key of keys) if (typeof answers[key] === "string" && answers[key]) return String(answers[key]);
+  const wanted = keys.map(norm);
+  // 1) exact / normalised key match
+  for (const [k, v] of Object.entries(answers)) {
+    if (typeof v === "string" && v.trim() && wanted.includes(norm(k))) return v.trim();
+  }
+  // 2) declared field type
   const byType = questions.find((q) => String(q['field_type']) === type);
   if (byType) {
     const v = answers[String(byType['field_key'])];
-    if (typeof v === "string" && v) return v;
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  // 3) fuzzy match on key OR label (handles "E-mail", "Full name", "your_email" ...)
+  for (const q of questions) {
+    const key = String(q['field_key'] ?? "");
+    const label = norm(String(q['label'] ?? ""));
+    const nk = norm(key);
+    const hit = wanted.some((w) => nk.includes(w) || w.includes(nk) || label.includes(w));
+    if (!hit) continue;
+    const v = answers[key];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  // 4) last resort for email: any answer that looks like an email address
+  if (type === "email") {
+    for (const v of Object.values(answers)) {
+      if (typeof v === "string" && EMAIL_RE.test(v.trim())) return v.trim();
+    }
   }
   return "";
 }
+
 
 /* ───────────────────────── member capacity (reuses plan limits) ───────────── */
 
