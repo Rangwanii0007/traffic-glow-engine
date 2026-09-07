@@ -59,8 +59,10 @@ function LeaderboardPage() {
             <table className="w-full text-sm min-w-[680px]">
               <thead className="text-xs text-muted-foreground text-left">
                 <tr>
-                  <th className="p-2">#</th><th className="p-2">Member</th><th className="p-2">Role</th><th className="p-2">Actions</th>
-                  <th className="p-2">Selected period</th><th className="p-2">Today</th><th className="p-2">This month</th><th className="p-2">All time</th>
+                  <th className="p-2">#</th><th className="p-2">Member</th><th className="p-2">Role</th>
+                  <th className="p-2">Visits today</th><th className="p-2">Visits total</th><th className="p-2">Ads viewed</th>
+                  <th className="p-2">Ads clicked</th><th className="p-2">Hours</th>
+                  <th className="p-2">Earned today</th><th className="p-2">Earned total</th>
                 </tr>
               </thead>
               <tbody>
