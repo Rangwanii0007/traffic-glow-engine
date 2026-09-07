@@ -82,16 +82,22 @@ export type EarningsRates = {
   currency_symbol: string;
   currency_code: string;
   admin_notes: string | null;
+  visit_enabled: boolean;
+  point_enabled: boolean;
+  ad_view_enabled: boolean;
+  ad_click_enabled: boolean;
 };
 
 export const RATE_DEFAULTS: EarningsRates = {
   per_visit_rate: 0, per_point_rate: 0, per_ad_view_rate: 0, per_ad_click_rate: 0,
   bonus_multiplier: 1, min_withdrawal: 0, currency_symbol: "$", currency_code: "USD", admin_notes: null,
+  visit_enabled: true, point_enabled: true, ad_view_enabled: true, ad_click_enabled: true,
 };
 
 export async function getRates(admin: SupabaseClient, teamId: string): Promise<EarningsRates> {
   const { data } = await admin.from("earnings_config").select("*").eq("team_id", teamId).maybeSingle();
   const c = (data ?? {}) as Record<string, unknown>;
+  const flag = (key: string) => c[key] !== false;
   return {
     per_visit_rate: Number(c['per_visit_rate'] ?? 0),
     per_point_rate: Number(c['per_point_rate'] ?? 0),
@@ -102,8 +108,13 @@ export async function getRates(admin: SupabaseClient, teamId: string): Promise<E
     currency_symbol: String(c['currency_symbol'] ?? "$"),
     currency_code: String(c['currency_code'] ?? "USD"),
     admin_notes: (c['admin_notes'] as string | null) ?? null,
+    visit_enabled: flag("visit_enabled"),
+    point_enabled: flag("point_enabled"),
+    ad_view_enabled: flag("ad_view_enabled"),
+    ad_click_enabled: flag("ad_click_enabled"),
   };
 }
+
 
 /** Credits any new bot activity, then returns the trusted ledger balance. */
 export async function syncAndGetBalance(admin: SupabaseClient, memberId: string) {
