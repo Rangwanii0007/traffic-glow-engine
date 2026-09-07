@@ -514,6 +514,34 @@ async function trySend(
   }
 }
 
+/** Re-delivers an email that is already stored in the outbox (retry button). */
+export async function resendOutboxEmail(admin: SupabaseClient, teamId: string, id: string): Promise<EmailResult> {
+  const { data } = await admin
+    .from("team_email_outbox")
+    .select("id, to_email, subject, html, reply_to, team_id")
+    .eq("id", id)
+    .eq("team_id", teamId)
+    .maybeSingle();
+  if (!data) throw new Error("Email not found");
+  const row = data as Row;
+  if (!emailProviderConfigured()) {
+    const message = "Email sending is not configured yet, so this message is saved in the outbox instead of being delivered.";
+    await admin.from("team_email_outbox").update({ status: "failed", error: message }).eq("id", id);
+    return { id, status: "failed", error: message };
+  }
+  const { data: teamRow } = await admin.from("teams").select("*").eq("id", teamId).maybeSingle();
+  const brand = await loadBrand(admin, (teamRow ?? { id: teamId }) as Row);
+  if (row['reply_to']) brand.reply_to = String(row['reply_to']);
+  const sent = await trySend(
+    admin,
+    id,
+    { to: String(row['to_email']), subject: String(row['subject']), brand },
+    String(row['html']),
+  );
+  return { id, ...sent };
+}
+
+
 
 export async function logEvent(
   admin: SupabaseClient,
