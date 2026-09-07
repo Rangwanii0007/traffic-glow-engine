@@ -59,7 +59,7 @@ export const getRecruitment = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ teamId: uuid }).parse(input))
   .handler(async ({ data }) => {
     const { admin, team } = await requireTeam(data.teamId);
-    const form = await ensureForm(admin, team);
+    const form = await ensureForm(admin, team as Row);
     await ensureTemplates(admin, data.teamId);
 
     const [questionsRes, settingsRes, templatesRes, statsRes, capacity] = await Promise.all([
@@ -67,7 +67,7 @@ export const getRecruitment = createServerFn({ method: "POST" })
       admin.from("team_email_settings").select("*").eq("team_id", data.teamId).maybeSingle(),
       admin.from("team_email_templates").select("*").eq("team_id", data.teamId),
       admin.from("team_applications").select("status").eq("team_id", data.teamId),
-      memberCapacity(admin, team),
+      memberCapacity(admin, team as Row),
     ]);
 
     const statuses = ((statsRes.data ?? []) as Row[]).map((r) => String(r['status']));
@@ -94,7 +94,7 @@ export const saveJoinForm = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ teamId: uuid, values: brandingSchema }).parse(input))
   .handler(async ({ data }) => {
     const { admin, team } = await requireTeam(data.teamId);
-    const form = await ensureForm(admin, team);
+    const form = await ensureForm(admin, team as Row);
     const patch: Record<string, Json> = { ...data.values } as Record<string, Json>;
 
     if (data.values.slug && data.values.slug !== String(form['slug'])) {
@@ -120,7 +120,7 @@ export const saveQuestions = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ teamId: uuid, questions: z.array(questionSchema).max(60) }).parse(input))
   .handler(async ({ data }) => {
     const { admin, team } = await requireTeam(data.teamId);
-    const form = await ensureForm(admin, team);
+    const form = await ensureForm(admin, team as Row);
     const formId = String(form['id']);
 
     const keys = data.questions.map((q) => q.field_key);
@@ -265,7 +265,7 @@ export const getApplication = createServerFn({ method: "POST" })
     const { admin, team } = await requireTeam(data.teamId);
     const { data: app } = await admin.from("team_applications").select("*").eq("id", data.id).eq("team_id", data.teamId).maybeSingle();
     if (!app) throw new Error("Application not found");
-    const form = await ensureForm(admin, team);
+    const form = await ensureForm(admin, team as Row);
     const [questionsRes, eventsRes] = await Promise.all([
       admin.from("team_join_questions").select("*").eq("form_id", String(form['id'])).order("sort_order", { ascending: true }),
       admin.from("team_application_events").select("*").eq("application_id", data.id).order("created_at", { ascending: false }),
@@ -328,7 +328,7 @@ export const acceptApplication = createServerFn({ method: "POST" })
     let setupLink = "";
 
     if (data.createMember && !memberId) {
-      const capacity = await memberCapacity(admin, team);
+      const capacity = await memberCapacity(admin, team as Row);
       if (capacity.isFull) {
         throw new Error(`Your team is full (${capacity.active}/${capacity.limit} members). Free a slot or upgrade your plan before accepting.`);
       }
@@ -385,7 +385,7 @@ export const acceptApplication = createServerFn({ method: "POST" })
     await logEvent(admin, data.id, data.teamId, "accepted", "Application accepted", "owner");
 
     if (data.sendEmail) {
-      const brand = await loadBrand(admin, team);
+      const brand = await loadBrand(admin, team as Row);
       const tpl = await templateFor(admin, data.teamId, "accepted");
       if (tpl) {
         const vars = {
@@ -432,7 +432,7 @@ export const rejectApplication = createServerFn({ method: "POST" })
       .eq("team_id", data.teamId);
     throwIf(error);
 
-    const brand = await loadBrand(admin, team);
+    const brand = await loadBrand(admin, team as Row);
     const tpl = data.sendEmail ? await templateFor(admin, data.teamId, "rejected") : null;
     for (const app of apps) {
       const id = String(app['id']);

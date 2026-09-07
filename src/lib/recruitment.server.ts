@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
-export type Row = Record<string, unknown>;
+export type Row = Record<string, Json>;
 
 /* ───────────────────────── questions ───────────────────────── */
 
@@ -222,7 +222,7 @@ export async function memberCapacity(admin: SupabaseClient, team: Row) {
       .order("end_date", { ascending: false })
       .limit(3);
     for (const row of (subs ?? []) as Row[]) {
-      const planRow = row['plans'];
+      const planRow = row['plans'] as Json;
       const plan = Array.isArray(planRow) ? (planRow[0] as Row | undefined) : (planRow as Row | null);
       const max = plan ? Number(plan['max_pcs'] ?? 0) : 0;
       if (max > 0) { limit = Math.max(limit ?? 0, max); }
