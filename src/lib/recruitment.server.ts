@@ -265,30 +265,37 @@ export type TemplateKind = (typeof TEMPLATE_KINDS)[number];
 
 export const DEFAULT_TEMPLATES: Record<TemplateKind, { subject: string; body: string }> = {
   received: {
-    subject: "We received your application — {{team_name}}",
+    subject: "We received your application — {{company_name}}",
     body: `Hello {{applicant_name}},
 
-Thank you for applying to join {{team_name}}.
+Thank you for applying to join {{company_name}}.
 
 Your application has been received and is currently under review. You will get an email as soon as the team owner reviews it.
 
 Application reference: {{application_id}}`,
   },
   accepted: {
-    subject: "Congratulations! Your application has been accepted",
+    subject: "Congratulations! You have joined {{company_name}}",
     body: `Hello {{applicant_name}},
 
-Congratulations! Your application to join {{team_name}} has been accepted.
+Congratulations! Your application to join {{company_name}} has been accepted and your Team Member account has been created successfully.
 
-{{account_setup_link}}
+ACCOUNT DETAILS
 
-Once your password is set you can sign in any time here: {{login_link}}`,
+Name: {{applicant_name}}
+Email: {{applicant_email}}
+Temporary password: {{temporary_password}}
+Login: {{login_link}}
+
+After logging in, please open your Profile and change your temporary password for security.
+
+Welcome to the team!`,
   },
   rejected: {
-    subject: "Application status update — {{team_name}}",
+    subject: "Application status update — {{company_name}}",
     body: `Hello {{applicant_name}},
 
-Thank you for your interest in joining {{team_name}}.
+Thank you for your interest in joining {{company_name}}.
 
 After reviewing your application, we are unable to accept it at this time.
 
@@ -297,14 +304,15 @@ Reason: {{rejection_reason}}
 We appreciate the time you took to apply.`,
   },
   welcome: {
-    subject: "Welcome to {{team_name}}",
+    subject: "Welcome to {{company_name}}",
     body: `Hello {{applicant_name}},
 
-Welcome to {{team_name}}! Your team member account is ready.
+Welcome to {{company_name}}! Your team member account is ready.
 
 Sign in here: {{login_link}}`,
   },
 };
+
 
 export type EmailBrand = {
   business_name: string;
