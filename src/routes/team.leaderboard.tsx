@@ -59,13 +59,15 @@ function LeaderboardPage() {
             <table className="w-full text-sm min-w-[680px]">
               <thead className="text-xs text-muted-foreground text-left">
                 <tr>
-                  <th className="p-2">#</th><th className="p-2">Member</th><th className="p-2">Role</th><th className="p-2">Actions</th>
-                  <th className="p-2">Selected period</th><th className="p-2">Today</th><th className="p-2">This month</th><th className="p-2">All time</th>
+                  <th className="p-2">#</th><th className="p-2">Member</th><th className="p-2">Role</th>
+                  <th className="p-2">Visits today</th><th className="p-2">Visits total</th><th className="p-2">Ads viewed</th>
+                  <th className="p-2">Ads clicked</th><th className="p-2">Hours</th>
+                  <th className="p-2 capitalize">Earned {period === "all" ? "all time" : period}</th><th className="p-2">Earned total</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.length === 0 ? (
-                  <tr><td colSpan={8} className="p-6 text-center text-xs text-muted-foreground">No team members yet.</td></tr>
+                  <tr><td colSpan={10} className="p-6 text-center text-xs text-muted-foreground">No team members yet.</td></tr>
                 ) : rows.map((r) => (
                   <tr key={r.id} className={`border-t border-white/5 ${r.isMe ? "bg-primary/5" : ""}`}>
                     <td className="p-2 font-semibold">{r.rank}</td>
@@ -76,11 +78,13 @@ function LeaderboardPage() {
                       </span>
                     </td>
                     <td className="p-2 capitalize text-muted-foreground">{r.role.replace("_", " ")}</td>
-                    <td className="p-2">{qty(r.tasks)}</td>
-                    <td className="p-2 font-medium text-primary">{money(r.periodEarnings, s)}</td>
-                    <td className="p-2">{money(r.todayEarnings, s)}</td>
-                    <td className="p-2">{money(r.monthEarnings, s)}</td>
-                    <td className="p-2">{money(r.totalEarnings, s)}</td>
+                    <td className="p-2">{qty(r.activity.visitsToday)}</td>
+                    <td className="p-2">{qty(r.activity.visitsTotal)}</td>
+                    <td className="p-2">{qty(r.activity.adsViewedTotal)}</td>
+                    <td className="p-2">{qty(r.activity.adsClickedTotal)}</td>
+                    <td className="p-2">{qty(r.activity.hoursTotal)}</td>
+                    <td className="p-2">{money(r.periodEarnings, s)}</td>
+                    <td className="p-2 font-medium text-primary">{money(r.totalEarnings, s)}</td>
                   </tr>
                 ))}
               </tbody>

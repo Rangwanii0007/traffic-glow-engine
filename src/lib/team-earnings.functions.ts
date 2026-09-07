@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireTeam, throwIf } from "./team.server";
-import { getRates, hashMemberPassword, type Row } from "./member.server";
+import { getRates, hashMemberPassword, memberActivity, syncMemberEarnings, type Row } from "./member.server";
 
 const uuid = z.string().uuid();
 
@@ -19,14 +19,15 @@ export const listTeamMemberEarnings = createServerFn({ method: "POST" })
     const { admin } = await requireTeam(data.teamId);
     const { data: members } = await admin
       .from("team_members")
-      .select("id, name, email, role, is_active, is_online, created_at, user_id")
+      .select("*")
       .eq("team_id", data.teamId)
       .order("created_at", { ascending: true });
     const list = (members ?? []) as Row[];
+    const teamRates = await getRates(admin, data.teamId);
 
     const [entriesRes, withdrawalsRes] = await Promise.all([
       (async () => {
-        for (const m of list) await admin.rpc("sync_member_bot_earnings", { p_member: String(m['id']) });
+        for (const m of list) await syncMemberEarnings(admin, m, teamRates);
         return admin.from("member_earning_entries").select("member_id, amount, quantity, entry_type, occurred_at").eq("team_id", data.teamId).limit(20000);
       })(),
       admin.from("member_withdrawals").select("member_id, amount, status").eq("team_id", data.teamId).limit(5000),
@@ -47,7 +48,11 @@ export const listTeamMemberEarnings = createServerFn({ method: "POST" })
       const w = withdrawals.filter((x) => String(x['member_id']) === id);
       const sum = (rs: Row[]) => rs.reduce((t, r) => t + Number(r['amount'] ?? 0), 0);
       return {
-        ...m,
+        // never ship secrets to the browser — pick only what the panel renders
+        id, name: m['name'] ?? null, email: m['email'] ?? null, role: m['role'] ?? null,
+        is_active: m['is_active'] ?? true, is_online: m['is_online'] ?? false,
+        created_at: m['created_at'] ?? null, user_id: m['user_id'] ?? null,
+        activity: memberActivity(m),
         balance: balances.get(id) ?? 0,
         totalEarnings: sum(mine.filter((e) => Number(e['amount'] ?? 0) > 0)),
         monthEarnings: sum(mine.filter((e) => new Date(String(e['occurred_at'])).getTime() >= monthStart)),

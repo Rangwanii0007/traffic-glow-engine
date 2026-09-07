@@ -4,9 +4,11 @@ import {
   createMemberSession,
   getRates,
   hashMemberPassword,
+  memberActivity,
   publicMember,
   requireMemberSession,
   syncAndGetBalance,
+  syncMemberEarnings,
   type Row,
 } from "./member.server";
 import { getTeamAdmin, requireSessionUser } from "./team.server";
@@ -74,8 +76,9 @@ export const memberDashboard = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { admin, member, team } = await requireMemberSession(data.token);
     const memberId = String(member['id']);
-    const balance = await syncAndGetBalance(admin, memberId);
     const rates = await getRates(admin, String(member['team_id']));
+    const balance = await syncAndGetBalance(admin, memberId, member);
+    const activity = memberActivity(member);
 
     const [entriesRes, withdrawalsRes] = await Promise.all([
       admin.from("member_earning_entries").select("*").eq("member_id", memberId).order("occurred_at", { ascending: false }).limit(500),
@@ -99,13 +102,15 @@ export const memberDashboard = createServerFn({ method: "POST" })
       todayEarnings: sum(since(startOf("day"))),
       weekEarnings: sum(since(startOf("week"))),
       monthEarnings: sum(since(startOf("month"))),
-      adViews: qtyOf(["ad_view"]),
+      activity,
+      // counts come straight from the software counters the owner panel reads
+      adViews: activity.adsViewedTotal || qtyOf(["ad_view"]),
       adViewEarnings: amtOf(["ad_view"]),
-      adClicks: qtyOf(["ad_click"]),
+      adClicks: activity.adsClickedTotal || qtyOf(["ad_click"]),
       adClickEarnings: amtOf(["ad_click"]),
-      visits: qtyOf(["visit"]),
+      visits: activity.visitsTotal || qtyOf(["visit"]),
       visitEarnings: amtOf(["visit"]),
-      tasks: qtyOf(["point", "task"]),
+      tasks: activity.pointsTotal || qtyOf(["point", "task"]),
       taskEarnings: amtOf(["point", "task"]),
       otherEarnings: amtOf(["bonus", "manual", "adjustment"]),
       pendingAmount: byStatus("pending").concat(byStatus("processing")).reduce((t, w) => t + Number(w['amount'] ?? 0), 0),
@@ -142,9 +147,16 @@ export const memberLeaderboard = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { admin, member, team } = await requireMemberSession(data.token);
     const teamId = String(member['team_id']);
-    const { data: members } = await admin.from("team_members").select("id, name, role, is_online, avatar_url").eq("team_id", teamId);
+    const rates = await getRates(admin, teamId);
+    // same team, same rows the Business Panel leaderboard ranks — never emails
+    const { data: members } = await admin
+      .from("team_members")
+      .select(
+        "id, name, role, is_online, avatar_url, last_seen, visits_today, visits_total, self_points_today, self_points_total, ads_viewed_today, ads_viewed_total, ads_clicked_today, ads_clicked_total, hours_today, hours_lifetime, owner_id, team_id",
+      )
+      .eq("team_id", teamId);
     const list = (members ?? []) as Row[];
-    for (const m of list) await admin.rpc("sync_member_bot_earnings", { p_member: String(m['id']) });
+    for (const m of list) await syncMemberEarnings(admin, m, rates);
 
     const { data: entries } = await admin
       .from("member_earning_entries")
@@ -169,6 +181,7 @@ export const memberLeaderboard = createServerFn({ method: "POST" })
         is_online: Boolean(m['is_online']),
         avatar_url: (m['avatar_url'] as string | null) ?? null,
         isMe: String(m['id']) === String(member['id']),
+        activity: memberActivity(m),
         periodEarnings: sum(inRange),
         todayEarnings: sum(inDay),
         weekEarnings: sum(inWeek),
@@ -177,8 +190,7 @@ export const memberLeaderboard = createServerFn({ method: "POST" })
         tasks: inRange.reduce((t, r) => t + Number(r['quantity'] ?? 0), 0),
       };
     });
-    rows.sort((a, b) => b.periodEarnings - a.periodEarnings);
-    const rates = await getRates(admin, teamId);
+    rows.sort((a, b) => b.totalEarnings - a.totalEarnings || b.activity.visitsTotal - a.activity.visitsTotal);
     return { rows: rows.map((r, i) => ({ ...r, rank: i + 1 })), rates, teamName: String(team['name'] ?? "My team") };
   });
 
