@@ -181,6 +181,7 @@ export const memberLeaderboard = createServerFn({ method: "POST" })
         is_online: Boolean(m['is_online']),
         avatar_url: (m['avatar_url'] as string | null) ?? null,
         isMe: String(m['id']) === String(member['id']),
+        activity: memberActivity(m),
         periodEarnings: sum(inRange),
         todayEarnings: sum(inDay),
         weekEarnings: sum(inWeek),
@@ -189,8 +190,7 @@ export const memberLeaderboard = createServerFn({ method: "POST" })
         tasks: inRange.reduce((t, r) => t + Number(r['quantity'] ?? 0), 0),
       };
     });
-    rows.sort((a, b) => b.periodEarnings - a.periodEarnings);
-    const rates = await getRates(admin, teamId);
+    rows.sort((a, b) => b.totalEarnings - a.totalEarnings || b.activity.visitsTotal - a.activity.visitsTotal);
     return { rows: rows.map((r, i) => ({ ...r, rank: i + 1 })), rates, teamName: String(team['name'] ?? "My team") };
   });
 
