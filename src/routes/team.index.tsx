@@ -53,6 +53,15 @@ function TeamDashboard() {
         </div>
       </div>
 
+      {d.member['must_set_password'] === true && (
+        <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-3 text-sm flex flex-wrap items-center gap-3">
+          <span><span className="font-semibold">For security, please change your temporary password.</span> It takes a few seconds.</span>
+          <Button asChild size="sm" variant="outline"><Link to="/team/profile">Change password</Link></Button>
+        </div>
+      )}
+
+
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Available balance" value={money(d.balance, s)} hint={`Minimum withdrawal ${money(d.rates.min_withdrawal, s)}`} />
         <StatCard label="Total earned" value={money(d.totalEarnings, s)} />

@@ -226,7 +226,52 @@ function pickAnswer(questions: Row[], answers: Record<string, Json>, keys: strin
 }
 
 
+/* ───────────────────── global email uniqueness (server-side) ───────────────── */
+
+export function normEmail(value: unknown) {
+  return String(value ?? "").trim().replace(/\s+/g, "").toLowerCase();
+}
+
+/** Escapes an email so it can be used safely inside a PostgREST ilike pattern. */
+function likeSafe(email: string) {
+  return email.replace(/[%_,]/g, (c) => `\\${c}`);
+}
+
+export type EmailOwner =
+  | { taken: false }
+  | { taken: true; kind: "account" | "member"; teamId: string | null };
+
+/**
+ * Is this email already used anywhere on AD4YOU? Checked with the service role
+ * so it cannot be bypassed from the browser. Case-insensitive and space-safe.
+ * Uses the database helper when present, otherwise falls back to direct reads.
+ */
+export async function findEmailOwner(admin: SupabaseClient, rawEmail: string): Promise<EmailOwner> {
+  const email = normEmail(rawEmail);
+  if (!email) return { taken: false };
+
+  const rpc = await admin.rpc("ad4you_email_owner", { p_email: email });
+  if (!rpc.error && rpc.data) {
+    const row = rpc.data as { kind?: string | null; team_id?: string | null };
+    if (row.kind === "account" || row.kind === "member") {
+      return { taken: true, kind: row.kind, teamId: row.team_id ?? null };
+    }
+    if (row.kind === null || row.kind === "none") return { taken: false };
+  }
+
+  const pattern = likeSafe(email);
+  const members = await admin.from("team_members").select("id, team_id").ilike("email", pattern).limit(1);
+  const member = (members.data ?? [])[0] as { team_id?: string } | undefined;
+  if (member) return { taken: true, kind: "member", teamId: member.team_id ?? null };
+
+  const users = await admin.from("users").select("id").ilike("email", pattern).limit(1);
+  if ((users.data ?? []).length) return { taken: true, kind: "account", teamId: null };
+
+  return { taken: false };
+}
+
 /* ───────────────────────── member capacity (reuses plan limits) ───────────── */
+
 
 export async function memberCapacity(admin: SupabaseClient, team: Row) {
   const { data: activeRows } = await admin
@@ -265,30 +310,37 @@ export type TemplateKind = (typeof TEMPLATE_KINDS)[number];
 
 export const DEFAULT_TEMPLATES: Record<TemplateKind, { subject: string; body: string }> = {
   received: {
-    subject: "We received your application — {{team_name}}",
+    subject: "We received your application — {{company_name}}",
     body: `Hello {{applicant_name}},
 
-Thank you for applying to join {{team_name}}.
+Thank you for applying to join {{company_name}}.
 
 Your application has been received and is currently under review. You will get an email as soon as the team owner reviews it.
 
 Application reference: {{application_id}}`,
   },
   accepted: {
-    subject: "Congratulations! Your application has been accepted",
+    subject: "Congratulations! You have joined {{company_name}}",
     body: `Hello {{applicant_name}},
 
-Congratulations! Your application to join {{team_name}} has been accepted.
+Congratulations! Your application to join {{company_name}} has been accepted and your Team Member account has been created successfully.
 
-{{account_setup_link}}
+ACCOUNT DETAILS
 
-Once your password is set you can sign in any time here: {{login_link}}`,
+Name: {{applicant_name}}
+Email: {{applicant_email}}
+Temporary password: {{temporary_password}}
+Login: {{login_link}}
+
+After logging in, please open your Profile and change your temporary password for security.
+
+Welcome to the team!`,
   },
   rejected: {
-    subject: "Application status update — {{team_name}}",
+    subject: "Application status update — {{company_name}}",
     body: `Hello {{applicant_name}},
 
-Thank you for your interest in joining {{team_name}}.
+Thank you for your interest in joining {{company_name}}.
 
 After reviewing your application, we are unable to accept it at this time.
 
@@ -297,20 +349,23 @@ Reason: {{rejection_reason}}
 We appreciate the time you took to apply.`,
   },
   welcome: {
-    subject: "Welcome to {{team_name}}",
+    subject: "Welcome to {{company_name}}",
     body: `Hello {{applicant_name}},
 
-Welcome to {{team_name}}! Your team member account is ready.
+Welcome to {{company_name}}! Your team member account is ready.
 
 Sign in here: {{login_link}}`,
   },
 };
 
+
 export type EmailBrand = {
   business_name: string;
+  owner_name: string;
   team_name: string;
   logo_url: string;
   primary_color: string;
+  accent_color: string;
   reply_to: string;
   contact_email: string;
   contact_phone: string;
@@ -324,20 +379,24 @@ export async function loadBrand(admin: SupabaseClient, team: Row): Promise<Email
   const { data } = await admin.from("team_email_settings").select("*").eq("team_id", String(team['id'])).maybeSingle();
   const s = (data ?? {}) as Row;
   const teamName = String(s['team_name'] || team['name'] || "AD4YOU Team");
+  const businessName = String(s['business_name'] || team['company_name'] || teamName);
   return {
-    business_name: String(s['business_name'] || team['company_name'] || teamName),
+    business_name: businessName,
+    owner_name: String(s['owner_name'] || team['admin_name'] || ""),
     team_name: teamName,
     logo_url: String(s['logo_url'] || ""),
     primary_color: String(s['primary_color'] || "#22d3ee"),
+    accent_color: String(s['accent_color'] || "#a855f7"),
     reply_to: String(s['reply_to'] || s['contact_email'] || team['admin_contact_email'] || ""),
     contact_email: String(s['contact_email'] || team['admin_contact_email'] || ""),
     contact_phone: String(s['contact_phone'] || team['admin_phone'] || ""),
     whatsapp: String(s['whatsapp'] || team['admin_whatsapp'] || ""),
     website: String(s['website'] || ""),
     footer_text: String(s['footer_text'] || ""),
-    signature: String(s['signature'] || teamName),
+    signature: String(s['signature'] || [businessName, String(s['owner_name'] || team['admin_name'] || "")].filter(Boolean).join(" · ")),
   };
 }
+
 
 export function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -378,15 +437,26 @@ export function renderEmailHtml(brand: EmailBrand, bodyText: string) {
   </td></tr></table></body></html>`;
 }
 
+export type EmailResult = {
+  id: string | null;
+  status: "sent" | "failed" | "queued";
+  error: string | null;
+};
+
+export function emailProviderConfigured() {
+  return Boolean(process.env['RESEND_API_KEY'] && process.env['EMAIL_FROM']);
+}
+
 /**
  * Renders and stores the branded email, then tries to deliver it with the
- * platform's transactional provider when one is configured. Nothing is ever
- * lost: unsent mail stays queued in team_email_outbox and can be retried.
+ * platform's transactional provider. Nothing is ever lost: unsent mail stays
+ * in team_email_outbox with a clear status so the owner never sees a false
+ * "email sent" message.
  */
 export async function queueEmail(
   admin: SupabaseClient,
   args: { teamId: string; applicationId?: string | null; kind: string; to: string; subject: string; bodyText: string; brand: EmailBrand },
-) {
+): Promise<EmailResult> {
   const html = renderEmailHtml(args.brand, args.bodyText);
   const { data } = await admin
     .from("team_email_outbox")
@@ -403,19 +473,25 @@ export async function queueEmail(
     .select("id")
     .single();
   const id = data ? String((data as Row)['id']) : null;
-  if (id) await trySend(admin, id, args, html);
-  return { id, html };
+
+  if (!emailProviderConfigured()) {
+    const message = "Email sending is not configured yet, so this message is saved in the outbox instead of being delivered.";
+    if (id) await admin.from("team_email_outbox").update({ status: "failed", error: message }).eq("id", id);
+    return { id, status: "failed", error: message };
+  }
+
+  const sent = await trySend(admin, id, args, html);
+  return { id, ...sent };
 }
 
 async function trySend(
   admin: SupabaseClient,
-  id: string,
+  id: string | null,
   args: { to: string; subject: string; brand: EmailBrand },
   html: string,
-) {
-  const apiKey = process.env['RESEND_API_KEY'];
-  const from = process.env['EMAIL_FROM'];
-  if (!apiKey || !from) return; // stays queued until sending is configured
+): Promise<{ status: "sent" | "failed"; error: string | null }> {
+  const apiKey = process.env['RESEND_API_KEY']!;
+  const from = process.env['EMAIL_FROM']!;
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -428,12 +504,16 @@ async function trySend(
         ...(args.brand.reply_to ? { reply_to: args.brand.reply_to } : {}),
       }),
     });
-    if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
-    await admin.from("team_email_outbox").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", id);
+    if (!res.ok) throw new Error(`Email provider rejected the message (${res.status}): ${(await res.text()).slice(0, 200)}`);
+    if (id) await admin.from("team_email_outbox").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", id);
+    return { status: "sent", error: null };
   } catch (error) {
-    await admin.from("team_email_outbox").update({ status: "failed", error: (error as Error).message.slice(0, 500) }).eq("id", id);
+    const message = (error as Error).message.slice(0, 500);
+    if (id) await admin.from("team_email_outbox").update({ status: "failed", error: message }).eq("id", id);
+    return { status: "failed", error: message };
   }
 }
+
 
 export async function logEvent(
   admin: SupabaseClient,

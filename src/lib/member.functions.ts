@@ -296,6 +296,8 @@ export const memberUpdateProfile = createServerFn({ method: "POST" })
         throw new Error("Your current password is incorrect");
       }
       patch['password_hash'] = hashMemberPassword(data.newPassword);
+      patch['must_set_password'] = false; // temporary password replaced
+
     }
     const { error } = await admin.from("team_members").update(patch).eq("id", String(member['id']));
     if (error) throw new Error(error.message);

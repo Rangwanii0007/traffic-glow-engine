@@ -1,12 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
-import { defaultPermissions, getTeamAdmin, hashMemberPassword, requireTeam, throwIf, WORKER_ROLES } from "./team.server";
 import {
-  brandingSchema, DEFAULT_TEMPLATES, hashIp, hashToken, loadBrand, logEvent, memberCapacity, newToken,
-  queueEmail, questionSchema, renderVars, slugify, TEMPLATE_KINDS, validateAnswers,
-  type Json, type Row, type TemplateKind,
+  DEFAULT_MEMBER_PASSWORD, defaultPermissions, getTeamAdmin, hashMemberPassword, requireTeam, throwIf, WORKER_ROLES,
+} from "./team.server";
+import {
+  brandingSchema, DEFAULT_TEMPLATES, emailProviderConfigured, findEmailOwner, hashIp, hashToken, loadBrand, logEvent,
+  memberCapacity, newToken, normEmail, queueEmail, questionSchema, renderVars, slugify, TEMPLATE_KINDS, validateAnswers,
+  type EmailResult, type Json, type Row, type TemplateKind,
 } from "./recruitment.server";
+
 
 const uuid = z.string().uuid();
 
@@ -169,9 +172,13 @@ export const saveEmailSettings = createServerFn({ method: "POST" })
       teamId: uuid,
       values: z.object({
         business_name: z.string().trim().max(120).optional().default(""),
+        owner_name: z.string().trim().max(120).optional(),
         team_name: z.string().trim().max(120).optional().default(""),
         logo_url: z.string().trim().max(600).optional().default(""),
         primary_color: z.string().trim().max(30).optional().default("#22d3ee"),
+        accent_color: z.string().trim().max(30).optional(),
+
+
         reply_to: z.string().trim().max(160).optional().default(""),
         contact_email: z.string().trim().max(160).optional().default(""),
         contact_phone: z.string().trim().max(40).optional().default(""),
@@ -184,12 +191,14 @@ export const saveEmailSettings = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { admin } = await requireTeam(data.teamId);
+    const values = Object.fromEntries(Object.entries(data.values).filter(([, v]) => v !== undefined));
     const { error } = await admin
       .from("team_email_settings")
-      .upsert({ team_id: data.teamId, ...data.values, updated_at: new Date().toISOString() }, { onConflict: "team_id" });
+      .upsert({ team_id: data.teamId, ...values, updated_at: new Date().toISOString() }, { onConflict: "team_id" });
     throwIf(error);
     return { ok: true as const };
   });
+
 
 export const saveEmailTemplate = createServerFn({ method: "POST" })
   .inputValidator((input) =>
@@ -323,34 +332,40 @@ export const acceptApplication = createServerFn({ method: "POST" })
     const app = appRow as Row;
     if (String(app['status']) === "accepted") throw new Error("This application is already accepted");
 
-    const email = String(app['applicant_email']).toLowerCase();
+    const email = normEmail(app['applicant_email']);
     let memberId = app['member_id'] ? String(app['member_id']) : null;
     let setupLink = "";
+    let temporaryPassword = "";
 
     if (data.createMember && !memberId) {
       const capacity = await memberCapacity(admin, team as Row);
       if (capacity.isFull) {
         throw new Error(`Your team is full (${capacity.active}/${capacity.limit} members). Free a slot or upgrade your plan before accepting.`);
       }
-      const { data: existing } = await admin.from("team_members").select("id, team_id").ilike("email", email).maybeSingle();
-      if (existing && String((existing as Row)['team_id']) !== data.teamId) {
+      const { data: existingRows, error: existErr } = await admin.from("team_members").select("id, team_id").ilike("email", email).limit(1);
+      throwIf(existErr);
+      const existing = (existingRows ?? [])[0] as Row | undefined;
+      if (existing && String(existing['team_id']) !== data.teamId) {
         throw new Error("This email already belongs to a team member in another team");
       }
       if (existing) {
-        memberId = String((existing as Row)['id']);
+        memberId = String(existing['id']);
         await admin.from("team_members").update({ is_active: true, application_id: data.id }).eq("id", memberId);
       } else {
         if (data.role === "team_leader") {
           const { data: leader } = await admin.from("team_members").select("id").eq("team_id", data.teamId).eq("role", "team_leader").maybeSingle();
           if (leader) throw new Error("This team already has a Team Leader");
         }
+        // The temporary password is hashed with the exact same method the desktop
+        // software and the web team login already verify, so password_hash stays NOT NULL.
+        temporaryPassword = DEFAULT_MEMBER_PASSWORD;
         const { data: created, error } = await admin
           .from("team_members")
           .insert({
             team_id: data.teamId,
             name: String(app['applicant_name']),
             email,
-            password_hash: null,
+            password_hash: hashMemberPassword(temporaryPassword),
             must_set_password: true,
             role: data.role,
             allowed_tools: defaultPermissions(data.role),
@@ -384,14 +399,17 @@ export const acceptApplication = createServerFn({ method: "POST" })
     throwIf(upErr);
     await logEvent(admin, data.id, data.teamId, "accepted", "Application accepted", "owner");
 
+    let emailResult: EmailResult | null = null;
     if (data.sendEmail) {
       const brand = await loadBrand(admin, team as Row);
       const tpl = await templateFor(admin, data.teamId, "accepted");
       if (tpl) {
         const vars = {
           applicant_name: String(app['applicant_name']),
+          applicant_email: email,
+          company_name: brand.business_name,
           team_name: brand.team_name,
-          team_owner_name: String(team['admin_name'] ?? brand.business_name),
+          team_owner_name: brand.owner_name || brand.business_name,
           application_id: data.id,
           rejection_reason: "",
           contact_email: brand.contact_email,
@@ -399,16 +417,28 @@ export const acceptApplication = createServerFn({ method: "POST" })
           whatsapp: brand.whatsapp,
           website: brand.website,
           login_link: `${origin()}/team-login`,
-          account_setup_link: setupLink ? `Set your password and activate your account here: ${setupLink}` : "",
+          temporary_password: temporaryPassword || "(your existing password)",
+          account_setup_link: setupLink ? `Set your own password here: ${setupLink}` : "",
         };
-        await queueEmail(admin, {
+        emailResult = await queueEmail(admin, {
           teamId: data.teamId, applicationId: data.id, kind: "accepted", to: email,
           subject: renderVars(tpl.subject, vars), bodyText: renderVars(tpl.body, vars), brand,
         });
-        await logEvent(admin, data.id, data.teamId, "email_accepted", "Acceptance email prepared and sent", "system");
+        await logEvent(
+          admin, data.id, data.teamId, "email_accepted",
+          emailResult.status === "sent" ? "Acceptance email delivered" : `Acceptance email not delivered: ${emailResult.error ?? "unknown reason"}`,
+          "system",
+        );
       }
     }
-    return { ok: true as const, memberId, setupLink };
+    return {
+      ok: true as const,
+      memberId,
+      setupLink,
+      temporaryPassword,
+      email: emailResult ? { status: emailResult.status, error: emailResult.error } : null,
+      emailConfigured: emailProviderConfigured(),
+    };
   });
 
 export const rejectApplication = createServerFn({ method: "POST" })
@@ -434,14 +464,19 @@ export const rejectApplication = createServerFn({ method: "POST" })
 
     const brand = await loadBrand(admin, team as Row);
     const tpl = data.sendEmail ? await templateFor(admin, data.teamId, "rejected") : null;
+    let sent = 0;
+    let failed = 0;
+    let lastError: string | null = null;
     for (const app of apps) {
       const id = String(app['id']);
       await logEvent(admin, id, data.teamId, "rejected", data.reason || "Application rejected", "owner");
       if (!tpl) continue;
       const vars = {
         applicant_name: String(app['applicant_name']),
+        applicant_email: String(app['applicant_email']),
+        company_name: brand.business_name,
         team_name: brand.team_name,
-        team_owner_name: String(team['admin_name'] ?? brand.business_name),
+        team_owner_name: brand.owner_name || brand.business_name,
         application_id: id,
         rejection_reason: data.reason || "Your application did not match our current team requirements.",
         contact_email: brand.contact_email,
@@ -449,16 +484,24 @@ export const rejectApplication = createServerFn({ method: "POST" })
         whatsapp: brand.whatsapp,
         website: brand.website,
         login_link: `${origin()}/team-login`,
+        temporary_password: "",
         account_setup_link: "",
       };
-      await queueEmail(admin, {
+      const result = await queueEmail(admin, {
         teamId: data.teamId, applicationId: id, kind: "rejected", to: String(app['applicant_email']),
         subject: renderVars(tpl.subject, vars), bodyText: renderVars(tpl.body, vars), brand,
       });
-      await logEvent(admin, id, data.teamId, "email_rejected", "Rejection email prepared and sent", "system");
+      if (result.status === "sent") sent += 1;
+      else { failed += 1; lastError = result.error; }
+      await logEvent(
+        admin, id, data.teamId, "email_rejected",
+        result.status === "sent" ? "Rejection email delivered" : `Rejection email not delivered: ${result.error ?? "unknown reason"}`,
+        "system",
+      );
     }
-    return { ok: true as const, count: apps.length };
+    return { ok: true as const, count: apps.length, emailSent: sent, emailFailed: failed, emailError: lastError, emailConfigured: emailProviderConfigured() };
   });
+
 
 export const listEmailOutbox = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ teamId: uuid }).parse(input))
@@ -529,24 +572,25 @@ export const submitApplication = createServerFn({ method: "POST" })
       .from("team_join_questions").select("*").eq("form_id", String(form['id'])).eq("is_active", true).order("sort_order", { ascending: true });
 
     const parsed = validateAnswers((questions ?? []) as Row[], data.answers as Record<string, unknown>, form['scoring_enabled'] === true);
+    parsed.email = normEmail(parsed.email);
+
 
     // ── global email uniqueness (server-side, cannot be bypassed from the browser) ──
-    // 1. the address must not already belong to a team member of ANY team (team 1 vs team 2 isolation)
-    const { data: memberClash } = await admin
-      .from("team_members").select("id, team_id").ilike("email", parsed.email).limit(1).maybeSingle();
-    if (memberClash) {
+    // Checked with the service role against every place an AD4YOU identity can live:
+    // auth accounts, public account profiles and team members of ANY team.
+    const owner = await findEmailOwner(admin, parsed.email);
+    if (owner.taken) {
+      if (owner.kind === "account") {
+        throw new Error("This email is already associated with an existing AD4YOU account. Please use your existing account instead.");
+      }
       throw new Error(
-        String((memberClash as Row)['team_id']) === teamId
-          ? "This email is already a member of this team — please sign in instead."
-          : "This email is already registered as a team member on AD4YOU. Please use a different email address that has no AD4YOU account yet.",
+        owner.teamId === teamId
+          ? "This email is already registered as a Team Member of this team — please sign in instead."
+          : "This email is already registered as a Team Member on AD4YOU. Please apply with a different email address.",
       );
     }
-    // 2. the address must not already be a registered AD4YOU account holder
-    const { data: userClash } = await admin
-      .from("users").select("id").ilike("email", parsed.email).limit(1).maybeSingle();
-    if (userClash) {
-      throw new Error("This email already has an AD4YOU account. Please apply with a different email address that has not created an AD4YOU account yet.");
-    }
+
+
 
 
 

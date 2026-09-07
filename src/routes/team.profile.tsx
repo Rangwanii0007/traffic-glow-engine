@@ -57,7 +57,12 @@ function ProfilePage() {
 
   const savePassword = useMutation({
     mutationFn: () => memberUpdateProfile({ data: { token: token!, currentPassword, newPassword } }),
-    onSuccess: () => { toast.success("Password changed — use it in the software too"); setCurrentPassword(""); setNewPassword(""); },
+    onSuccess: () => {
+      toast.success("Password changed — use it in the software too");
+      setCurrentPassword(""); setNewPassword("");
+      void qc.invalidateQueries({ queryKey: ["member"] });
+    },
+
     onError: (error: Error) => toast.error(error.message),
   });
 
@@ -74,6 +79,15 @@ function ProfilePage() {
           {d.team.company_name ?? d.team.name} · {String(d.member['email'] ?? "")}
         </p>
       </div>
+
+      {d.member['must_set_password'] === true && (
+        <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-3 text-sm">
+          <span className="font-semibold">For security, please change your temporary password.</span>{" "}
+          Choose a new password below — it works for both the website and the AD4YOU software.
+        </div>
+      )}
+
+
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Available balance" value={money(d.balance, s)} />
