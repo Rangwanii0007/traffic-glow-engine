@@ -316,9 +316,11 @@ Sign in here: {{login_link}}`,
 
 export type EmailBrand = {
   business_name: string;
+  owner_name: string;
   team_name: string;
   logo_url: string;
   primary_color: string;
+  accent_color: string;
   reply_to: string;
   contact_email: string;
   contact_phone: string;
@@ -332,20 +334,24 @@ export async function loadBrand(admin: SupabaseClient, team: Row): Promise<Email
   const { data } = await admin.from("team_email_settings").select("*").eq("team_id", String(team['id'])).maybeSingle();
   const s = (data ?? {}) as Row;
   const teamName = String(s['team_name'] || team['name'] || "AD4YOU Team");
+  const businessName = String(s['business_name'] || team['company_name'] || teamName);
   return {
-    business_name: String(s['business_name'] || team['company_name'] || teamName),
+    business_name: businessName,
+    owner_name: String(s['owner_name'] || team['admin_name'] || ""),
     team_name: teamName,
     logo_url: String(s['logo_url'] || ""),
     primary_color: String(s['primary_color'] || "#22d3ee"),
+    accent_color: String(s['accent_color'] || "#a855f7"),
     reply_to: String(s['reply_to'] || s['contact_email'] || team['admin_contact_email'] || ""),
     contact_email: String(s['contact_email'] || team['admin_contact_email'] || ""),
     contact_phone: String(s['contact_phone'] || team['admin_phone'] || ""),
     whatsapp: String(s['whatsapp'] || team['admin_whatsapp'] || ""),
     website: String(s['website'] || ""),
     footer_text: String(s['footer_text'] || ""),
-    signature: String(s['signature'] || teamName),
+    signature: String(s['signature'] || [businessName, String(s['owner_name'] || team['admin_name'] || "")].filter(Boolean).join(" · ")),
   };
 }
+
 
 export function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
