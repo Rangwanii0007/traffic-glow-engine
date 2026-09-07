@@ -402,19 +402,52 @@ export const getLeaderboard = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ teamId: uuid }).parse(input))
   .handler(async ({ data }) => {
     const { admin } = await requireTeam(data.teamId);
-    const { data: board, error } = await admin
+    const rates = await getRates(admin, data.teamId);
+    const { data: memberRows } = await admin.from("team_members").select("*").eq("team_id", data.teamId);
+    const members = (memberRows ?? []) as Row[];
+    for (const m of members) await syncMemberEarnings(admin, m, rates);
+
+    // earnings from the shared ledger so the owner and the member always agree
+    const { data: entryRows } = await admin
+      .from("member_earning_entries")
+      .select("member_id, amount, occurred_at")
+      .eq("team_id", data.teamId)
+      .limit(20000);
+    const entries = (entryRows ?? []) as Row[];
+    const dayStart = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
+    const earnedToday = new Map<string, number>();
+    const earnedTotal = new Map<string, number>();
+    for (const e of entries) {
+      const id = String(e['member_id']);
+      const amount = Number(e['amount'] ?? 0);
+      earnedTotal.set(id, (earnedTotal.get(id) ?? 0) + amount);
+      if (new Date(String(e['occurred_at'])).getTime() >= dayStart) earnedToday.set(id, (earnedToday.get(id) ?? 0) + amount);
+    }
+
+    const { data: board } = await admin
       .from("team_leaderboard")
       .select("*")
       .eq("team_id", data.teamId)
       .order("current_rank", { ascending: true });
-    if (!error && board) return board as Row[];
-    // Fall back to raw member rows if the leaderboard view is unavailable.
-    const { data: rows } = await admin
-      .from("team_members")
-      .select("id, name, role, is_online, avatar_url, last_seen, visits_today, visits_total, self_points_today, self_points_total, ads_viewed_today, ads_viewed_total, ads_clicked_today, ads_clicked_total, hours_today, hours_lifetime, calculated_earnings_today, calculated_earnings_total, withdrawal_total, pending_withdrawal")
-      .eq("team_id", data.teamId)
-      .order("calculated_earnings_total", { ascending: false });
-    return (rows ?? []) as Row[];
+    const base = ((board ?? []) as Row[]).length
+      ? (board as Row[])
+      : members
+          .map((m) => ({
+            id: m['id'], name: m['name'], role: m['role'], is_online: m['is_online'], avatar_url: m['avatar_url'],
+            last_seen: m['last_seen'], visits_today: m['visits_today'], visits_total: m['visits_total'],
+            self_points_today: m['self_points_today'], self_points_total: m['self_points_total'],
+            ads_viewed_today: m['ads_viewed_today'], ads_viewed_total: m['ads_viewed_total'],
+            ads_clicked_today: m['ads_clicked_today'], ads_clicked_total: m['ads_clicked_total'],
+            hours_today: m['hours_today'], hours_lifetime: m['hours_lifetime'],
+            withdrawal_total: m['withdrawal_total'], pending_withdrawal: m['pending_withdrawal'],
+          }) as Row)
+          .sort((a, b) => Number(b['visits_total'] ?? 0) - Number(a['visits_total'] ?? 0));
+
+    return base.map((row) => ({
+      ...row,
+      calculated_earnings_today: earnedToday.get(String(row['id'])) ?? 0,
+      calculated_earnings_total: earnedTotal.get(String(row['id'])) ?? 0,
+    })) as Row[];
   });
 
 /* ───────────────────────── withdrawals + company ───────────────────────── */
