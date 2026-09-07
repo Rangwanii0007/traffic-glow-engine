@@ -29,6 +29,7 @@ import { Route as TeamPaymentsRouteImport } from './routes/team.payments'
 import { Route as TeamLeaderboardRouteImport } from './routes/team.leaderboard'
 import { Route as TeamEarningsRouteImport } from './routes/team.earnings'
 import { Route as TeamEarningInfoRouteImport } from './routes/team.earning-info'
+import { Route as TeamSetupTokenRouteImport } from './routes/team-setup.$token'
 import { Route as JoinSlugRouteImport } from './routes/join.$slug'
 import { Route as AuthenticatedReviewsRouteImport } from './routes/_authenticated/reviews'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
@@ -170,6 +171,11 @@ const TeamEarningInfoRoute = TeamEarningInfoRouteImport.update({
   id: '/earning-info',
   path: '/earning-info',
   getParentRoute: () => TeamRoute,
+} as any)
+const TeamSetupTokenRoute = TeamSetupTokenRouteImport.update({
+  id: '/team-setup/$token',
+  path: '/team-setup/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const JoinSlugRoute = JoinSlugRouteImport.update({
   id: '/join/$slug',
@@ -434,6 +440,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/reviews': typeof AuthenticatedReviewsRoute
   '/join/$slug': typeof JoinSlugRoute
+  '/team-setup/$token': typeof TeamSetupTokenRoute
   '/team/earning-info': typeof TeamEarningInfoRoute
   '/team/earnings': typeof TeamEarningsRoute
   '/team/leaderboard': typeof TeamLeaderboardRoute
@@ -493,6 +500,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/reviews': typeof AuthenticatedReviewsRoute
   '/join/$slug': typeof JoinSlugRoute
+  '/team-setup/$token': typeof TeamSetupTokenRoute
   '/team/earning-info': typeof TeamEarningInfoRoute
   '/team/earnings': typeof TeamEarningsRoute
   '/team/leaderboard': typeof TeamLeaderboardRoute
@@ -558,6 +566,7 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/reviews': typeof AuthenticatedReviewsRoute
   '/join/$slug': typeof JoinSlugRoute
+  '/team-setup/$token': typeof TeamSetupTokenRoute
   '/team/earning-info': typeof TeamEarningInfoRoute
   '/team/earnings': typeof TeamEarningsRoute
   '/team/leaderboard': typeof TeamLeaderboardRoute
@@ -623,6 +632,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reviews'
     | '/join/$slug'
+    | '/team-setup/$token'
     | '/team/earning-info'
     | '/team/earnings'
     | '/team/leaderboard'
@@ -682,6 +692,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reviews'
     | '/join/$slug'
+    | '/team-setup/$token'
     | '/team/earning-info'
     | '/team/earnings'
     | '/team/leaderboard'
@@ -746,6 +757,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/reviews'
     | '/join/$slug'
+    | '/team-setup/$token'
     | '/team/earning-info'
     | '/team/earnings'
     | '/team/leaderboard'
@@ -805,6 +817,7 @@ export interface RootRouteChildren {
   TeamRoute: typeof TeamRouteWithChildren
   TeamLoginRoute: typeof TeamLoginRoute
   JoinSlugRoute: typeof JoinSlugRoute
+  TeamSetupTokenRoute: typeof TeamSetupTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -948,6 +961,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/team/earning-info'
       preLoaderRoute: typeof TeamEarningInfoRouteImport
       parentRoute: typeof TeamRoute
+    }
+    '/team-setup/$token': {
+      id: '/team-setup/$token'
+      path: '/team-setup/$token'
+      fullPath: '/team-setup/$token'
+      preLoaderRoute: typeof TeamSetupTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/join/$slug': {
       id: '/join/$slug'
@@ -1409,6 +1429,7 @@ const rootRouteChildren: RootRouteChildren = {
   TeamRoute: TeamRouteWithChildren,
   TeamLoginRoute: TeamLoginRoute,
   JoinSlugRoute: JoinSlugRoute,
+  TeamSetupTokenRoute: TeamSetupTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
