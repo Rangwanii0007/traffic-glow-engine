@@ -62,7 +62,7 @@ function LeaderboardPage() {
                   <th className="p-2">#</th><th className="p-2">Member</th><th className="p-2">Role</th>
                   <th className="p-2">Visits today</th><th className="p-2">Visits total</th><th className="p-2">Ads viewed</th>
                   <th className="p-2">Ads clicked</th><th className="p-2">Hours</th>
-                  <th className="p-2">Earned today</th><th className="p-2">Earned total</th>
+                  <th className="p-2 capitalize">Earned {period === "all" ? "all time" : period}</th><th className="p-2">Earned total</th>
                 </tr>
               </thead>
               <tbody>
