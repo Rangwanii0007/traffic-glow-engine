@@ -12,6 +12,7 @@ import {
   WORKER_ROLES,
   type UrlEntry,
 } from "./team.server";
+import { getRates, syncMemberEarnings } from "./member.server";
 
 type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
 type Row = Record<string, Json>;
