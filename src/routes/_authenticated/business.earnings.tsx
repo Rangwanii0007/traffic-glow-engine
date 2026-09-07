@@ -28,12 +28,15 @@ export const Route = createFileRoute("/_authenticated/business/earnings")({
 type Values = {
   per_visit_rate: number; per_point_rate: number; per_ad_view_rate: number; per_ad_click_rate: number;
   bonus_multiplier: number; min_withdrawal: number; currency_symbol: string; currency_code: string; admin_notes: string;
+  visit_enabled: boolean; point_enabled: boolean; ad_view_enabled: boolean; ad_click_enabled: boolean;
 };
 
 const defaults: Values = {
   per_visit_rate: 0.002, per_point_rate: 0.01, per_ad_view_rate: 0.005, per_ad_click_rate: 0.05,
   bonus_multiplier: 1, min_withdrawal: 50, currency_symbol: "$", currency_code: "USD", admin_notes: "",
+  visit_enabled: true, point_enabled: true, ad_view_enabled: true, ad_click_enabled: true,
 };
+
 
 function EarningsPage() {
   const { teamId } = useBusiness();
