@@ -569,6 +569,8 @@ export const submitApplication = createServerFn({ method: "POST" })
       .from("team_join_questions").select("*").eq("form_id", String(form['id'])).eq("is_active", true).order("sort_order", { ascending: true });
 
     const parsed = validateAnswers((questions ?? []) as Row[], data.answers as Record<string, unknown>, form['scoring_enabled'] === true);
+    parsed.email = normEmail(parsed.email);
+
 
     // ── global email uniqueness (server-side, cannot be bypassed from the browser) ──
     // Checked with the service role against every place an AD4YOU identity can live:
