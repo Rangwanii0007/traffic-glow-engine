@@ -296,7 +296,12 @@ const earningsFields = z.object({
   currency_symbol: z.string().trim().min(1).max(4),
   currency_code: z.string().trim().min(2).max(6),
   admin_notes: z.string().trim().max(600).nullable().optional(),
+  visit_enabled: z.boolean(),
+  point_enabled: z.boolean(),
+  ad_view_enabled: z.boolean(),
+  ad_click_enabled: z.boolean(),
 });
+
 
 export const getEarningsConfig = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ teamId: uuid }).parse(input))
