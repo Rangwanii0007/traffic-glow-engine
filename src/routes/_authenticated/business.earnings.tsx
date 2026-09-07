@@ -60,7 +60,12 @@ function EarningsPage() {
       currency_symbol: String(c['currency_symbol'] ?? "$"),
       currency_code: String(c['currency_code'] ?? "USD"),
       admin_notes: String(c['admin_notes'] ?? ""),
+      visit_enabled: c['visit_enabled'] !== false,
+      point_enabled: c['point_enabled'] !== false,
+      ad_view_enabled: c['ad_view_enabled'] !== false,
+      ad_click_enabled: c['ad_click_enabled'] !== false,
     });
+
   }, [query.dataUpdatedAt]);
 
   const save = useMutation({
