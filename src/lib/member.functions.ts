@@ -147,9 +147,16 @@ export const memberLeaderboard = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { admin, member, team } = await requireMemberSession(data.token);
     const teamId = String(member['team_id']);
-    const { data: members } = await admin.from("team_members").select("id, name, role, is_online, avatar_url").eq("team_id", teamId);
+    const rates = await getRates(admin, teamId);
+    // same team, same rows the Business Panel leaderboard ranks — never emails
+    const { data: members } = await admin
+      .from("team_members")
+      .select(
+        "id, name, role, is_online, avatar_url, last_seen, visits_today, visits_total, self_points_today, self_points_total, ads_viewed_today, ads_viewed_total, ads_clicked_today, ads_clicked_total, hours_today, hours_lifetime, owner_id, team_id",
+      )
+      .eq("team_id", teamId);
     const list = (members ?? []) as Row[];
-    for (const m of list) await admin.rpc("sync_member_bot_earnings", { p_member: String(m['id']) });
+    for (const m of list) await syncMemberEarnings(admin, m, rates);
 
     const { data: entries } = await admin
       .from("member_earning_entries")
