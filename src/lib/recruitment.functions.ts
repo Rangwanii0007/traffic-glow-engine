@@ -172,11 +172,12 @@ export const saveEmailSettings = createServerFn({ method: "POST" })
       teamId: uuid,
       values: z.object({
         business_name: z.string().trim().max(120).optional().default(""),
-        owner_name: z.string().trim().max(120).optional().default(""),
+        owner_name: z.string().trim().max(120).optional(),
         team_name: z.string().trim().max(120).optional().default(""),
         logo_url: z.string().trim().max(600).optional().default(""),
         primary_color: z.string().trim().max(30).optional().default("#22d3ee"),
-        accent_color: z.string().trim().max(30).optional().default("#a855f7"),
+        accent_color: z.string().trim().max(30).optional(),
+
 
         reply_to: z.string().trim().max(160).optional().default(""),
         contact_email: z.string().trim().max(160).optional().default(""),
