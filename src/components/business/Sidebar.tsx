@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Link2, ShieldHalf, Coins, Trophy, Wallet, ScrollText,
-  Building2, ArrowLeft, Crown, BadgeDollarSign, HandCoins,
+  Building2, ArrowLeft, Crown, BadgeDollarSign, HandCoins, ClipboardList, Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -9,6 +9,8 @@ const links = [
   { to: "/business", label: "Overview", icon: LayoutDashboard, exact: true },
   { to: "/business/teams", label: "Teams & Company", icon: Building2 },
   { to: "/business/members", label: "Team Members", icon: Users },
+  { to: "/business/recruitment", label: "Recruitment", icon: ClipboardList },
+  { to: "/business/applications", label: "Applications", icon: Inbox },
   { to: "/business/urls", label: "Shared URLs", icon: Link2 },
   { to: "/business/rules", label: "Bot Rules", icon: ShieldHalf },
   { to: "/business/earnings", label: "Earning Rates", icon: Coins },
