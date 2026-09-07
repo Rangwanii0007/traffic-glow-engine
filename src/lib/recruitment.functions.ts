@@ -329,34 +329,40 @@ export const acceptApplication = createServerFn({ method: "POST" })
     const app = appRow as Row;
     if (String(app['status']) === "accepted") throw new Error("This application is already accepted");
 
-    const email = String(app['applicant_email']).toLowerCase();
+    const email = normEmail(app['applicant_email']);
     let memberId = app['member_id'] ? String(app['member_id']) : null;
     let setupLink = "";
+    let temporaryPassword = "";
 
     if (data.createMember && !memberId) {
       const capacity = await memberCapacity(admin, team as Row);
       if (capacity.isFull) {
         throw new Error(`Your team is full (${capacity.active}/${capacity.limit} members). Free a slot or upgrade your plan before accepting.`);
       }
-      const { data: existing } = await admin.from("team_members").select("id, team_id").ilike("email", email).maybeSingle();
-      if (existing && String((existing as Row)['team_id']) !== data.teamId) {
+      const { data: existingRows, error: existErr } = await admin.from("team_members").select("id, team_id").ilike("email", email).limit(1);
+      throwIf(existErr);
+      const existing = (existingRows ?? [])[0] as Row | undefined;
+      if (existing && String(existing['team_id']) !== data.teamId) {
         throw new Error("This email already belongs to a team member in another team");
       }
       if (existing) {
-        memberId = String((existing as Row)['id']);
+        memberId = String(existing['id']);
         await admin.from("team_members").update({ is_active: true, application_id: data.id }).eq("id", memberId);
       } else {
         if (data.role === "team_leader") {
           const { data: leader } = await admin.from("team_members").select("id").eq("team_id", data.teamId).eq("role", "team_leader").maybeSingle();
           if (leader) throw new Error("This team already has a Team Leader");
         }
+        // The temporary password is hashed with the exact same method the desktop
+        // software and the web team login already verify, so password_hash stays NOT NULL.
+        temporaryPassword = DEFAULT_MEMBER_PASSWORD;
         const { data: created, error } = await admin
           .from("team_members")
           .insert({
             team_id: data.teamId,
             name: String(app['applicant_name']),
             email,
-            password_hash: null,
+            password_hash: hashMemberPassword(temporaryPassword),
             must_set_password: true,
             role: data.role,
             allowed_tools: defaultPermissions(data.role),
@@ -390,14 +396,17 @@ export const acceptApplication = createServerFn({ method: "POST" })
     throwIf(upErr);
     await logEvent(admin, data.id, data.teamId, "accepted", "Application accepted", "owner");
 
+    let emailResult: EmailResult | null = null;
     if (data.sendEmail) {
       const brand = await loadBrand(admin, team as Row);
       const tpl = await templateFor(admin, data.teamId, "accepted");
       if (tpl) {
         const vars = {
           applicant_name: String(app['applicant_name']),
+          applicant_email: email,
+          company_name: brand.business_name,
           team_name: brand.team_name,
-          team_owner_name: String(team['admin_name'] ?? brand.business_name),
+          team_owner_name: brand.owner_name || brand.business_name,
           application_id: data.id,
           rejection_reason: "",
           contact_email: brand.contact_email,
@@ -405,16 +414,28 @@ export const acceptApplication = createServerFn({ method: "POST" })
           whatsapp: brand.whatsapp,
           website: brand.website,
           login_link: `${origin()}/team-login`,
-          account_setup_link: setupLink ? `Set your password and activate your account here: ${setupLink}` : "",
+          temporary_password: temporaryPassword || "(your existing password)",
+          account_setup_link: setupLink ? `Set your own password here: ${setupLink}` : "",
         };
-        await queueEmail(admin, {
+        emailResult = await queueEmail(admin, {
           teamId: data.teamId, applicationId: data.id, kind: "accepted", to: email,
           subject: renderVars(tpl.subject, vars), bodyText: renderVars(tpl.body, vars), brand,
         });
-        await logEvent(admin, data.id, data.teamId, "email_accepted", "Acceptance email prepared and sent", "system");
+        await logEvent(
+          admin, data.id, data.teamId, "email_accepted",
+          emailResult.status === "sent" ? "Acceptance email delivered" : `Acceptance email not delivered: ${emailResult.error ?? "unknown reason"}`,
+          "system",
+        );
       }
     }
-    return { ok: true as const, memberId, setupLink };
+    return {
+      ok: true as const,
+      memberId,
+      setupLink,
+      temporaryPassword,
+      email: emailResult ? { status: emailResult.status, error: emailResult.error } : null,
+      emailConfigured: emailProviderConfigured(),
+    };
   });
 
 export const rejectApplication = createServerFn({ method: "POST" })
@@ -440,14 +461,19 @@ export const rejectApplication = createServerFn({ method: "POST" })
 
     const brand = await loadBrand(admin, team as Row);
     const tpl = data.sendEmail ? await templateFor(admin, data.teamId, "rejected") : null;
+    let sent = 0;
+    let failed = 0;
+    let lastError: string | null = null;
     for (const app of apps) {
       const id = String(app['id']);
       await logEvent(admin, id, data.teamId, "rejected", data.reason || "Application rejected", "owner");
       if (!tpl) continue;
       const vars = {
         applicant_name: String(app['applicant_name']),
+        applicant_email: String(app['applicant_email']),
+        company_name: brand.business_name,
         team_name: brand.team_name,
-        team_owner_name: String(team['admin_name'] ?? brand.business_name),
+        team_owner_name: brand.owner_name || brand.business_name,
         application_id: id,
         rejection_reason: data.reason || "Your application did not match our current team requirements.",
         contact_email: brand.contact_email,
@@ -455,16 +481,24 @@ export const rejectApplication = createServerFn({ method: "POST" })
         whatsapp: brand.whatsapp,
         website: brand.website,
         login_link: `${origin()}/team-login`,
+        temporary_password: "",
         account_setup_link: "",
       };
-      await queueEmail(admin, {
+      const result = await queueEmail(admin, {
         teamId: data.teamId, applicationId: id, kind: "rejected", to: String(app['applicant_email']),
         subject: renderVars(tpl.subject, vars), bodyText: renderVars(tpl.body, vars), brand,
       });
-      await logEvent(admin, id, data.teamId, "email_rejected", "Rejection email prepared and sent", "system");
+      if (result.status === "sent") sent += 1;
+      else { failed += 1; lastError = result.error; }
+      await logEvent(
+        admin, id, data.teamId, "email_rejected",
+        result.status === "sent" ? "Rejection email delivered" : `Rejection email not delivered: ${result.error ?? "unknown reason"}`,
+        "system",
+      );
     }
-    return { ok: true as const, count: apps.length };
+    return { ok: true as const, count: apps.length, emailSent: sent, emailFailed: failed, emailError: lastError, emailConfigured: emailProviderConfigured() };
   });
+
 
 export const listEmailOutbox = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ teamId: uuid }).parse(input))
