@@ -93,8 +93,18 @@ function EarningsPage() {
 
       {query.isLoading ? <Skeleton className="h-64 rounded-2xl" /> : (
         <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-6 space-y-5">
-          <div className="flex items-center gap-2"><Coins className="w-4 h-4 text-primary" /><h2 className="font-semibold">Rates</h2></div>
+          <div className="flex items-center gap-2"><ToggleRight className="w-4 h-4 text-primary" /><h2 className="font-semibold">Earning features</h2></div>
+          <p className="text-xs text-muted-foreground -mt-3">Turn a feature off and your members stop earning from it straight away. Money already earned is never touched.</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {toggle("visit_enabled", "Visits")}
+            {toggle("point_enabled", "Self clicks / points")}
+            {toggle("ad_view_enabled", "Ad views")}
+            {toggle("ad_click_enabled", "Ad clicks")}
+          </div>
+
+          <div className="flex items-center gap-2 pt-2"><Coins className="w-4 h-4 text-primary" /><h2 className="font-semibold">Rates</h2></div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
             {num("per_visit_rate", "Per visit")}
             {num("per_point_rate", "Per point")}
             {num("per_ad_view_rate", "Per ad view")}
