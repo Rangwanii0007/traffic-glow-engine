@@ -135,7 +135,7 @@ export function validateAnswers(questions: Row[], raw: Record<string, unknown>, 
         if (type === "url" && !/^https?:\/\/\S+$/i.test(text)) errors.push(`${label} must start with http:// or https://`);
         if (type === "dropdown") {
           const allowed = (Array.isArray(q['options']) ? (q['options'] as Json[]).map(String) : []);
-          if (allowed.length && !allowed.includes(text)) errors.push(`${label} has an invalid選 option`.replace("選 ", ""));
+          if (allowed.length && !allowed.includes(text)) errors.push(`${label} has an invalid option`);
         }
         const minLen = q['min_length'] === null || q['min_length'] === undefined ? null : Number(q['min_length']);
         const maxLen = q['max_length'] === null || q['max_length'] === undefined ? null : Number(q['max_length']);
