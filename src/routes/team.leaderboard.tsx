@@ -83,7 +83,7 @@ function LeaderboardPage() {
                     <td className="p-2">{qty(r.activity.adsViewedTotal)}</td>
                     <td className="p-2">{qty(r.activity.adsClickedTotal)}</td>
                     <td className="p-2">{qty(r.activity.hoursTotal)}</td>
-                    <td className="p-2">{money(r.todayEarnings, s)}</td>
+                    <td className="p-2">{money(r.periodEarnings, s)}</td>
                     <td className="p-2 font-medium text-primary">{money(r.totalEarnings, s)}</td>
                   </tr>
                 ))}
