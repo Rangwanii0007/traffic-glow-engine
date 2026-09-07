@@ -530,6 +530,26 @@ export const submitApplication = createServerFn({ method: "POST" })
 
     const parsed = validateAnswers((questions ?? []) as Row[], data.answers as Record<string, unknown>, form['scoring_enabled'] === true);
 
+    // ── global email uniqueness (server-side, cannot be bypassed from the browser) ──
+    // 1. the address must not already belong to a team member of ANY team (team 1 vs team 2 isolation)
+    const { data: memberClash } = await admin
+      .from("team_members").select("id, team_id").ilike("email", parsed.email).limit(1).maybeSingle();
+    if (memberClash) {
+      throw new Error(
+        String((memberClash as Row)['team_id']) === teamId
+          ? "This email is already a member of this team — please sign in instead."
+          : "This email is already registered as a team member on AD4YOU. Please use a different email address that has no AD4YOU account yet.",
+      );
+    }
+    // 2. the address must not already be a registered AD4YOU account holder
+    const { data: userClash } = await admin
+      .from("users").select("id").ilike("email", parsed.email).limit(1).maybeSingle();
+    if (userClash) {
+      throw new Error("This email already has an AD4YOU account. Please apply with a different email address that has not created an AD4YOU account yet.");
+    }
+
+
+
     if (form['allow_duplicates'] !== true) {
       const { data: dupe } = await admin
         .from("team_applications").select("id, status").eq("team_id", teamId).ilike("applicant_email", parsed.email)
