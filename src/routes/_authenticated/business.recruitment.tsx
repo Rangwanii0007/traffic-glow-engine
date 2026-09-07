@@ -30,7 +30,7 @@ export const Route = createFileRoute("/_authenticated/business/recruitment")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: RecruitmentPage;
+  component: RecruitmentPage,
 });
 
 const FIELD_LABELS: Record<string, string> = {
