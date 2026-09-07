@@ -84,6 +84,16 @@ function EarningsPage() {
     </div>
   );
 
+  const toggle = (k: keyof Values, label: string) => (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5">
+      <Label className="text-sm font-normal">{label}</Label>
+      <Switch checked={values[k] as boolean}
+        onCheckedChange={(on) => setValues((v) => ({ ...v, [k]: on }))} />
+    </div>
+  );
+
+
+
   if (!teamId) return <NoTeamNotice />;
 
   return (
