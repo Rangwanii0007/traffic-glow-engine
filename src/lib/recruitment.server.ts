@@ -443,8 +443,10 @@ export type EmailResult = {
   error: string | null;
 };
 
+const DEFAULT_SENDER = "AD4YOU Team <team@ad4you.click>";
+
 export function emailProviderConfigured() {
-  return Boolean(process.env['RESEND_API_KEY'] && process.env['EMAIL_FROM']);
+  return Boolean(process.env['RESEND_API_KEY']);
 }
 
 /**
@@ -491,13 +493,12 @@ async function trySend(
   html: string,
 ): Promise<{ status: "sent" | "failed"; error: string | null }> {
   const apiKey = process.env['RESEND_API_KEY']!;
-  const from = process.env['EMAIL_FROM']!;
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
       body: JSON.stringify({
-        from: `${args.brand.business_name} <${from}>`,
+        from: DEFAULT_SENDER,
         to: [args.to],
         subject: args.subject,
         html,
