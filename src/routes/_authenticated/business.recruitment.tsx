@@ -16,8 +16,9 @@ import { Badge } from "@/components/ui/badge";
 import { useBusiness } from "@/components/business/Shell";
 import { StatCard } from "@/components/team/Shell";
 import {
-  getRecruitment, listEmailOutbox, saveEmailSettings, saveEmailTemplate, saveJoinForm, saveQuestions,
+  getRecruitment, listEmailOutbox, retryOutboxEmail, saveEmailSettings, saveEmailTemplate, saveJoinForm, saveQuestions,
 } from "@/lib/recruitment.functions";
+
 
 export const Route = createFileRoute("/_authenticated/business/recruitment")({
   head: () => ({
@@ -75,6 +76,17 @@ function RecruitmentPage() {
     queryFn: () => listEmailOutbox({ data: { teamId: teamId! } }),
     enabled: !!teamId,
   });
+
+  const retry = useMutation({
+    mutationFn: (id: string) => retryOutboxEmail({ data: { teamId: teamId!, id } }),
+    onSuccess: (r) => {
+      if (r.ok) toast.success("Email sent");
+      else toast.error(r.error ?? "Email could not be sent");
+      qc.invalidateQueries({ queryKey: ["business", "recruitment", "outbox", teamId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const [brand, setBrand] = useState({
     status: "draft", slug: "", headline: "", subheadline: "", about_team: "", closed_message: "",
@@ -460,17 +472,33 @@ function RecruitmentPage() {
 
           <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-6 space-y-3">
             <p className="text-sm font-medium">Recent emails</p>
-            {(outbox.data ?? []).length === 0 && <p className="text-xs text-muted-foreground">No emails yet.</p>}
+            {outbox.data && !outbox.data.emailConfigured && (
+              <p className="text-xs text-amber-400">
+                Real email delivery is not switched on yet. Add your Resend key and sender address and these will send instantly.
+              </p>
+            )}
+            {(outbox.data?.rows ?? []).length === 0 && <p className="text-xs text-muted-foreground">No emails yet.</p>}
             <div className="space-y-2">
-              {(outbox.data ?? []).map((row) => (
+              {(outbox.data?.rows ?? []).map((row) => (
                 <div key={String(row['id'])} className="flex flex-wrap items-center gap-2 text-xs border-b border-white/5 pb-2">
                   <Badge variant={String(row['status']) === "sent" ? "default" : "secondary"}>{String(row['status'])}</Badge>
                   <span className="font-medium">{String(row['to_email'])}</span>
                   <span className="text-muted-foreground truncate">{String(row['subject'])}</span>
+                  {row['error'] ? <span className="text-amber-400/80 basis-full">{String(row['error'])}</span> : null}
+                  {String(row['status']) !== "sent" && (
+                    <Button
+                      size="sm" variant="outline" className="h-7 px-2 text-[11px]"
+                      disabled={retry.isPending}
+                      onClick={() => retry.mutate(String(row['id']))}
+                    >
+                      {retry.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}Retry
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
           </section>
+
         </TabsContent>
 
         {/* ── templates ─────────────────────────────────────────── */}

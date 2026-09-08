@@ -6,8 +6,9 @@ import {
 } from "./team.server";
 import {
   brandingSchema, DEFAULT_TEMPLATES, emailProviderConfigured, findEmailOwner, hashIp, hashToken, loadBrand, logEvent,
-  memberCapacity, newToken, normEmail, queueEmail, questionSchema, renderVars, slugify, TEMPLATE_KINDS, validateAnswers,
+  memberCapacity, newToken, normEmail, queueEmail, questionSchema, renderVars, resendOutboxEmail, slugify, TEMPLATE_KINDS, validateAnswers,
   type EmailResult, type Json, type Row, type TemplateKind,
+
 } from "./recruitment.server";
 
 
@@ -510,8 +511,19 @@ export const listEmailOutbox = createServerFn({ method: "POST" })
     const { data: rows } = await admin
       .from("team_email_outbox").select("id, kind, to_email, subject, status, error, created_at, sent_at")
       .eq("team_id", data.teamId).order("created_at", { ascending: false }).limit(50);
-    return (rows ?? []) as Row[];
+    return { rows: (rows ?? []) as Row[], emailConfigured: emailProviderConfigured() };
   });
+
+/** Retry one email that failed to deliver. */
+export const retryOutboxEmail = createServerFn({ method: "POST" })
+  .inputValidator((input) => z.object({ teamId: uuid, id: uuid }).parse(input))
+  .handler(async ({ data }) => {
+    const { admin } = await requireTeam(data.teamId);
+    const result = await resendOutboxEmail(admin, data.teamId, data.id);
+    return { ok: result.status === "sent", status: result.status, error: result.error };
+  });
+
+
 
 /* ═════════════════════════ public: joining form ═════════════════════════ */
 
