@@ -76,6 +76,17 @@ function RecruitmentPage() {
     enabled: !!teamId,
   });
 
+  const retry = useMutation({
+    mutationFn: (id: string) => retryOutboxEmail({ data: { teamId: teamId!, id } }),
+    onSuccess: (r) => {
+      if (r.ok) toast.success("Email sent");
+      else toast.error(r.error ?? "Email could not be sent");
+      qc.invalidateQueries({ queryKey: ["business", "recruitment", "outbox", teamId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
   const [brand, setBrand] = useState({
     status: "draft", slug: "", headline: "", subheadline: "", about_team: "", closed_message: "",
     success_message: "", logo_url: "", cover_url: "", primary_color: "#22d3ee", accent_color: "#a855f7",
