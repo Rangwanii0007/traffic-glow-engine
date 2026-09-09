@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { useBusiness } from "@/components/business/Shell";
 import { StatCard } from "@/components/team/Shell";
 import {
-  getRecruitment, listEmailOutbox, retryOutboxEmail, saveEmailSettings, saveEmailTemplate, saveJoinForm, saveQuestions,
+  getRecruitment, listEmailOutbox, retryOutboxEmail, saveEmailSettings, saveEmailTemplate, saveJoinForm, saveQuestions, sendRecruitmentTestEmail,
 } from "@/lib/recruitment.functions";
 
 
@@ -82,6 +82,17 @@ function RecruitmentPage() {
     onSuccess: (r) => {
       if (r.ok) toast.success("Email sent");
       else toast.error(r.error ?? "Email could not be sent");
+      qc.invalidateQueries({ queryKey: ["business", "recruitment", "outbox", teamId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const [testEmail, setTestEmail] = useState("");
+  const sendTest = useMutation({
+    mutationFn: () => sendRecruitmentTestEmail({ data: { teamId: teamId!, email: testEmail } }),
+    onSuccess: (r) => {
+      if (r.status === "sent") toast.success("Test email accepted by Resend");
+      else if (r.status === "queued") toast.warning(r.error ?? "Test email saved in the outbox");
+      else toast.error(r.error ?? "Test email could not be sent");
       qc.invalidateQueries({ queryKey: ["business", "recruitment", "outbox", teamId] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -471,10 +482,18 @@ function RecruitmentPage() {
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-6 space-y-3">
-            <p className="text-sm font-medium">Recent emails</p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div><p className="text-sm font-medium">Recent emails</p><p className="text-xs text-muted-foreground">Send a real delivery test before processing applications.</p></div>
+              <div className="flex gap-2 sm:max-w-md sm:flex-1">
+                <Input type="email" value={testEmail} onChange={(e) => setTestEmail(e.target.value)} placeholder="Test recipient email" />
+                <Button variant="outline" disabled={sendTest.isPending || !testEmail.trim()} onClick={() => sendTest.mutate()}>
+                  {sendTest.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />} Send test
+                </Button>
+              </div>
+            </div>
             {outbox.data && !outbox.data.emailConfigured && (
               <p className="text-xs text-amber-400">
-                Real email delivery is not switched on yet. Add your Resend key and sender address and these will send instantly.
+                Real email delivery is not switched on yet. Add the Resend API key and queued emails can be retried here.
               </p>
             )}
             {(outbox.data?.rows ?? []).length === 0 && <p className="text-xs text-muted-foreground">No emails yet.</p>}

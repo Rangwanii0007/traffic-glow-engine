@@ -523,6 +523,23 @@ export const retryOutboxEmail = createServerFn({ method: "POST" })
     return { ok: result.status === "sent", status: result.status, error: result.error };
   });
 
+/** Sends an owner-requested delivery test through the production outbox path. */
+export const sendRecruitmentTestEmail = createServerFn({ method: "POST" })
+  .inputValidator((input) => z.object({ teamId: uuid, email: z.string().trim().email().max(254) }).parse(input))
+  .handler(async ({ data }) => {
+    const { admin, team } = await requireTeam(data.teamId);
+    const brand = await loadBrand(admin, team as Row);
+    const result = await queueEmail(admin, {
+      teamId: data.teamId,
+      kind: "test",
+      to: normEmail(data.email),
+      subject: "AD4YOU recruitment email test",
+      bodyText: "Your AD4YOU recruitment email delivery is configured and working. This test used the same secure delivery path as application acceptance and rejection emails.",
+      brand,
+    });
+    return { ok: result.status === "sent", status: result.status, error: result.error };
+  });
+
 
 
 /* ═════════════════════════ public: joining form ═════════════════════════ */

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ export const Route = createFileRoute("/_authenticated/admin/versions")({
 type Row = {
   id: string; version: string; platform: string | null; download_url: string | null;
   release_notes: string | null; file_size: string | null; is_latest: boolean | null; is_mandatory: boolean | null;
+  title: string | null; is_active: boolean; sort_order: number;
 };
 
 function VersionsAdmin() {
@@ -30,6 +31,13 @@ function VersionsAdmin() {
       return (data ?? []) as Row[];
     },
   });
+  useEffect(() => {
+    const channel = supabase.channel("admin-bot-versions-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "bot_versions" }, () => {
+        qc.invalidateQueries({ queryKey: ["admin-versions"] });
+      }).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [qc]);
   const upd = (id: string, p: Partial<Row>) => setDraft((d) => ({ ...d, [id]: { ...d[id], ...p } }));
   const save = async (r: Row) => {
     const patch = draft[r.id]; if (!patch) return;
@@ -47,7 +55,7 @@ function VersionsAdmin() {
   const add = async () => {
     const version = prompt("Version (e.g. 1.0.0)?")?.trim(); if (!version) return;
     const { error } = await supabase.from("bot_versions").insert({
-      version, platform: "windows", file_size: "45 MB", is_latest: false, is_mandatory: false,
+      version, title: "Windows download", platform: "windows", file_size: "45 MB", is_latest: false, is_mandatory: false, is_active: true, sort_order: 0,
     } as never);
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["admin-versions"] });
@@ -58,7 +66,7 @@ function VersionsAdmin() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Bot Versions</h1>
-          <p className="text-muted-foreground mt-1">Publish desktop releases to paid users.</p>
+          <p className="text-muted-foreground mt-1">Manage every public platform and version download.</p>
         </div>
         <Button onClick={add} className="bg-gradient-to-r from-primary to-accent text-white"><Plus className="w-4 h-4 mr-2" />New version</Button>
       </div>
@@ -70,18 +78,21 @@ function VersionsAdmin() {
             const dirty = !!draft[r.id];
             return (
               <div key={r.id} className="glass-card rounded-2xl p-5 space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <Input value={v.title ?? ""} onChange={(e) => upd(r.id, { title: e.target.value })} placeholder="Download title" />
                   <Input value={v.version ?? ""} onChange={(e) => upd(r.id, { version: e.target.value })} placeholder="Version" />
                   <select value={v.platform ?? "windows"} onChange={(e) => upd(r.id, { platform: e.target.value })} className="h-10 rounded-md bg-background border border-input px-3 text-sm">
-                    {["windows","macos","linux"].map((p) => <option key={p}>{p}</option>)}
+                    {["windows","ios","macos","linux","android","other"].map((p) => <option key={p}>{p}</option>)}
                   </select>
                   <Input value={v.file_size ?? ""} onChange={(e) => upd(r.id, { file_size: e.target.value })} placeholder="File size (e.g. 45 MB)" />
                   <Input value={v.download_url ?? ""} onChange={(e) => upd(r.id, { download_url: e.target.value })} placeholder="Download URL" />
+                  <Input type="number" value={v.sort_order ?? 0} onChange={(e) => upd(r.id, { sort_order: Number(e.target.value) })} placeholder="Display order" />
                 </div>
                 <Textarea rows={3} value={v.release_notes ?? ""} onChange={(e) => upd(r.id, { release_notes: e.target.value })} placeholder="Release notes" />
                 <div className="flex items-center gap-4 text-xs flex-wrap">
                   <label className="flex items-center gap-2"><input type="checkbox" checked={!!v.is_latest} onChange={(e) => upd(r.id, { is_latest: e.target.checked })} />Latest</label>
                   <label className="flex items-center gap-2"><input type="checkbox" checked={!!v.is_mandatory} onChange={(e) => upd(r.id, { is_mandatory: e.target.checked })} />Mandatory update</label>
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={v.is_active !== false} onChange={(e) => upd(r.id, { is_active: e.target.checked })} />Visible to users</label>
                   <div className="ml-auto flex gap-2">
                     <Button size="sm" disabled={!dirty} onClick={() => save(r)} className="bg-gradient-to-r from-primary to-accent text-white"><Save className="w-3 h-3 mr-1" />Save</Button>
                     <Button size="sm" variant="destructive" onClick={() => remove(r)}><Trash2 className="w-3 h-3" /></Button>

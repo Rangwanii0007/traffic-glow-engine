@@ -2,11 +2,11 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { Download, Globe2, Zap, Sparkles, Shield } from "lucide-react";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { PageGate } from "@/components/PageGate";
+import { Button } from "@/components/ui/button";
 
 const GlobeScene = lazy(() => import("@/components/location/GlobeScene"));
 
@@ -239,25 +239,14 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
 }
 
 function DownloadSection() {
-  const [url, setUrl] = useState<string>("");
+  const [downloads, setDownloads] = useState<Array<{ id: string; title: string | null; version: string; platform: string | null; download_url: string | null }>>([]);
   useEffect(() => {
-    supabase.from("settings").select("value").eq("key", "download_url").maybeSingle().then(({ data }) => {
-      setUrl((data as { value: string | null } | null)?.value ?? "");
-    });
-    const ch = supabase.channel("dl-url")
-      .on("postgres_changes", { event: "*", schema: "public", table: "settings", filter: "key=eq.download_url" }, (p: any) => {
-        setUrl(p.new?.value ?? "");
-      }).subscribe();
+    const load = () => supabase.from("bot_versions").select("id, title, version, platform, download_url").eq("is_active", true).order("sort_order").then(({ data }) => setDownloads(data ?? []));
+    void load();
+    const ch = supabase.channel("location-downloads-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "bot_versions" }, () => { void load(); }).subscribe();
     return () => { supabase.removeChannel(ch); };
   }, []);
-
-  const onDownload = () => {
-    if (!url) { toast.error("Download link is being prepared. Please try again shortly."); return; }
-    const a = document.createElement("a");
-    a.href = url; a.download = "AD4YOU.exe"; a.rel = "noopener";
-    document.body.appendChild(a); a.click(); a.remove();
-    toast.success("Your download is starting…");
-  };
 
   return (
     <section id="download" className="relative px-4 py-24">
@@ -273,18 +262,18 @@ function DownloadSection() {
           <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-blue-600/20 blur-3xl" />
           <Shield className="w-10 h-10 text-cyan-300 mx-auto" />
           <h3 className="mt-4 text-3xl sm:text-4xl font-black tracking-tight">
-            Get <span className="bg-gradient-to-r from-cyan-300 to-blue-400 bg-clip-text text-transparent">AD4YOU</span> for Windows
+            Get <span className="bg-gradient-to-r from-cyan-300 to-blue-400 bg-clip-text text-transparent">AD4YOU</span>
           </h3>
           <p className="mt-3 text-white/70 max-w-xl mx-auto">
             One-click install. Signed & verified. Auto-updates. Built for enterprise workloads.
           </p>
-          <button
-            onClick={onDownload}
-            className="mt-8 inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-lg shadow-[0_0_60px_oklch(0.65_0.22_230/0.55)] hover:scale-[1.02] transition"
-          >
-            <Download className="w-5 h-5" /> Download AD4YOU.exe
-          </button>
-          <p className="mt-4 text-xs text-white/40">Windows 10/11 · 64-bit</p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            {downloads.filter((item) => item.download_url).map((item) => (
+              <Button key={item.id} asChild size="lg" className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white">
+                <a href={item.download_url ?? "#"} rel="noopener noreferrer"><Download className="w-5 h-5" />{item.title || `${item.platform ?? "Download"} v${item.version}`}</a>
+              </Button>
+            ))}
+          </div>
         </motion.div>
       </div>
     </section>

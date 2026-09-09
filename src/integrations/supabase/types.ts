@@ -228,10 +228,13 @@ export type Database = {
           download_url: string | null
           file_size: string | null
           id: string
+          is_active: boolean
           is_latest: boolean | null
           is_mandatory: boolean | null
           platform: string | null
           release_notes: string | null
+          sort_order: number
+          title: string | null
           version: string
         }
         Insert: {
@@ -240,10 +243,13 @@ export type Database = {
           download_url?: string | null
           file_size?: string | null
           id?: string
+          is_active?: boolean
           is_latest?: boolean | null
           is_mandatory?: boolean | null
           platform?: string | null
           release_notes?: string | null
+          sort_order?: number
+          title?: string | null
           version: string
         }
         Update: {
@@ -252,10 +258,13 @@ export type Database = {
           download_url?: string | null
           file_size?: string | null
           id?: string
+          is_active?: boolean
           is_latest?: boolean | null
           is_mandatory?: boolean | null
           platform?: string | null
           release_notes?: string | null
+          sort_order?: number
+          title?: string | null
           version?: string
         }
         Relationships: []
