@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Download, CheckCircle2, Shield } from "lucide-react";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,38 +19,22 @@ export const Route = createFileRoute("/download")({
 });
 
 function DownloadPage() {
-  const [url, setUrl] = useState<string>("");
-  const [urlLoaded, setUrlLoaded] = useState(false);
-
-  useEffect(() => {
-    supabase.from("settings").select("value").eq("key", "download_url").maybeSingle().then(({ data }) => {
-      setUrl((data as { value: string | null } | null)?.value ?? "");
-      setUrlLoaded(true);
-    });
-    const ch = supabase.channel("dl-url-page")
-      .on("postgres_changes", { event: "*", schema: "public", table: "settings", filter: "key=eq.download_url" },
-        (p: any) => setUrl(p.new?.value ?? "")).subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, []);
-
   const versionsQ = useQuery({
     queryKey: ["bot-versions"],
     queryFn: async () => {
       const { data } = await supabase
         .from("bot_versions")
-        .select("id, version, platform, release_notes, is_latest, file_size, created_at")
-        .order("created_at", { ascending: false });
+        .select("id, title, version, platform, download_url, release_notes, is_latest, file_size, created_at, sort_order")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true }).order("created_at", { ascending: false });
       return data ?? [];
     },
   });
-
-  const onDownload = () => {
-    if (!url) { toast.error("Download link is being prepared. Please try again shortly."); return; }
-    const a = document.createElement("a");
-    a.href = url; a.download = "AD4YOU.exe"; a.rel = "noopener";
-    document.body.appendChild(a); a.click(); a.remove();
-    toast.success("Your download is starting…");
-  };
+  useEffect(() => {
+    const channel = supabase.channel("public-bot-versions-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "bot_versions" }, () => versionsQ.refetch()).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [versionsQ.refetch]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -67,18 +50,15 @@ function DownloadPage() {
             <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-primary/20 blur-3xl" />
             <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-accent/20 blur-3xl" />
             <Shield className="w-10 h-10 mx-auto text-primary" />
-            <h2 className="mt-4 text-2xl sm:text-3xl font-bold">Latest Windows Build</h2>
-            <p className="mt-2 text-muted-foreground">Signed & verified · Auto-updates enabled</p>
-            <Button
-              onClick={onDownload}
-              disabled={!urlLoaded || !url}
-              size="lg"
-              className="mt-6 h-14 px-8 text-lg bg-gradient-to-r from-primary to-accent text-white shadow-[0_0_40px_hsl(var(--primary)/0.4)]"
-            >
-              <Download className="w-5 h-5 mr-2" />
-              {url ? "Download AD4YOU.exe" : "Preparing download…"}
-            </Button>
-            <p className="mt-3 text-xs text-muted-foreground">Windows 10/11 · 64-bit</p>
+            <h2 className="mt-4 text-2xl sm:text-3xl font-bold">Choose your download</h2>
+            <p className="mt-2 text-muted-foreground">Official builds published directly by AD4YOU.</p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {versionsQ.data?.filter((v) => v.download_url).map((v) => (
+                <Button key={v.id} asChild size="lg" className="h-auto min-h-14 py-3 bg-gradient-to-r from-primary to-accent text-white">
+                  <a href={v.download_url ?? "#"} rel="noopener noreferrer"><Download className="w-5 h-5 mr-2" /><span>{v.title || `${v.platform ?? "Download"} v${v.version}`}</span></a>
+                </Button>
+              ))}
+            </div>
           </div>
 
           <div>

@@ -478,8 +478,7 @@ export async function queueEmail(
 
   if (!emailProviderConfigured()) {
     const message = "Email sending is not configured yet, so this message is saved in the outbox instead of being delivered.";
-    if (id) await admin.from("team_email_outbox").update({ status: "failed", error: message }).eq("id", id);
-    return { id, status: "failed", error: message };
+    return { id, status: "queued", error: message };
   }
 
   const sent = await trySend(admin, id, args, html);
@@ -506,7 +505,7 @@ async function trySend(
       }),
     });
     if (!res.ok) throw new Error(`Email provider rejected the message (${res.status}): ${(await res.text()).slice(0, 200)}`);
-    if (id) await admin.from("team_email_outbox").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", id);
+    if (id) await admin.from("team_email_outbox").update({ status: "sent", sent_at: new Date().toISOString(), error: null }).eq("id", id);
     return { status: "sent", error: null };
   } catch (error) {
     const message = (error as Error).message.slice(0, 500);
@@ -527,8 +526,8 @@ export async function resendOutboxEmail(admin: SupabaseClient, teamId: string, i
   const row = data as Row;
   if (!emailProviderConfigured()) {
     const message = "Email sending is not configured yet, so this message is saved in the outbox instead of being delivered.";
-    await admin.from("team_email_outbox").update({ status: "failed", error: message }).eq("id", id);
-    return { id, status: "failed", error: message };
+    await admin.from("team_email_outbox").update({ status: "queued", error: null }).eq("id", id);
+    return { id, status: "queued", error: message };
   }
   const { data: teamRow } = await admin.from("teams").select("*").eq("id", teamId).maybeSingle();
   const brand = await loadBrand(admin, (teamRow ?? { id: teamId }) as Row);
