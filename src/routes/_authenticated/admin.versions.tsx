@@ -42,7 +42,13 @@ function VersionsAdmin() {
   const save = async (r: Row) => {
     const patch = draft[r.id]; if (!patch) return;
     if (patch.is_latest) await supabase.from("bot_versions").update({ is_latest: false } as never).neq("id", r.id);
-    const { error } = await supabase.from("bot_versions").update(patch as never).eq("id", r.id);
+    let { error } = await supabase.from("bot_versions").update(patch as never).eq("id", r.id);
+    if (error && /title|is_active|sort_order/i.test(error.message)) {
+      // Older database without the newer columns: save what it supports.
+      const { title: _t, is_active: _a, sort_order: _s, ...base } = patch;
+      ({ error } = await supabase.from("bot_versions").update(base as never).eq("id", r.id));
+      if (!error) toast.warning("Saved, but titles/order need the database update.");
+    }
     if (error) return toast.error(error.message);
     setDraft((d) => { const n = { ...d }; delete n[r.id]; return n; });
     toast.success("Saved"); qc.invalidateQueries({ queryKey: ["admin-versions"] });
