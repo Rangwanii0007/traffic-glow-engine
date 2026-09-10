@@ -7,6 +7,7 @@ import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { PageGate } from "@/components/PageGate";
 import { Button } from "@/components/ui/button";
+import { loadDownloadOptions, downloadLabel, type DownloadOption } from "@/lib/downloads";
 
 const GlobeScene = lazy(() => import("@/components/location/GlobeScene"));
 
@@ -272,7 +273,7 @@ function DownloadSection() {
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             {downloads.filter((item) => item.download_url).map((item) => (
               <Button key={item.id} asChild size="lg" className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white">
-                <a href={item.download_url ?? "#"} rel="noopener noreferrer"><Download className="w-5 h-5" />{item.title || `${item.platform ?? "Download"} v${item.version}`}</a>
+                <a href={item.download_url ?? "#"} rel="noopener noreferrer"><Download className="w-5 h-5" />{downloadLabel(item)}</a>
               </Button>
             ))}
           </div>
