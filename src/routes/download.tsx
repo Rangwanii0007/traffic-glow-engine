@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { PageGate } from "@/components/PageGate";
+import { loadDownloadOptions, downloadLabel } from "@/lib/downloads";
 
 export const Route = createFileRoute("/download")({
   head: () => ({ meta: [{ title: "Download Bot — AD4YOU" }] }),
@@ -21,20 +22,16 @@ export const Route = createFileRoute("/download")({
 function DownloadPage() {
   const versionsQ = useQuery({
     queryKey: ["bot-versions"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("bot_versions")
-        .select("id, title, version, platform, download_url, release_notes, is_latest, file_size, created_at, sort_order")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true }).order("created_at", { ascending: false });
-      return data ?? [];
-    },
+    queryFn: loadDownloadOptions,
   });
+  const refetch = versionsQ.refetch;
   useEffect(() => {
     const channel = supabase.channel("public-bot-versions-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "bot_versions" }, () => versionsQ.refetch()).subscribe();
+      .on("postgres_changes", { event: "*", schema: "public", table: "bot_versions" }, () => { void refetch(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => { void refetch(); })
+      .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [versionsQ.refetch]);
+  }, [refetch]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -55,7 +52,7 @@ function DownloadPage() {
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               {versionsQ.data?.filter((v) => v.download_url).map((v) => (
                 <Button key={v.id} asChild size="lg" className="h-auto min-h-14 py-3 bg-gradient-to-r from-primary to-accent text-white">
-                  <a href={v.download_url ?? "#"} rel="noopener noreferrer"><Download className="w-5 h-5 mr-2" /><span>{v.title || `${v.platform ?? "Download"} v${v.version}`}</span></a>
+                  <a href={v.download_url ?? "#"} rel="noopener noreferrer"><Download className="w-5 h-5 mr-2" /><span>{downloadLabel(v)}</span></a>
                 </Button>
               ))}
             </div>
@@ -67,7 +64,7 @@ function DownloadPage() {
               <div className="space-y-3">{Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-20" />)}</div>
             ) : (
               <div className="grid gap-3">
-                {versionsQ.data?.map((v) => (
+                {versionsQ.data?.filter((v) => v.id !== "legacy-download").map((v) => (
                   <div key={v.id} className="glass-card rounded-2xl p-5">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-semibold">v{v.version}</h4>
