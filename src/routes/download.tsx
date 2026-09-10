@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { PageGate } from "@/components/PageGate";
+import { loadDownloadOptions, downloadLabel } from "@/lib/downloads";
 
 export const Route = createFileRoute("/download")({
   head: () => ({ meta: [{ title: "Download Bot — AD4YOU" }] }),
