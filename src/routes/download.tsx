@@ -21,20 +21,16 @@ export const Route = createFileRoute("/download")({
 function DownloadPage() {
   const versionsQ = useQuery({
     queryKey: ["bot-versions"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("bot_versions")
-        .select("id, title, version, platform, download_url, release_notes, is_latest, file_size, created_at, sort_order")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true }).order("created_at", { ascending: false });
-      return data ?? [];
-    },
+    queryFn: loadDownloadOptions,
   });
+  const refetch = versionsQ.refetch;
   useEffect(() => {
     const channel = supabase.channel("public-bot-versions-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "bot_versions" }, () => versionsQ.refetch()).subscribe();
+      .on("postgres_changes", { event: "*", schema: "public", table: "bot_versions" }, () => { void refetch(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => { void refetch(); })
+      .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [versionsQ.refetch]);
+  }, [refetch]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
