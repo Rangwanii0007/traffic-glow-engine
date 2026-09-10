@@ -60,9 +60,13 @@ function VersionsAdmin() {
   };
   const add = async () => {
     const version = prompt("Version (e.g. 1.0.0)?")?.trim(); if (!version) return;
-    const { error } = await supabase.from("bot_versions").insert({
-      version, title: "Windows download", platform: "windows", file_size: "45 MB", is_latest: false, is_mandatory: false, is_active: true, sort_order: 0,
+    let { error } = await supabase.from("bot_versions").insert({
+      version, title: `AD4YOU for Windows — v${version}`, platform: "windows", is_latest: false, is_mandatory: false, is_active: true, sort_order: 0,
     } as never);
+    if (error && /title|is_active|sort_order/i.test(error.message)) {
+      ({ error } = await supabase.from("bot_versions").insert({ version, platform: "windows", is_latest: false, is_mandatory: false } as never));
+      if (!error) toast.warning("Added, but titles/order need the database update.");
+    }
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["admin-versions"] });
   };
