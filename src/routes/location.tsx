@@ -239,12 +239,14 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
 }
 
 function DownloadSection() {
-  const [downloads, setDownloads] = useState<Array<{ id: string; title: string | null; version: string; platform: string | null; download_url: string | null }>>([]);
+  const [downloads, setDownloads] = useState<DownloadOption[]>([]);
   useEffect(() => {
-    const load = () => supabase.from("bot_versions").select("id, title, version, platform, download_url").eq("is_active", true).order("sort_order").then(({ data }) => setDownloads(data ?? []));
+    const load = async () => setDownloads(await loadDownloadOptions());
     void load();
     const ch = supabase.channel("location-downloads-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "bot_versions" }, () => { void load(); }).subscribe();
+      .on("postgres_changes", { event: "*", schema: "public", table: "bot_versions" }, () => { void load(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => { void load(); })
+      .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, []);
 
