@@ -23,7 +23,7 @@ const links = [
   { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { to: "/admin/contact", label: "Contact Messages", icon: Mail },
   { to: "/admin/platforms", label: "Social Platforms", icon: Share2 },
-  { to: "/admin/versions", label: "Bot Versions", icon: Download },
+  { to: "/admin/versions", label: "Software Downloads", icon: Download },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 

@@ -11,7 +11,14 @@ import { PageGate } from "@/components/PageGate";
 import { loadDownloadOptions, downloadLabel } from "@/lib/downloads";
 
 export const Route = createFileRoute("/download")({
-  head: () => ({ meta: [{ title: "Download Bot — AD4YOU" }] }),
+  head: () => ({ meta: [
+    { title: "Download AD4YOU Software" },
+    { name: "description", content: "Download official AD4YOU software for Windows, Linux, macOS, Android, iOS, and other supported platforms." },
+    { property: "og:title", content: "Download AD4YOU Software" },
+    { property: "og:description", content: "Download official AD4YOU software for your supported platform." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: () => (
     <PageGate pageKey="page_download_enabled">
       <DownloadPage />
@@ -49,12 +56,15 @@ function DownloadPage() {
             <Shield className="w-10 h-10 mx-auto text-primary" />
             <h2 className="mt-4 text-2xl sm:text-3xl font-bold">Choose your download</h2>
             <p className="mt-2 text-muted-foreground">Official builds published directly by AD4YOU.</p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
               {versionsQ.data?.filter((v) => v.download_url).map((v) => (
-                <Button key={v.id} asChild size="lg" className="h-auto min-h-14 py-3 bg-gradient-to-r from-primary to-accent text-white">
-                  <a href={v.download_url ?? "#"} rel="noopener noreferrer"><Download className="w-5 h-5 mr-2" /><span>{downloadLabel(v)}</span></a>
-                </Button>
+                <div key={v.id} className="rounded-lg border border-border/60 bg-card/60 p-4 text-left">
+                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="font-semibold break-words">{downloadLabel(v)}</h3><p className="mt-1 text-xs capitalize text-muted-foreground">{v.platform}{v.version ? ` · v${v.version}` : ""}{v.file_size ? ` · ${v.file_size}` : ""}</p></div>{v.is_latest && <span className="shrink-0 rounded-md bg-success/15 px-2 py-1 text-xs text-success">Latest</span>}</div>
+                  {v.release_notes && <p className="mt-3 text-sm text-muted-foreground">{v.release_notes}</p>}
+                  <Button asChild className="mt-4 w-full"><a href={v.download_url ?? "#"} rel="noopener noreferrer"><Download className="mr-2 h-4 w-4" />Download</a></Button>
+                </div>
               ))}
+              {!versionsQ.isLoading && !versionsQ.data?.some((v) => v.download_url) && <p className="sm:col-span-2 text-sm text-muted-foreground">No downloads are available right now.</p>}
             </div>
           </div>
 
