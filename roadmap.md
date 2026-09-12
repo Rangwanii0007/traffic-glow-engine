@@ -6,4 +6,6 @@
 - [x] Update admin and public download views
 - [x] Build complete multiple software downloads manager
 - [x] Provide idempotent manual SQL with secure access and realtime
-- [ ] Validate email and download flows
+- [ ] Validate recruitment email delivery (requires a real owner action)
+- [x] Validate public download flow on desktop and mobile
+- [ ] Validate admin download writes (preview account redirects to login)
