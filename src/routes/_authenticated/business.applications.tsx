@@ -128,17 +128,47 @@ function ApplicationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Team applications</h1>
-        <p className="text-sm text-muted-foreground">
-          {meta.data?.counts.all ?? 0} total · {meta.data?.counts.pending ?? 0} pending · {meta.data?.counts.accepted ?? 0} accepted · {meta.data?.counts.rejected ?? 0} rejected
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Team applications</h1>
+          <p className="text-sm text-muted-foreground">
+            {meta.data?.counts.all ?? 0} total · {meta.data?.counts.pending ?? 0} pending · {meta.data?.counts.accepted ?? 0} accepted · {meta.data?.counts.rejected ?? 0} rejected
+          </p>
+        </div>
+        <Button onClick={() => setAcceptAllOpen(true)} disabled={(meta.data?.counts.pending ?? 0) === 0 || acceptAll.isPending}>
+          {acceptAll.isPending ? <Loader2 className="animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+          Accept all ({meta.data?.counts.pending ?? 0})
+        </Button>
       </div>
 
       {capacity?.isFull && (
         <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm">
           Your team is full ({capacity.active}/{capacity.limit}). Free a slot or upgrade your plan before accepting more members.
         </div>
+      )}
+
+      {setupLinks.length > 0 && (
+        <section className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold">Password setup links</p>
+              <p className="text-xs text-muted-foreground">Share each private link with its new member. Copy them now — they are shown only once.</p>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => setSetupLinks([])}>Hide</Button>
+          </div>
+          <div className="space-y-2">
+            {setupLinks.map((m) => (
+              <div key={m.setupLink} className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="font-medium">{m.email || m.name}</span>
+                <span className="text-muted-foreground truncate max-w-full sm:max-w-sm">{m.setupLink}</span>
+                <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]"
+                  onClick={() => { void navigator.clipboard.writeText(m.setupLink); toast.success("Link copied"); }}>
+                  Copy link
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
