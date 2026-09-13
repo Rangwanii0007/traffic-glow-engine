@@ -71,32 +71,6 @@ function RecruitmentPage() {
     enabled: !!teamId,
   });
 
-  const outbox = useQuery({
-    queryKey: ["business", "recruitment", "outbox", teamId],
-    queryFn: () => listEmailOutbox({ data: { teamId: teamId! } }),
-    enabled: !!teamId,
-  });
-
-  const retry = useMutation({
-    mutationFn: (id: string) => retryOutboxEmail({ data: { teamId: teamId!, id } }),
-    onSuccess: (r) => {
-      if (r.ok) toast.success("Email sent");
-      else toast.error(r.error ?? "Email could not be sent");
-      qc.invalidateQueries({ queryKey: ["business", "recruitment", "outbox", teamId] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-  const [testEmail, setTestEmail] = useState("");
-  const sendTest = useMutation({
-    mutationFn: () => sendRecruitmentTestEmail({ data: { teamId: teamId!, email: testEmail } }),
-    onSuccess: (r) => {
-      if (r.status === "sent") toast.success("Test email accepted by Resend");
-      else if (r.status === "queued") toast.warning(r.error ?? "Test email saved in the outbox");
-      else toast.error(r.error ?? "Test email could not be sent");
-      qc.invalidateQueries({ queryKey: ["business", "recruitment", "outbox", teamId] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
 
   const [brand, setBrand] = useState({
