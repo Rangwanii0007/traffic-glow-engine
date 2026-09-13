@@ -311,9 +311,9 @@ function ApplicationsPage() {
               </Select>
             </div>
             <div className="flex items-center gap-2"><Switch checked={createMember} onCheckedChange={setCreateMember} />Create the team member account</div>
-            <div className="flex items-center gap-2"><Switch checked={sendAccept} onCheckedChange={setSendAccept} />Send the acceptance email with setup instructions</div>
             <p className="text-xs text-muted-foreground">
-              The new member gets a private one-time link to create their own password — no password is ever emailed or stored in plain text.
+              No email is sent. After accepting you get a private one-time link to share with the new member so they can set
+              their own password, and the application data is cleared automatically.
             </p>
           </div>
           <DialogFooter>
