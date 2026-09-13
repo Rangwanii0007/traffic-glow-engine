@@ -279,8 +279,6 @@ function RecruitmentPage() {
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="builder">Form builder</TabsTrigger>
           <TabsTrigger value="branding">Page branding</TabsTrigger>
-          <TabsTrigger value="emails">Email settings</TabsTrigger>
-          <TabsTrigger value="templates">Email templates</TabsTrigger>
         </TabsList>
 
         {/* ── builder ───────────────────────────────────────────── */}
