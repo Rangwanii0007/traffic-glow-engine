@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { useBusiness } from "@/components/business/Shell";
 import { StatCard } from "@/components/team/Shell";
 import {
-  getRecruitment, listEmailOutbox, retryOutboxEmail, saveEmailSettings, saveEmailTemplate, saveJoinForm, saveQuestions, sendRecruitmentTestEmail,
+  getRecruitment, saveEmailSettings, saveEmailTemplate, saveJoinForm, saveQuestions,
 } from "@/lib/recruitment.functions";
 
 
