@@ -323,6 +323,36 @@ function ApplicationsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* accept everyone waiting */}
+      <Dialog open={acceptAllOpen} onOpenChange={setAcceptAllOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Accept all waiting applications</DialogTitle></DialogHeader>
+          <div className="space-y-4 text-sm">
+            <p className="text-muted-foreground">
+              Every application still waiting for a decision ({meta.data?.counts.pending ?? 0}) becomes a team member with the role
+              you pick below. No emails are sent and the application data is cleared afterwards.
+            </p>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Team role for everyone</Label>
+              <Select value={acceptRole} onValueChange={setAcceptRole}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="runner">Runner</SelectItem>
+                  <SelectItem value="editor">Editor</SelectItem>
+                  <SelectItem value="viewer">Viewer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAcceptAllOpen(false)}>Cancel</Button>
+            <Button onClick={() => acceptAll.mutate()} disabled={acceptAll.isPending}>
+              {acceptAll.isPending ? <Loader2 className="animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}Accept all
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* accept confirmation */}
       <Dialog open={acceptOpen} onOpenChange={setAcceptOpen}>
         <DialogContent>
