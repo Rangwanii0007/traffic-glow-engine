@@ -306,15 +306,6 @@ export const setApplicationStatus = createServerFn({ method: "POST" })
     return { ok: true as const, count: data.ids.length };
   });
 
-async function templateFor(admin: ReturnType<typeof getTeamAdmin>, teamId: string, kind: TemplateKind) {
-  const { data } = await admin.from("team_email_templates").select("*").eq("team_id", teamId).eq("kind", kind).maybeSingle();
-  const row = (data ?? null) as Row | null;
-  if (row && row['is_active'] === false) return null;
-  return {
-    subject: String(row?.['subject'] ?? DEFAULT_TEMPLATES[kind].subject),
-    body: String(row?.['body'] ?? DEFAULT_TEMPLATES[kind].body),
-  };
-}
 
 /**
  * Removes every leftover row that belonged to an application once it is no
