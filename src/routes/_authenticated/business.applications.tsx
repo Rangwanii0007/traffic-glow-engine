@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useBusiness } from "@/components/business/Shell";
 import {
-  acceptApplication, getApplication, getRecruitment, listApplications, rejectApplication, setApplicationStatus,
+  acceptAllPending, acceptApplication, getApplication, getRecruitment, listApplications, rejectApplication, setApplicationStatus,
 } from "@/lib/recruitment.functions";
 
 export const Route = createFileRoute("/_authenticated/business/applications")({
