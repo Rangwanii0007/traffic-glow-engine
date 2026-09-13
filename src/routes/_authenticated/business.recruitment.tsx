@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { useBusiness } from "@/components/business/Shell";
 import { StatCard } from "@/components/team/Shell";
 import {
-  getRecruitment, listEmailOutbox, retryOutboxEmail, saveEmailSettings, saveEmailTemplate, saveJoinForm, saveQuestions, sendRecruitmentTestEmail,
+  getRecruitment, saveEmailSettings, saveEmailTemplate, saveJoinForm, saveQuestions,
 } from "@/lib/recruitment.functions";
 
 
@@ -71,32 +71,6 @@ function RecruitmentPage() {
     enabled: !!teamId,
   });
 
-  const outbox = useQuery({
-    queryKey: ["business", "recruitment", "outbox", teamId],
-    queryFn: () => listEmailOutbox({ data: { teamId: teamId! } }),
-    enabled: !!teamId,
-  });
-
-  const retry = useMutation({
-    mutationFn: (id: string) => retryOutboxEmail({ data: { teamId: teamId!, id } }),
-    onSuccess: (r) => {
-      if (r.ok) toast.success("Email sent");
-      else toast.error(r.error ?? "Email could not be sent");
-      qc.invalidateQueries({ queryKey: ["business", "recruitment", "outbox", teamId] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-  const [testEmail, setTestEmail] = useState("");
-  const sendTest = useMutation({
-    mutationFn: () => sendRecruitmentTestEmail({ data: { teamId: teamId!, email: testEmail } }),
-    onSuccess: (r) => {
-      if (r.status === "sent") toast.success("Test email accepted by Resend");
-      else if (r.status === "queued") toast.warning(r.error ?? "Test email saved in the outbox");
-      else toast.error(r.error ?? "Test email could not be sent");
-      qc.invalidateQueries({ queryKey: ["business", "recruitment", "outbox", teamId] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
 
   const [brand, setBrand] = useState({
@@ -279,8 +253,6 @@ function RecruitmentPage() {
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="builder">Form builder</TabsTrigger>
           <TabsTrigger value="branding">Page branding</TabsTrigger>
-          <TabsTrigger value="emails">Email settings</TabsTrigger>
-          <TabsTrigger value="templates">Email templates</TabsTrigger>
         </TabsList>
 
         {/* ── builder ───────────────────────────────────────────── */}
@@ -460,95 +432,6 @@ function RecruitmentPage() {
           </section>
         </TabsContent>
 
-        {/* ── email settings ────────────────────────────────────── */}
-        <TabsContent value="emails" className="space-y-4 pt-4">
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-6 grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2 flex items-center gap-2 text-sm"><Mail className="w-4 h-4 text-primary" />Emails to applicants use your branding below.</div>
-            {([
-              ["business_name", "Business name"], ["team_name", "Team name"], ["logo_url", "Logo URL"],
-              ["primary_color", "Email colour"], ["reply_to", "Reply-to email"], ["contact_email", "Contact email"],
-              ["contact_phone", "Contact phone"], ["whatsapp", "WhatsApp"], ["website", "Website"], ["signature", "Signature"],
-            ] as const).map(([key, label]) => (
-              <div key={key} className="space-y-1.5"><Label className="text-xs">{label}</Label>
-                <Input value={emailSettings[key]} onChange={(e) => setEmailSettings((s) => ({ ...s, [key]: e.target.value }))} /></div>
-            ))}
-            <div className="space-y-1.5 sm:col-span-2"><Label className="text-xs">Email footer</Label>
-              <Textarea rows={2} value={emailSettings.footer_text} onChange={(e) => setEmailSettings((s) => ({ ...s, footer_text: e.target.value }))} /></div>
-            <div className="sm:col-span-2">
-              <Button onClick={() => saveSettings.mutate()} disabled={saveSettings.isPending}>
-                {saveSettings.isPending ? <Loader2 className="animate-spin" /> : <Save className="w-4 h-4" />}Save email branding
-              </Button>
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-6 space-y-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-              <div><p className="text-sm font-medium">Recent emails</p><p className="text-xs text-muted-foreground">Send a real delivery test before processing applications.</p></div>
-              <div className="flex gap-2 sm:max-w-md sm:flex-1">
-                <Input type="email" value={testEmail} onChange={(e) => setTestEmail(e.target.value)} placeholder="Test recipient email" />
-                <Button variant="outline" disabled={sendTest.isPending || !testEmail.trim()} onClick={() => sendTest.mutate()}>
-                  {sendTest.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />} Send test
-                </Button>
-              </div>
-            </div>
-            {outbox.data && !outbox.data.emailConfigured && (
-              <p className="text-xs text-amber-400">
-                Real email delivery is not switched on yet. Add the Resend API key and queued emails can be retried here.
-              </p>
-            )}
-            {(outbox.data?.rows ?? []).length === 0 && <p className="text-xs text-muted-foreground">No emails yet.</p>}
-            <div className="space-y-2">
-              {(outbox.data?.rows ?? []).map((row) => (
-                <div key={String(row['id'])} className="flex flex-wrap items-center gap-2 text-xs border-b border-white/5 pb-2">
-                  <Badge variant={String(row['status']) === "sent" ? "default" : "secondary"}>{String(row['status'])}</Badge>
-                  <span className="font-medium">{String(row['to_email'])}</span>
-                  <span className="text-muted-foreground truncate">{String(row['subject'])}</span>
-                  {row['error'] ? <span className="text-amber-400/80 basis-full">{String(row['error'])}</span> : null}
-                  {String(row['status']) !== "sent" && (
-                    <Button
-                      size="sm" variant="outline" className="h-7 px-2 text-[11px]"
-                      disabled={retry.isPending}
-                      onClick={() => retry.mutate(String(row['id']))}
-                    >
-                      {retry.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}Retry
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-
-        </TabsContent>
-
-        {/* ── templates ─────────────────────────────────────────── */}
-        <TabsContent value="templates" className="space-y-4 pt-4">
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-6 space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <Select value={templateKind} onValueChange={setTemplateKind}>
-                <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="received">Application received</SelectItem>
-                  <SelectItem value="accepted">Application accepted</SelectItem>
-                  <SelectItem value="rejected">Application rejected</SelectItem>
-                  <SelectItem value="welcome">Team member welcome</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Switch checked={template.is_active} onCheckedChange={(v) => setTemplate((t) => ({ ...t, is_active: v }))} />Send this email
-              </div>
-            </div>
-            <div className="space-y-1.5"><Label className="text-xs">Subject</Label>
-              <Input value={template.subject} onChange={(e) => setTemplate((t) => ({ ...t, subject: e.target.value }))} /></div>
-            <div className="space-y-1.5"><Label className="text-xs">Message</Label>
-              <Textarea rows={12} value={template.body} onChange={(e) => setTemplate((t) => ({ ...t, body: e.target.value }))} /></div>
-            <p className="text-xs text-muted-foreground">
-              You can use: {"{{applicant_name}} {{team_name}} {{team_owner_name}} {{application_id}} {{rejection_reason}} {{contact_email}} {{contact_phone}} {{whatsapp}} {{website}} {{login_link}} {{account_setup_link}}"}
-            </p>
-            <Button onClick={() => saveTpl.mutate()} disabled={saveTpl.isPending}>
-              {saveTpl.isPending ? <Loader2 className="animate-spin" /> : <Save className="w-4 h-4" />}Save template
-            </Button>
-          </section>
-        </TabsContent>
       </Tabs>
 
       <p className="text-xs text-muted-foreground flex items-center gap-2"><Users className="w-3.5 h-3.5" />Accepted applicants become real team members and can sign in on the website and in the desktop app.</p>

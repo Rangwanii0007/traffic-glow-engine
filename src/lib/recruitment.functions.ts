@@ -5,9 +5,9 @@ import {
   DEFAULT_MEMBER_PASSWORD, defaultPermissions, getTeamAdmin, hashMemberPassword, requireTeam, throwIf, WORKER_ROLES,
 } from "./team.server";
 import {
-  brandingSchema, DEFAULT_TEMPLATES, emailProviderConfigured, findEmailOwner, hashIp, hashToken, loadBrand, logEvent,
-  memberCapacity, newToken, normEmail, queueEmail, questionSchema, renderVars, resendOutboxEmail, slugify, TEMPLATE_KINDS, validateAnswers,
-  type EmailResult, type Json, type Row, type TemplateKind,
+  brandingSchema, DEFAULT_TEMPLATES, findEmailOwner, hashIp, hashToken, logEvent,
+  memberCapacity, newToken, normEmail, questionSchema, slugify, TEMPLATE_KINDS, validateAnswers,
+  type Json, type Row,
 
 } from "./recruitment.server";
 
@@ -306,14 +306,90 @@ export const setApplicationStatus = createServerFn({ method: "POST" })
     return { ok: true as const, count: data.ids.length };
   });
 
-async function templateFor(admin: ReturnType<typeof getTeamAdmin>, teamId: string, kind: TemplateKind) {
-  const { data } = await admin.from("team_email_templates").select("*").eq("team_id", teamId).eq("kind", kind).maybeSingle();
-  const row = (data ?? null) as Row | null;
-  if (row && row['is_active'] === false) return null;
-  return {
-    subject: String(row?.['subject'] ?? DEFAULT_TEMPLATES[kind].subject),
-    body: String(row?.['body'] ?? DEFAULT_TEMPLATES[kind].body),
-  };
+
+/**
+ * Removes every leftover row that belonged to an application once it is no
+ * longer needed (the member account is the record that matters from now on).
+ */
+async function purgeApplication(admin: ReturnType<typeof getTeamAdmin>, teamId: string, id: string) {
+  await admin.from("team_members").update({ application_id: null }).eq("application_id", id);
+  await admin.from("team_email_outbox").delete().eq("application_id", id);
+  await admin.from("team_application_events").delete().eq("application_id", id);
+  await admin.from("team_applications").delete().eq("id", id).eq("team_id", teamId);
+}
+
+type AcceptResult = { memberId: string | null; setupLink: string; temporaryPassword: string };
+
+/** Accepts one application, creates the member account and clears the application data. */
+async function acceptOne(
+  admin: ReturnType<typeof getTeamAdmin>,
+  team: Row,
+  teamId: string,
+  app: Row,
+  role: (typeof WORKER_ROLES)[number],
+  createMember: boolean,
+): Promise<AcceptResult> {
+  const id = String(app['id']);
+  const email = normEmail(app['applicant_email']);
+  let memberId = app['member_id'] ? String(app['member_id']) : null;
+  let setupLink = "";
+  let temporaryPassword = "";
+
+  if (createMember && !memberId) {
+    const capacity = await memberCapacity(admin, team);
+    if (capacity.isFull) {
+      throw new Error(`Your team is full (${capacity.active}/${capacity.limit} members). Free a slot or upgrade your plan before accepting.`);
+    }
+    const { data: existingRows, error: existErr } = await admin.from("team_members").select("id, team_id").ilike("email", email).limit(1);
+    throwIf(existErr);
+    const existing = (existingRows ?? [])[0] as Row | undefined;
+    if (existing && String(existing['team_id']) !== teamId) {
+      throw new Error("This email already belongs to a team member in another team");
+    }
+    if (existing) {
+      memberId = String(existing['id']);
+      await admin.from("team_members").update({ is_active: true }).eq("id", memberId);
+    } else {
+      if (role === "team_leader") {
+        const { data: leader } = await admin.from("team_members").select("id").eq("team_id", teamId).eq("role", "team_leader").maybeSingle();
+        if (leader) throw new Error("This team already has a Team Leader");
+      }
+      // The temporary password is hashed with the exact same method the desktop
+      // software and the web team login already verify, so password_hash stays NOT NULL.
+      temporaryPassword = DEFAULT_MEMBER_PASSWORD;
+      const { data: created, error } = await admin
+        .from("team_members")
+        .insert({
+          team_id: teamId,
+          name: String(app['applicant_name']),
+          email,
+          password_hash: hashMemberPassword(temporaryPassword),
+          must_set_password: true,
+          role,
+          allowed_tools: defaultPermissions(role),
+          is_active: true,
+          is_online: false,
+          phone: app['applicant_phone'] ?? null,
+          country: app['country'] ?? null,
+          city: app['city'] ?? null,
+        })
+        .select("id")
+        .single();
+      throwIf(error);
+      memberId = String((created as Row)['id']);
+    }
+
+    const { raw, hash } = newToken();
+    await admin.from("member_setup_tokens").insert({ member_id: memberId, team_id: teamId, token_hash: hash });
+    setupLink = `${origin()}/team-setup/${raw}`;
+
+    const { count } = await admin.from("team_members").select("id", { count: "exact", head: true }).eq("team_id", teamId);
+    await admin.from("teams").update({ total_members: Number(count ?? 0) }).eq("id", teamId);
+  }
+
+  // no emails are sent — the application data is cleared right after acceptance
+  await purgeApplication(admin, teamId, id);
+  return { memberId, setupLink, temporaryPassword };
 }
 
 export const acceptApplication = createServerFn({ method: "POST" })
@@ -322,124 +398,52 @@ export const acceptApplication = createServerFn({ method: "POST" })
       teamId: uuid,
       id: uuid,
       role: z.enum(WORKER_ROLES).default("runner"),
-      sendEmail: z.boolean().default(true),
       createMember: z.boolean().default(true),
     }).parse(input),
   )
   .handler(async ({ data }) => {
-    const { admin, team, user } = await requireTeam(data.teamId);
+    const { admin, team } = await requireTeam(data.teamId);
     const { data: appRow } = await admin.from("team_applications").select("*").eq("id", data.id).eq("team_id", data.teamId).maybeSingle();
     if (!appRow) throw new Error("Application not found");
-    const app = appRow as Row;
-    if (String(app['status']) === "accepted") throw new Error("This application is already accepted");
+    const result = await acceptOne(admin, team as Row, data.teamId, appRow as Row, data.role, data.createMember);
+    return { ok: true as const, ...result };
+  });
 
-    const email = normEmail(app['applicant_email']);
-    let memberId = app['member_id'] ? String(app['member_id']) : null;
-    let setupLink = "";
-    let temporaryPassword = "";
-
-    if (data.createMember && !memberId) {
-      const capacity = await memberCapacity(admin, team as Row);
-      if (capacity.isFull) {
-        throw new Error(`Your team is full (${capacity.active}/${capacity.limit} members). Free a slot or upgrade your plan before accepting.`);
-      }
-      const { data: existingRows, error: existErr } = await admin.from("team_members").select("id, team_id").ilike("email", email).limit(1);
-      throwIf(existErr);
-      const existing = (existingRows ?? [])[0] as Row | undefined;
-      if (existing && String(existing['team_id']) !== data.teamId) {
-        throw new Error("This email already belongs to a team member in another team");
-      }
-      if (existing) {
-        memberId = String(existing['id']);
-        await admin.from("team_members").update({ is_active: true, application_id: data.id }).eq("id", memberId);
-      } else {
-        if (data.role === "team_leader") {
-          const { data: leader } = await admin.from("team_members").select("id").eq("team_id", data.teamId).eq("role", "team_leader").maybeSingle();
-          if (leader) throw new Error("This team already has a Team Leader");
-        }
-        // The temporary password is hashed with the exact same method the desktop
-        // software and the web team login already verify, so password_hash stays NOT NULL.
-        temporaryPassword = DEFAULT_MEMBER_PASSWORD;
-        const { data: created, error } = await admin
-          .from("team_members")
-          .insert({
-            team_id: data.teamId,
-            name: String(app['applicant_name']),
-            email,
-            password_hash: hashMemberPassword(temporaryPassword),
-            must_set_password: true,
-            role: data.role,
-            allowed_tools: defaultPermissions(data.role),
-            is_active: true,
-            is_online: false,
-            phone: app['applicant_phone'] ?? null,
-            country: app['country'] ?? null,
-            city: app['city'] ?? null,
-            application_id: data.id,
-          })
-          .select("id")
-          .single();
-        throwIf(error);
-        memberId = String((created as Row)['id']);
-      }
-
-      const { raw, hash } = newToken();
-      await admin.from("member_setup_tokens").insert({ member_id: memberId, team_id: data.teamId, token_hash: hash });
-      setupLink = `${origin()}/team-setup/${raw}`;
-
-      const { count } = await admin.from("team_members").select("id", { count: "exact", head: true }).eq("team_id", data.teamId);
-      await admin.from("teams").update({ total_members: Number(count ?? 0) }).eq("id", data.teamId);
-      await logEvent(admin, data.id, data.teamId, "member_created", "Team member account created", "system");
-    }
-
-    const now = new Date().toISOString();
-    const { error: upErr } = await admin
-      .from("team_applications")
-      .update({ status: "accepted", accepted_at: now, reviewed_at: now, reviewed_by: user.id, member_id: memberId })
-      .eq("id", data.id);
-    throwIf(upErr);
-    await logEvent(admin, data.id, data.teamId, "accepted", "Application accepted", "owner");
-
-    let emailResult: EmailResult | null = null;
-    if (data.sendEmail) {
-      const brand = await loadBrand(admin, team as Row);
-      const tpl = await templateFor(admin, data.teamId, "accepted");
-      if (tpl) {
-        const vars = {
-          applicant_name: String(app['applicant_name']),
-          applicant_email: email,
-          company_name: brand.business_name,
-          team_name: brand.team_name,
-          team_owner_name: brand.owner_name || brand.business_name,
-          application_id: data.id,
-          rejection_reason: "",
-          contact_email: brand.contact_email,
-          contact_phone: brand.contact_phone,
-          whatsapp: brand.whatsapp,
-          website: brand.website,
-          login_link: `${origin()}/team-login`,
-          temporary_password: temporaryPassword || "(your existing password)",
-          account_setup_link: setupLink ? `Set your own password here: ${setupLink}` : "",
-        };
-        emailResult = await queueEmail(admin, {
-          teamId: data.teamId, applicationId: data.id, kind: "accepted", to: email,
-          subject: renderVars(tpl.subject, vars), bodyText: renderVars(tpl.body, vars), brand,
+/** Accepts every application still waiting for a decision, in one action. */
+export const acceptAllPending = createServerFn({ method: "POST" })
+  .inputValidator((input) =>
+    z.object({
+      teamId: uuid,
+      role: z.enum(WORKER_ROLES).default("runner"),
+      createMember: z.boolean().default(true),
+    }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { admin, team } = await requireTeam(data.teamId);
+    const { data: rows } = await admin
+      .from("team_applications").select("*")
+      .eq("team_id", data.teamId).in("status", ["pending", "under_review"])
+      .order("submitted_at", { ascending: true });
+    const apps = (rows ?? []) as Row[];
+    let accepted = 0;
+    let skipped = 0;
+    let lastError: string | null = null;
+    const members: { name: string; email: string; setupLink: string }[] = [];
+    for (const app of apps) {
+      try {
+        const result = await acceptOne(admin, team as Row, data.teamId, app, data.role, data.createMember);
+        accepted += 1;
+        members.push({
+          name: String(app['applicant_name']),
+          email: normEmail(app['applicant_email']),
+          setupLink: result.setupLink,
         });
-        await logEvent(
-          admin, data.id, data.teamId, "email_accepted",
-          emailResult.status === "sent" ? "Acceptance email delivered" : `Acceptance email not delivered: ${emailResult.error ?? "unknown reason"}`,
-          "system",
-        );
+      } catch (e) {
+        skipped += 1;
+        lastError = e instanceof Error ? e.message : "One application could not be accepted";
       }
     }
-    return {
-      ok: true as const,
-      memberId,
-      setupLink,
-      temporaryPassword,
-      email: emailResult ? { status: emailResult.status, error: emailResult.error } : null,
-      emailConfigured: emailProviderConfigured(),
-    };
+    return { ok: true as const, accepted, skipped, error: lastError, members };
   });
 
 export const rejectApplication = createServerFn({ method: "POST" })
@@ -448,12 +452,11 @@ export const rejectApplication = createServerFn({ method: "POST" })
       teamId: uuid,
       ids: z.array(uuid).min(1).max(100),
       reason: z.string().trim().max(1000).default(""),
-      sendEmail: z.boolean().default(true),
     }).parse(input),
   )
   .handler(async ({ data }) => {
-    const { admin, team, user } = await requireTeam(data.teamId);
-    const { data: rows } = await admin.from("team_applications").select("*").in("id", data.ids).eq("team_id", data.teamId);
+    const { admin, user } = await requireTeam(data.teamId);
+    const { data: rows } = await admin.from("team_applications").select("id").in("id", data.ids).eq("team_id", data.teamId);
     const apps = (rows ?? []) as Row[];
     const now = new Date().toISOString();
     const { error } = await admin
@@ -462,82 +465,10 @@ export const rejectApplication = createServerFn({ method: "POST" })
       .in("id", apps.map((a) => String(a['id'])))
       .eq("team_id", data.teamId);
     throwIf(error);
-
-    const brand = await loadBrand(admin, team as Row);
-    const tpl = data.sendEmail ? await templateFor(admin, data.teamId, "rejected") : null;
-    let sent = 0;
-    let failed = 0;
-    let lastError: string | null = null;
     for (const app of apps) {
-      const id = String(app['id']);
-      await logEvent(admin, id, data.teamId, "rejected", data.reason || "Application rejected", "owner");
-      if (!tpl) continue;
-      const vars = {
-        applicant_name: String(app['applicant_name']),
-        applicant_email: String(app['applicant_email']),
-        company_name: brand.business_name,
-        team_name: brand.team_name,
-        team_owner_name: brand.owner_name || brand.business_name,
-        application_id: id,
-        rejection_reason: data.reason || "Your application did not match our current team requirements.",
-        contact_email: brand.contact_email,
-        contact_phone: brand.contact_phone,
-        whatsapp: brand.whatsapp,
-        website: brand.website,
-        login_link: `${origin()}/team-login`,
-        temporary_password: "",
-        account_setup_link: "",
-      };
-      const result = await queueEmail(admin, {
-        teamId: data.teamId, applicationId: id, kind: "rejected", to: String(app['applicant_email']),
-        subject: renderVars(tpl.subject, vars), bodyText: renderVars(tpl.body, vars), brand,
-      });
-      if (result.status === "sent") sent += 1;
-      else { failed += 1; lastError = result.error; }
-      await logEvent(
-        admin, id, data.teamId, "email_rejected",
-        result.status === "sent" ? "Rejection email delivered" : `Rejection email not delivered: ${result.error ?? "unknown reason"}`,
-        "system",
-      );
+      await logEvent(admin, String(app['id']), data.teamId, "rejected", data.reason || "Application rejected", "owner");
     }
-    return { ok: true as const, count: apps.length, emailSent: sent, emailFailed: failed, emailError: lastError, emailConfigured: emailProviderConfigured() };
-  });
-
-
-export const listEmailOutbox = createServerFn({ method: "POST" })
-  .inputValidator((input) => z.object({ teamId: uuid }).parse(input))
-  .handler(async ({ data }) => {
-    const { admin } = await requireTeam(data.teamId);
-    const { data: rows } = await admin
-      .from("team_email_outbox").select("id, kind, to_email, subject, status, error, created_at, sent_at")
-      .eq("team_id", data.teamId).order("created_at", { ascending: false }).limit(50);
-    return { rows: (rows ?? []) as Row[], emailConfigured: emailProviderConfigured() };
-  });
-
-/** Retry one email that failed to deliver. */
-export const retryOutboxEmail = createServerFn({ method: "POST" })
-  .inputValidator((input) => z.object({ teamId: uuid, id: uuid }).parse(input))
-  .handler(async ({ data }) => {
-    const { admin } = await requireTeam(data.teamId);
-    const result = await resendOutboxEmail(admin, data.teamId, data.id);
-    return { ok: result.status === "sent", status: result.status, error: result.error };
-  });
-
-/** Sends an owner-requested delivery test through the production outbox path. */
-export const sendRecruitmentTestEmail = createServerFn({ method: "POST" })
-  .inputValidator((input) => z.object({ teamId: uuid, email: z.string().trim().email().max(254) }).parse(input))
-  .handler(async ({ data }) => {
-    const { admin, team } = await requireTeam(data.teamId);
-    const brand = await loadBrand(admin, team as Row);
-    const result = await queueEmail(admin, {
-      teamId: data.teamId,
-      kind: "test",
-      to: normEmail(data.email),
-      subject: "AD4YOU recruitment email test",
-      bodyText: "Your AD4YOU recruitment email delivery is configured and working. This test used the same secure delivery path as application acceptance and rejection emails.",
-      brand,
-    });
-    return { ok: result.status === "sent", status: result.status, error: result.error };
+    return { ok: true as const, count: apps.length };
   });
 
 
@@ -670,31 +601,7 @@ export const submitApplication = createServerFn({ method: "POST" })
     const id = String((created as Row)['id']);
     await logEvent(admin, id, teamId, "submitted", "Application submitted from the public joining form", "applicant");
 
-    const { data: teamRow } = await admin.from("teams").select("*").eq("id", teamId).maybeSingle();
-    const brand = await loadBrand(admin, (teamRow ?? {}) as Row);
-    const { data: tplRow } = await admin.from("team_email_templates").select("*").eq("team_id", teamId).eq("kind", "received").maybeSingle();
-    const tpl = (tplRow ?? null) as Row | null;
-    if (!tpl || tpl['is_active'] !== false) {
-      const vars = {
-        applicant_name: parsed.name,
-        team_name: brand.team_name,
-        team_owner_name: brand.business_name,
-        application_id: id,
-        rejection_reason: "",
-        contact_email: brand.contact_email,
-        contact_phone: brand.contact_phone,
-        whatsapp: brand.whatsapp,
-        website: brand.website,
-        login_link: `${origin()}/team-login`,
-        account_setup_link: "",
-      };
-      await queueEmail(admin, {
-        teamId, applicationId: id, kind: "received", to: parsed.email,
-        subject: renderVars(String(tpl?.['subject'] ?? DEFAULT_TEMPLATES.received.subject), vars),
-        bodyText: renderVars(String(tpl?.['body'] ?? DEFAULT_TEMPLATES.received.body), vars),
-        brand,
-      });
-    }
+    // applicants are no longer emailed — the owner reviews everything in the panel
 
     return { ok: true as const, message: String(form['success_message'] ?? "") };
   });

@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useBusiness } from "@/components/business/Shell";
 import {
-  acceptApplication, getApplication, getRecruitment, listApplications, rejectApplication, setApplicationStatus,
+  acceptAllPending, acceptApplication, getApplication, getRecruitment, listApplications, rejectApplication, setApplicationStatus,
 } from "@/lib/recruitment.functions";
 
 export const Route = createFileRoute("/_authenticated/business/applications")({
@@ -49,11 +49,11 @@ function ApplicationsPage() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [reason, setReason] = useState("");
-  const [sendReject, setSendReject] = useState(true);
   const [acceptOpen, setAcceptOpen] = useState(false);
   const [acceptRole, setAcceptRole] = useState("runner");
-  const [sendAccept, setSendAccept] = useState(true);
   const [createMember, setCreateMember] = useState(true);
+  const [acceptAllOpen, setAcceptAllOpen] = useState(false);
+  const [setupLinks, setSetupLinks] = useState<{ name: string; email: string; setupLink: string }[]>([]);
 
   const meta = useQuery({
     queryKey: ["business", "recruitment", teamId],
@@ -78,32 +78,34 @@ function ApplicationsPage() {
     void qc.invalidateQueries({ queryKey: ["business", "applications"] });
     void qc.invalidateQueries({ queryKey: ["business", "recruitment"] });
     void qc.invalidateQueries({ queryKey: ["business", "application"] });
+    void qc.invalidateQueries({ queryKey: ["business", "members"] });
   };
 
   const accept = useMutation({
-    mutationFn: (id: string) => acceptApplication({ data: { teamId: teamId!, id, role: acceptRole as never, sendEmail: sendAccept, createMember } }),
+    mutationFn: (id: string) => acceptApplication({ data: { teamId: teamId!, id, role: acceptRole as never, createMember } }),
     onSuccess: (res) => {
-      toast.success(
-        res.temporaryPassword
-          ? `Accepted — account created. Temporary password: ${res.temporaryPassword}`
-          : "Application accepted",
-      );
-      if (res.email && res.email.status !== "sent") {
-        toast.warning(res.email.error ?? "The email could not be delivered. It is saved in the email history.");
-      } else if (res.email?.status === "sent") {
-        toast.success("Acceptance email delivered");
-      }
+      toast.success("Accepted — the team member account is ready");
+      if (res.setupLink) setSetupLinks([{ name: "New member", email: "", setupLink: res.setupLink }]);
       setAcceptOpen(false); setOpenId(null); setSelected([]); refresh();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const acceptAll = useMutation({
+    mutationFn: () => acceptAllPending({ data: { teamId: teamId!, role: acceptRole as never, createMember } }),
+    onSuccess: (res) => {
+      toast.success(`${res.accepted} application(s) accepted`);
+      if (res.skipped > 0) toast.warning(res.error ?? `${res.skipped} application(s) could not be accepted.`);
+      setSetupLinks(res.members.filter((m) => m.setupLink));
+      setAcceptAllOpen(false); setOpenId(null); setSelected([]); refresh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const reject = useMutation({
-    mutationFn: (ids: string[]) => rejectApplication({ data: { teamId: teamId!, ids, reason, sendEmail: sendReject } }),
+    mutationFn: (ids: string[]) => rejectApplication({ data: { teamId: teamId!, ids, reason } }),
     onSuccess: (res) => {
       toast.success(`${res.count} application(s) rejected`);
-      if (res.emailFailed > 0) toast.warning(res.emailError ?? `${res.emailFailed} email(s) could not be delivered.`);
-      else if (res.emailSent > 0) toast.success(`${res.emailSent} email(s) delivered`);
       setRejectOpen(false); setReason(""); setOpenId(null); setSelected([]); refresh();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -126,17 +128,47 @@ function ApplicationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Team applications</h1>
-        <p className="text-sm text-muted-foreground">
-          {meta.data?.counts.all ?? 0} total · {meta.data?.counts.pending ?? 0} pending · {meta.data?.counts.accepted ?? 0} accepted · {meta.data?.counts.rejected ?? 0} rejected
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Team applications</h1>
+          <p className="text-sm text-muted-foreground">
+            {meta.data?.counts.all ?? 0} total · {meta.data?.counts.pending ?? 0} pending · {meta.data?.counts.accepted ?? 0} accepted · {meta.data?.counts.rejected ?? 0} rejected
+          </p>
+        </div>
+        <Button onClick={() => setAcceptAllOpen(true)} disabled={(meta.data?.counts.pending ?? 0) === 0 || acceptAll.isPending}>
+          {acceptAll.isPending ? <Loader2 className="animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+          Accept all ({meta.data?.counts.pending ?? 0})
+        </Button>
       </div>
 
       {capacity?.isFull && (
         <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm">
           Your team is full ({capacity.active}/{capacity.limit}). Free a slot or upgrade your plan before accepting more members.
         </div>
+      )}
+
+      {setupLinks.length > 0 && (
+        <section className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold">Password setup links</p>
+              <p className="text-xs text-muted-foreground">Share each private link with its new member. Copy them now — they are shown only once.</p>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => setSetupLinks([])}>Hide</Button>
+          </div>
+          <div className="space-y-2">
+            {setupLinks.map((m) => (
+              <div key={m.setupLink} className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="font-medium">{m.email || m.name}</span>
+                <span className="text-muted-foreground truncate max-w-full sm:max-w-sm">{m.setupLink}</span>
+                <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]"
+                  onClick={() => { void navigator.clipboard.writeText(m.setupLink); toast.success("Link copied"); }}>
+                  Copy link
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
@@ -291,6 +323,36 @@ function ApplicationsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* accept everyone waiting */}
+      <Dialog open={acceptAllOpen} onOpenChange={setAcceptAllOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Accept all waiting applications</DialogTitle></DialogHeader>
+          <div className="space-y-4 text-sm">
+            <p className="text-muted-foreground">
+              Every application still waiting for a decision ({meta.data?.counts.pending ?? 0}) becomes a team member with the role
+              you pick below. No emails are sent and the application data is cleared afterwards.
+            </p>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Team role for everyone</Label>
+              <Select value={acceptRole} onValueChange={setAcceptRole}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="runner">Runner</SelectItem>
+                  <SelectItem value="editor">Editor</SelectItem>
+                  <SelectItem value="viewer">Viewer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAcceptAllOpen(false)}>Cancel</Button>
+            <Button onClick={() => acceptAll.mutate()} disabled={acceptAll.isPending}>
+              {acceptAll.isPending ? <Loader2 className="animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}Accept all
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* accept confirmation */}
       <Dialog open={acceptOpen} onOpenChange={setAcceptOpen}>
         <DialogContent>
@@ -309,9 +371,9 @@ function ApplicationsPage() {
               </Select>
             </div>
             <div className="flex items-center gap-2"><Switch checked={createMember} onCheckedChange={setCreateMember} />Create the team member account</div>
-            <div className="flex items-center gap-2"><Switch checked={sendAccept} onCheckedChange={setSendAccept} />Send the acceptance email with setup instructions</div>
             <p className="text-xs text-muted-foreground">
-              The new member gets a private one-time link to create their own password — no password is ever emailed or stored in plain text.
+              No email is sent. After accepting you get a private one-time link to share with the new member so they can set
+              their own password, and the application data is cleared automatically.
             </p>
           </div>
           <DialogFooter>
@@ -333,7 +395,7 @@ function ApplicationsPage() {
               <Textarea rows={4} value={reason} onChange={(e) => setReason(e.target.value)}
                 placeholder="Unfortunately, your current internet speed does not meet our team requirements." />
             </div>
-            <div className="flex items-center gap-2"><Switch checked={sendReject} onCheckedChange={setSendReject} />Send the rejection email</div>
+            <p className="text-xs text-muted-foreground">The reason is kept in your panel only — applicants are not emailed.</p>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setRejectOpen(false)}>Cancel</Button>
