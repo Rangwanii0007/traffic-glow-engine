@@ -49,11 +49,11 @@ function ApplicationsPage() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [reason, setReason] = useState("");
-  const [sendReject, setSendReject] = useState(true);
   const [acceptOpen, setAcceptOpen] = useState(false);
   const [acceptRole, setAcceptRole] = useState("runner");
-  const [sendAccept, setSendAccept] = useState(true);
   const [createMember, setCreateMember] = useState(true);
+  const [acceptAllOpen, setAcceptAllOpen] = useState(false);
+  const [setupLinks, setSetupLinks] = useState<{ name: string; email: string; setupLink: string }[]>([]);
 
   const meta = useQuery({
     queryKey: ["business", "recruitment", teamId],
@@ -78,32 +78,34 @@ function ApplicationsPage() {
     void qc.invalidateQueries({ queryKey: ["business", "applications"] });
     void qc.invalidateQueries({ queryKey: ["business", "recruitment"] });
     void qc.invalidateQueries({ queryKey: ["business", "application"] });
+    void qc.invalidateQueries({ queryKey: ["business", "members"] });
   };
 
   const accept = useMutation({
-    mutationFn: (id: string) => acceptApplication({ data: { teamId: teamId!, id, role: acceptRole as never, sendEmail: sendAccept, createMember } }),
+    mutationFn: (id: string) => acceptApplication({ data: { teamId: teamId!, id, role: acceptRole as never, createMember } }),
     onSuccess: (res) => {
-      toast.success(
-        res.temporaryPassword
-          ? `Accepted — account created. Temporary password: ${res.temporaryPassword}`
-          : "Application accepted",
-      );
-      if (res.email && res.email.status !== "sent") {
-        toast.warning(res.email.error ?? "The email could not be delivered. It is saved in the email history.");
-      } else if (res.email?.status === "sent") {
-        toast.success("Acceptance email delivered");
-      }
+      toast.success("Accepted — the team member account is ready");
+      if (res.setupLink) setSetupLinks([{ name: "New member", email: "", setupLink: res.setupLink }]);
       setAcceptOpen(false); setOpenId(null); setSelected([]); refresh();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const acceptAll = useMutation({
+    mutationFn: () => acceptAllPending({ data: { teamId: teamId!, role: acceptRole as never, createMember } }),
+    onSuccess: (res) => {
+      toast.success(`${res.accepted} application(s) accepted`);
+      if (res.skipped > 0) toast.warning(res.error ?? `${res.skipped} application(s) could not be accepted.`);
+      setSetupLinks(res.members.filter((m) => m.setupLink));
+      setAcceptAllOpen(false); setOpenId(null); setSelected([]); refresh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const reject = useMutation({
-    mutationFn: (ids: string[]) => rejectApplication({ data: { teamId: teamId!, ids, reason, sendEmail: sendReject } }),
+    mutationFn: (ids: string[]) => rejectApplication({ data: { teamId: teamId!, ids, reason } }),
     onSuccess: (res) => {
       toast.success(`${res.count} application(s) rejected`);
-      if (res.emailFailed > 0) toast.warning(res.emailError ?? `${res.emailFailed} email(s) could not be delivered.`);
-      else if (res.emailSent > 0) toast.success(`${res.emailSent} email(s) delivered`);
       setRejectOpen(false); setReason(""); setOpenId(null); setSelected([]); refresh();
     },
     onError: (e: Error) => toast.error(e.message),
