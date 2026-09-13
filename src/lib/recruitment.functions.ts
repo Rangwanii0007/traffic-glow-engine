@@ -647,31 +647,7 @@ export const submitApplication = createServerFn({ method: "POST" })
     const id = String((created as Row)['id']);
     await logEvent(admin, id, teamId, "submitted", "Application submitted from the public joining form", "applicant");
 
-    const { data: teamRow } = await admin.from("teams").select("*").eq("id", teamId).maybeSingle();
-    const brand = await loadBrand(admin, (teamRow ?? {}) as Row);
-    const { data: tplRow } = await admin.from("team_email_templates").select("*").eq("team_id", teamId).eq("kind", "received").maybeSingle();
-    const tpl = (tplRow ?? null) as Row | null;
-    if (!tpl || tpl['is_active'] !== false) {
-      const vars = {
-        applicant_name: parsed.name,
-        team_name: brand.team_name,
-        team_owner_name: brand.business_name,
-        application_id: id,
-        rejection_reason: "",
-        contact_email: brand.contact_email,
-        contact_phone: brand.contact_phone,
-        whatsapp: brand.whatsapp,
-        website: brand.website,
-        login_link: `${origin()}/team-login`,
-        account_setup_link: "",
-      };
-      await queueEmail(admin, {
-        teamId, applicationId: id, kind: "received", to: parsed.email,
-        subject: renderVars(String(tpl?.['subject'] ?? DEFAULT_TEMPLATES.received.subject), vars),
-        bodyText: renderVars(String(tpl?.['body'] ?? DEFAULT_TEMPLATES.received.body), vars),
-        brand,
-      });
-    }
+    // applicants are no longer emailed — the owner reviews everything in the panel
 
     return { ok: true as const, message: String(form['success_message'] ?? "") };
   });
