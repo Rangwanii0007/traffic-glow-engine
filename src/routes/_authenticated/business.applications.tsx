@@ -335,7 +335,7 @@ function ApplicationsPage() {
               <Textarea rows={4} value={reason} onChange={(e) => setReason(e.target.value)}
                 placeholder="Unfortunately, your current internet speed does not meet our team requirements." />
             </div>
-            <div className="flex items-center gap-2"><Switch checked={sendReject} onCheckedChange={setSendReject} />Send the rejection email</div>
+            <p className="text-xs text-muted-foreground">The reason is kept in your panel only — applicants are not emailed.</p>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setRejectOpen(false)}>Cancel</Button>
