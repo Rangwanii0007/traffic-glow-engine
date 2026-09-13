@@ -481,43 +481,6 @@ export const rejectApplication = createServerFn({ method: "POST" })
   });
 
 
-export const listEmailOutbox = createServerFn({ method: "POST" })
-  .inputValidator((input) => z.object({ teamId: uuid }).parse(input))
-  .handler(async ({ data }) => {
-    const { admin } = await requireTeam(data.teamId);
-    const { data: rows } = await admin
-      .from("team_email_outbox").select("id, kind, to_email, subject, status, error, created_at, sent_at")
-      .eq("team_id", data.teamId).order("created_at", { ascending: false }).limit(50);
-    return { rows: (rows ?? []) as Row[], emailConfigured: emailProviderConfigured() };
-  });
-
-/** Retry one email that failed to deliver. */
-export const retryOutboxEmail = createServerFn({ method: "POST" })
-  .inputValidator((input) => z.object({ teamId: uuid, id: uuid }).parse(input))
-  .handler(async ({ data }) => {
-    const { admin } = await requireTeam(data.teamId);
-    const result = await resendOutboxEmail(admin, data.teamId, data.id);
-    return { ok: result.status === "sent", status: result.status, error: result.error };
-  });
-
-/** Sends an owner-requested delivery test through the production outbox path. */
-export const sendRecruitmentTestEmail = createServerFn({ method: "POST" })
-  .inputValidator((input) => z.object({ teamId: uuid, email: z.string().trim().email().max(254) }).parse(input))
-  .handler(async ({ data }) => {
-    const { admin, team } = await requireTeam(data.teamId);
-    const brand = await loadBrand(admin, team as Row);
-    const result = await queueEmail(admin, {
-      teamId: data.teamId,
-      kind: "test",
-      to: normEmail(data.email),
-      subject: "AD4YOU recruitment email test",
-      bodyText: "Your AD4YOU recruitment email delivery is configured and working. This test used the same secure delivery path as application acceptance and rejection emails.",
-      brand,
-    });
-    return { ok: result.status === "sent", status: result.status, error: result.error };
-  });
-
-
 
 /* ═════════════════════════ public: joining form ═════════════════════════ */
 
