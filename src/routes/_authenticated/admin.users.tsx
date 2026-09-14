@@ -1,32 +1,58 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Search, ShieldCheck, ShieldOff, Ban, CheckCircle2 } from "lucide-react";
+import { Search, ShieldCheck, ShieldOff, Ban, CheckCircle2, Timer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { DURATION_UNITS, type DurationUnit, computeExpiry, formatRemaining } from "@/lib/duration";
 
 export const Route = createFileRoute("/_authenticated/admin/users")({
   head: () => ({ meta: [{ title: "Admin · Users — AD4YOU" }] }),
   component: UsersAdmin,
 });
 
-type Plan = { id: string; slug: string; name: string; duration_days: number; is_free: boolean | null };
+type Plan = {
+  id: string; slug: string; name: string; title: string | null; duration_days: number;
+  duration_value: number | null; duration_unit: DurationUnit | null; is_free: boolean | null; is_unlimited: boolean | null;
+};
+
+type CustomState = {
+  userId: string; email: string; planId: string; title: string;
+  value: number; unit: DurationUnit; unlimited: boolean; start: string; notes: string;
+};
+
+function toLocalInput(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 function UsersAdmin() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [assigning, setAssigning] = useState<string | null>(null);
+  const [custom, setCustom] = useState<CustomState | null>(null);
+  const [tick, setTick] = useState(Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setTick(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const plansQ = useQuery({
     queryKey: ["admin-users-plans"],
     queryFn: async () => {
-      const { data } = await supabase.from("plans").select("id, slug, name, duration_days, is_free").eq("is_active", true).order("sort_order");
-      return (data ?? []) as Plan[];
+      const { data } = await supabase
+        .from("plans")
+        .select("id, slug, name, title, duration_days, duration_value, duration_unit, is_free, is_unlimited")
+        .eq("is_active", true)
+        .order("sort_order");
+      return (data ?? []) as unknown as Plan[];
     },
   });
 
@@ -35,7 +61,7 @@ function UsersAdmin() {
     queryFn: async () => {
       let query = supabase
         .from("users")
-        .select("id, email, full_name, role, is_banned, ban_reason, created_at, subscriptions(plan_id, status, end_date, plans(name, slug))")
+        .select("id, email, full_name, role, is_banned, ban_reason, created_at, subscriptions(plan_id, status, start_date, end_date, package_title, duration_value, duration_unit, is_unlimited, plans(name, title, slug))")
         .order("created_at", { ascending: false })
         .limit(100);
       if (search.trim()) query = query.ilike("email", `%${search.trim()}%`);
@@ -43,6 +69,17 @@ function UsersAdmin() {
       return data ?? [];
     },
   });
+
+  // realtime: reflect subscription/plan changes instantly
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-users-subs")
+      .on("postgres_changes", { event: "*", schema: "public", table: "subscriptions" }, () => {
+        qc.invalidateQueries({ queryKey: ["admin-users"] });
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [qc]);
 
   const setRole = async (id: string, role: "user" | "admin") => {
     const { error } = await supabase.from("users").update({ role } as never).eq("id", id);
@@ -59,33 +96,80 @@ function UsersAdmin() {
     qc.invalidateQueries({ queryKey: ["admin-users"] });
   };
 
+  const upsertSubscription = async (payload: Record<string, unknown>) => {
+    const { error } = await supabase
+      .from("subscriptions")
+      .upsert(payload as never, { onConflict: "user_id" });
+    return error;
+  };
+
   const assignPlan = async (userId: string, planId: string) => {
     const plan = plansQ.data?.find((p) => p.id === planId);
     if (!plan) return;
     setAssigning(userId);
-    const now = new Date();
-    const end =
-      plan.duration_days && plan.duration_days > 0
-        ? new Date(now.getTime() + plan.duration_days * 86400 * 1000).toISOString()
-        : "2099-12-31T23:59:59Z";
-    const { error } = await supabase
-      .from("subscriptions")
-      .upsert(
-        {
-          user_id: userId,
-          plan_id: planId,
-          status: "active",
-          start_date: now.toISOString(),
-          end_date: end,
-          duration_days: plan.duration_days ?? 0,
-          created_by: "admin",
-        } as never,
-        { onConflict: "user_id" },
-      );
+    const unlimited = !!plan.is_unlimited || (plan.duration_days ?? 0) === 0;
+    const value = plan.duration_value ?? (plan.duration_days || 30);
+    const unit = plan.duration_unit ?? "days";
+    const start = new Date();
+    const error = await upsertSubscription({
+      user_id: userId,
+      plan_id: planId,
+      status: "active",
+      start_date: start.toISOString(),
+      end_date: unlimited ? "2099-12-31T23:59:59Z" : computeExpiry(start, value, unit).toISOString(),
+      duration_value: unlimited ? null : value,
+      duration_unit: unit,
+      is_unlimited: unlimited,
+      duration_days: unlimited ? 0 : plan.duration_days ?? 30,
+      package_title: plan.title ?? plan.name,
+      created_by: "admin",
+    });
     setAssigning(null);
     if (error) return toast.error(error.message);
-    toast.success(`Assigned ${plan.name} plan`);
+    toast.success(`Assigned ${plan.title ?? plan.name}`);
     qc.invalidateQueries({ queryKey: ["admin-users"] });
+  };
+
+  const saveCustom = async () => {
+    if (!custom) return;
+    if (!custom.planId) return toast.error("Pick a base plan");
+    if (!custom.title.trim()) return toast.error("Package title is required");
+    const plan = plansQ.data?.find((p) => p.id === custom.planId);
+    const start = new Date(custom.start);
+    if (Number.isNaN(start.getTime())) return toast.error("Invalid start date");
+    const end = custom.unlimited ? new Date("2099-12-31T23:59:59Z") : computeExpiry(start, custom.value, custom.unit);
+    const error = await upsertSubscription({
+      user_id: custom.userId,
+      plan_id: custom.planId,
+      status: "active",
+      start_date: start.toISOString(),
+      end_date: end.toISOString(),
+      duration_value: custom.unlimited ? null : custom.value,
+      duration_unit: custom.unit,
+      is_unlimited: custom.unlimited,
+      duration_days: custom.unlimited ? 0 : Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 86400000)),
+      package_title: custom.title.trim(),
+      admin_notes: custom.notes.trim() || null,
+      created_by: "admin",
+    });
+    if (error) return toast.error(error.message);
+    toast.success(`Custom package given to ${custom.email}${plan ? "" : ""}`);
+    setCustom(null);
+    qc.invalidateQueries({ queryKey: ["admin-users"] });
+  };
+
+  const openCustom = (u: { id: string; email: string }, sub: any) => {
+    setCustom({
+      userId: u.id,
+      email: u.email,
+      planId: sub?.plan_id ?? plansQ.data?.[0]?.id ?? "",
+      title: sub?.package_title ?? "",
+      value: sub?.duration_value ?? 30,
+      unit: (sub?.duration_unit as DurationUnit) ?? "days",
+      unlimited: !!sub?.is_unlimited,
+      start: toLocalInput(new Date()),
+      notes: "",
+    });
   };
 
   return (
@@ -93,7 +177,7 @@ function UsersAdmin() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Users</h1>
-          <p className="text-muted-foreground mt-1">Manage roles, plans and access.</p>
+          <p className="text-muted-foreground mt-1">Roles, plans, custom time packages and access.</p>
         </div>
         <div className="relative w-full sm:w-72">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -107,11 +191,11 @@ function UsersAdmin() {
             <thead className="text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="text-left p-2 font-medium">Email</th>
-                <th className="text-left p-2 font-medium">Name</th>
                 <th className="text-left p-2 font-medium">Role</th>
-                <th className="text-left p-2 font-medium">Plan</th>
+                <th className="text-left p-2 font-medium">Base plan</th>
+                <th className="text-left p-2 font-medium">Package</th>
+                <th className="text-left p-2 font-medium">Remaining</th>
                 <th className="text-left p-2 font-medium">Status</th>
-                <th className="text-left p-2 font-medium">Joined</th>
                 <th className="text-right p-2 font-medium">Actions</th>
               </tr>
             </thead>
@@ -121,28 +205,34 @@ function UsersAdmin() {
                 const currentPlanId: string | undefined = sub?.plan_id;
                 return (
                   <tr key={u.id} className="border-t border-white/5">
-                    <td className="p-2 font-mono text-xs">{u.email}</td>
-                    <td className="p-2">{u.full_name ?? "—"}</td>
+                    <td className="p-2 font-mono text-xs">{u.email}<div className="text-muted-foreground">{u.full_name ?? "—"}</div></td>
                     <td className="p-2">
                       <span className={cn("px-2 py-0.5 rounded-md text-xs font-medium border", u.role === "admin" ? "bg-primary/15 text-primary border-primary/30" : "bg-white/5 border-border")}>{u.role}</span>
                     </td>
                     <td className="p-2 min-w-[160px]">
                       <Select value={currentPlanId ?? ""} onValueChange={(v) => assignPlan(u.id, v)} disabled={assigning === u.id || !plansQ.data}>
                         <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="Assign plan…">{sub?.plans?.name ?? "No plan"}</SelectValue>
+                          <SelectValue placeholder="Assign plan…">{sub?.plans?.title ?? sub?.plans?.name ?? "No plan"}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           {plansQ.data?.map((p) => (
-                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            <SelectItem key={p.id} value={p.id}>{p.title ?? p.name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </td>
-                    <td className="p-2">
-                      {u.is_banned ? <span className="text-xs text-destructive">Banned{u.ban_reason ? ` · ${u.ban_reason}` : ""}</span> : <span className="text-xs text-success">Active</span>}
+                    <td className="p-2 text-xs">
+                      {sub?.package_title ?? "—"}
+                      {sub?.end_date && <div className="text-muted-foreground">Ends {new Date(sub.end_date).toLocaleString()}</div>}
                     </td>
-                    <td className="p-2 text-xs text-muted-foreground">{u.created_at ? new Date(u.created_at).toLocaleDateString() : "—"}</td>
+                    <td className="p-2 text-xs font-medium">
+                      {sub?.is_unlimited ? "Unlimited" : formatRemaining(sub?.end_date, tick)}
+                    </td>
+                    <td className="p-2">
+                      {u.is_banned ? <span className="text-xs text-destructive">Banned{u.ban_reason ? ` · ${u.ban_reason}` : ""}</span> : <span className="text-xs text-success">{sub?.status ?? "none"}</span>}
+                    </td>
                     <td className="p-2 text-right space-x-1 whitespace-nowrap">
+                      <Button size="sm" variant="outline" onClick={() => openCustom(u, sub)}><Timer className="w-3 h-3 mr-1" />Custom</Button>
                       {u.role === "admin" ? (
                         <Button size="sm" variant="outline" onClick={() => setRole(u.id, "user")}><ShieldOff className="w-3 h-3 mr-1" />Demote</Button>
                       ) : (
@@ -161,7 +251,65 @@ function UsersAdmin() {
         )}
       </div>
 
-      <p className="text-xs text-muted-foreground">Tip: changing the plan here instantly upgrades or downgrades the user. Free plan never expires; paid plans run for the plan's duration starting now.</p>
+      <Dialog open={!!custom} onOpenChange={(o) => !o && setCustom(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Custom package</DialogTitle>
+            <DialogDescription>{custom?.email} — set any title and any duration, from minutes to months.</DialogDescription>
+          </DialogHeader>
+          {custom && (
+            <div className="space-y-3">
+              <label className="block space-y-1">
+                <span className="text-xs text-muted-foreground">Base plan</span>
+                <Select value={custom.planId} onValueChange={(v) => setCustom({ ...custom, planId: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
+                  <SelectContent>{plansQ.data?.map((p) => <SelectItem key={p.id} value={p.id}>{p.title ?? p.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs text-muted-foreground">Package title shown to the user</span>
+                <Input value={custom.title} onChange={(e) => setCustom({ ...custom, title: e.target.value })} placeholder="Special Business Access — 15 Days" />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block space-y-1">
+                  <span className="text-xs text-muted-foreground">Duration value</span>
+                  <Input type="number" min={1} disabled={custom.unlimited} value={custom.value} onChange={(e) => setCustom({ ...custom, value: Number(e.target.value) })} />
+                </label>
+                <label className="block space-y-1">
+                  <span className="text-xs text-muted-foreground">Duration unit</span>
+                  <Select value={custom.unit} onValueChange={(v) => setCustom({ ...custom, unit: v as DurationUnit })} disabled={custom.unlimited}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{DURATION_UNITS.map((u) => <SelectItem key={u} value={u} className="capitalize">{u}</SelectItem>)}</SelectContent>
+                  </Select>
+                </label>
+              </div>
+              <label className="block space-y-1">
+                <span className="text-xs text-muted-foreground">Starts at</span>
+                <Input type="datetime-local" value={custom.start} onChange={(e) => setCustom({ ...custom, start: e.target.value })} />
+              </label>
+              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                <input type="checkbox" checked={custom.unlimited} onChange={(e) => setCustom({ ...custom, unlimited: e.target.checked })} />
+                Never expires
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs text-muted-foreground">Admin notes (internal)</span>
+                <Input value={custom.notes} onChange={(e) => setCustom({ ...custom, notes: e.target.value })} />
+              </label>
+              <p className="text-xs text-muted-foreground">
+                {custom.unlimited
+                  ? "This package never expires."
+                  : `Expires ${computeExpiry(new Date(custom.start || Date.now()), custom.value, custom.unit).toLocaleString()}`}
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCustom(null)}>Cancel</Button>
+            <Button onClick={saveCustom} className="bg-gradient-to-r from-primary to-accent text-white">Give package</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <p className="text-xs text-muted-foreground">Each subscription stores its own final duration and exact expiry, so editing a plan later never changes packages already given.</p>
     </div>
   );
 }
