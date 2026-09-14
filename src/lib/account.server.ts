@@ -7,9 +7,14 @@ export const referralCodePattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
 
 export const planFieldsSchema = z.object({
   name: z.string().trim().min(1).max(60).optional(),
+  title: z.string().trim().min(1).max(120).nullable().optional(),
   slug: z.string().trim().regex(/^[a-z0-9-]+$/, "Slug must be lowercase letters, numbers or dashes").max(40).optional(),
   description: z.string().trim().max(400).nullable().optional(),
   price: z.number().min(0).max(100000).optional(),
+  currency: z.string().trim().min(1).max(8).optional(),
+  duration_value: z.number().int().min(1).max(100000).optional(),
+  duration_unit: z.enum(["minutes", "hours", "days", "weeks", "months"]).optional(),
+  is_unlimited: z.boolean().nullable().optional(),
   duration_days: z.number().int().min(0).max(3650).optional(),
   is_free: z.boolean().nullable().optional(),
   is_active: z.boolean().nullable().optional(),
