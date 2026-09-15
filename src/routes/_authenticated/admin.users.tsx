@@ -47,26 +47,45 @@ function UsersAdmin() {
   const plansQ = useQuery({
     queryKey: ["admin-users-plans"],
     queryFn: async () => {
-      const { data } = await supabase
+      const full = await supabase
         .from("plans")
         .select("id, slug, name, title, duration_days, duration_value, duration_unit, is_free, is_unlimited")
         .eq("is_active", true)
         .order("sort_order");
-      return (data ?? []) as unknown as Plan[];
+      if (!full.error) return (full.data ?? []) as unknown as Plan[];
+      const basic = await supabase
+        .from("plans")
+        .select("id, slug, name, duration_days, is_free")
+        .eq("is_active", true)
+        .order("sort_order");
+      if (basic.error) throw new Error(basic.error.message);
+      return (basic.data ?? []) as unknown as Plan[];
     },
   });
 
   const q = useQuery({
     queryKey: ["admin-users", search],
     queryFn: async () => {
-      let query = supabase
-        .from("users")
-        .select("id, email, full_name, role, is_banned, ban_reason, created_at, subscriptions(plan_id, status, start_date, end_date, package_title, duration_value, duration_unit, is_unlimited, plans(name, title, slug))")
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (search.trim()) query = query.ilike("email", `%${search.trim()}%`);
-      const { data } = await query;
-      return data ?? [];
+      const run = (select: string) => {
+        let query = supabase
+          .from("users")
+          .select(select)
+          .order("created_at", { ascending: false })
+          .limit(100);
+        if (search.trim()) query = query.ilike("email", `%${search.trim()}%`);
+        return query;
+      };
+      const full = await run(
+        "id, email, full_name, role, is_banned, ban_reason, created_at, subscriptions(plan_id, status, start_date, end_date, package_title, duration_value, duration_unit, is_unlimited, plans(name, title, slug))",
+      );
+      if (!full.error) return (full.data ?? []) as unknown as any[];
+      const mid = await run(
+        "id, email, full_name, role, is_banned, ban_reason, created_at, subscriptions(plan_id, status, start_date, end_date, plans(name, slug))",
+      );
+      if (!mid.error) return (mid.data ?? []) as unknown as any[];
+      const basic = await run("id, email, full_name, role, is_banned, ban_reason, created_at");
+      if (basic.error) throw new Error(basic.error.message);
+      return (basic.data ?? []) as unknown as any[];
     },
   });
 
