@@ -93,11 +93,14 @@ function OverviewPage() {
   });
 
   const sub = subQ.data;
-  const planName = sub?.plans?.name ?? "Free";
+  const planName = sub?.plans?.title ?? sub?.plans?.name ?? "Free";
+  const packageTitle = sub?.package_title ?? planName;
   const planColor = sub?.plans?.color ?? "#6b7280";
+  const start = sub?.start_date ? new Date(sub.start_date) : null;
   const end = sub?.end_date ? new Date(sub.end_date) : null;
-  const daysLeft = end ? Math.max(0, Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
-  const isUnlimited = sub?.duration_days === 0;
+  const isUnlimited = sub?.is_unlimited === true || sub?.duration_days === 0;
+  const remaining = isUnlimited ? "Unlimited" : formatRemaining(sub?.end_date, now);
+  const expired = !isUnlimited && !!end && end.getTime() <= now;
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
