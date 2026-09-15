@@ -127,26 +127,29 @@ function OverviewPage() {
         />
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-3 flex-wrap">
               <span
                 className="px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase text-white"
                 style={{ background: planColor }}
               >
-                {planName} Plan
+                {packageTitle}
               </span>
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className={cn("w-2 h-2 rounded-full", sub?.status === "active" ? "bg-success" : "bg-muted-foreground")} />
-                {sub?.status ?? "inactive"}
+                <span className={cn("w-2 h-2 rounded-full", sub?.status === "active" && !expired ? "bg-success" : "bg-muted-foreground")} />
+                {expired ? "expired" : sub?.status ?? "inactive"}
               </span>
             </div>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Current package</p>
             {isUnlimited ? (
               <p className="text-2xl font-bold">Unlimited access</p>
             ) : (
               <>
-                <p className="text-2xl font-bold">{daysLeft} days remaining</p>
-                {end && <p className="text-sm text-muted-foreground">Expires on {end.toLocaleDateString()}</p>}
+                <p className="text-2xl font-bold tabular-nums">{remaining}{expired ? "" : " remaining"}</p>
+                {start && <p className="text-sm text-muted-foreground">Activated {start.toLocaleString()}</p>}
+                {end && <p className="text-sm text-muted-foreground">Expires {end.toLocaleString()}</p>}
               </>
             )}
+            {sub?.plans?.name && <p className="text-xs text-muted-foreground mt-1">Base plan: {sub.plans.name}</p>}
           </div>
           <Button asChild className="bg-gradient-to-r from-primary to-accent text-white">
             <Link to="/dashboard/billing">{sub?.plans?.slug === "free" ? "Upgrade plan" : "Manage plan"}</Link>
