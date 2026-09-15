@@ -205,7 +205,12 @@ function UsersAdmin() {
       </div>
 
       <div className="glass-card rounded-3xl p-6 overflow-x-auto">
-        {q.isLoading ? <div className="space-y-2">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div> : (
+        {q.isLoading ? <div className="space-y-2">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div> : q.isError ? (
+          <div className="p-6 text-center space-y-3">
+            <p className="text-sm text-destructive">Could not load users: {(q.error as Error).message}</p>
+            <Button size="sm" variant="outline" onClick={() => q.refetch()}>Try again</Button>
+          </div>
+        ) : (
           <table className="w-full text-sm">
             <thead className="text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
