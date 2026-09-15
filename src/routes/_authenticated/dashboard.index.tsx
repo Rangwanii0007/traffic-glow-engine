@@ -17,6 +17,13 @@ export const Route = createFileRoute("/_authenticated/dashboard/")({
 function OverviewPage() {
   const { user, profile } = useAuth();
   const uid = user?.id;
+  const qc = useQueryClient();
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const subQ = useQuery({
     queryKey: ["my-subscription", uid],
@@ -24,12 +31,23 @@ function OverviewPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("subscriptions")
-        .select("status, start_date, end_date, duration_days, plans(name, color, price, slug)")
+        .select("status, start_date, end_date, duration_days, package_title, duration_value, duration_unit, is_unlimited, plans(name, title, color, price, slug)")
         .eq("user_id", uid!)
         .maybeSingle();
-      return data;
+      return data as any;
     },
   });
+
+  useEffect(() => {
+    if (!uid) return;
+    const channel = supabase
+      .channel(`my-sub-${uid}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "subscriptions", filter: `user_id=eq.${uid}` }, () => {
+        qc.invalidateQueries({ queryKey: ["my-subscription", uid] });
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [uid, qc]);
 
   const statsQ = useQuery({
     queryKey: ["session-stats", uid],
