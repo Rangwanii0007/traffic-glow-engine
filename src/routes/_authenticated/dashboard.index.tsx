@@ -161,7 +161,7 @@ function OverviewPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={Activity} label="Total sessions" value={statsQ.isLoading ? null : statsQ.data?.total ?? 0} />
         <StatCard icon={TrendingUp} label="Sessions today" value={statsQ.isLoading ? null : statsQ.data?.today ?? 0} />
-        <StatCard icon={Calendar} label="Days remaining" value={isUnlimited ? "∞" : daysLeft} />
+        <StatCard icon={Calendar} label="Time remaining" value={remaining} />
         <StatCard icon={Award} label="Current plan" value={planName} />
       </div>
 
