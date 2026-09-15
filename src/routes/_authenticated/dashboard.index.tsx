@@ -1,11 +1,13 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Activity, TrendingUp, Calendar, Award, ArrowRight, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { formatRemaining } from "@/lib/duration";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   head: () => ({ meta: [{ title: "Dashboard — AD4YOU" }] }),
@@ -15,6 +17,13 @@ export const Route = createFileRoute("/_authenticated/dashboard/")({
 function OverviewPage() {
   const { user, profile } = useAuth();
   const uid = user?.id;
+  const qc = useQueryClient();
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const subQ = useQuery({
     queryKey: ["my-subscription", uid],
@@ -22,12 +31,23 @@ function OverviewPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("subscriptions")
-        .select("status, start_date, end_date, duration_days, plans(name, color, price, slug)")
+        .select("status, start_date, end_date, duration_days, package_title, duration_value, duration_unit, is_unlimited, plans(name, title, color, price, slug)")
         .eq("user_id", uid!)
         .maybeSingle();
-      return data;
+      return data as any;
     },
   });
+
+  useEffect(() => {
+    if (!uid) return;
+    const channel = supabase
+      .channel(`my-sub-${uid}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "subscriptions", filter: `user_id=eq.${uid}` }, () => {
+        qc.invalidateQueries({ queryKey: ["my-subscription", uid] });
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [uid, qc]);
 
   const statsQ = useQuery({
     queryKey: ["session-stats", uid],
@@ -73,11 +93,14 @@ function OverviewPage() {
   });
 
   const sub = subQ.data;
-  const planName = sub?.plans?.name ?? "Free";
+  const planName = sub?.plans?.title ?? sub?.plans?.name ?? "Free";
+  const packageTitle = sub?.package_title ?? planName;
   const planColor = sub?.plans?.color ?? "#6b7280";
+  const start = sub?.start_date ? new Date(sub.start_date) : null;
   const end = sub?.end_date ? new Date(sub.end_date) : null;
-  const daysLeft = end ? Math.max(0, Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
-  const isUnlimited = sub?.duration_days === 0;
+  const isUnlimited = sub?.is_unlimited === true || sub?.duration_days === 0;
+  const remaining = isUnlimited ? "Unlimited" : formatRemaining(sub?.end_date, now);
+  const expired = !isUnlimited && !!end && end.getTime() <= now;
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
@@ -104,26 +127,29 @@ function OverviewPage() {
         />
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-3 flex-wrap">
               <span
                 className="px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase text-white"
                 style={{ background: planColor }}
               >
-                {planName} Plan
+                {packageTitle}
               </span>
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className={cn("w-2 h-2 rounded-full", sub?.status === "active" ? "bg-success" : "bg-muted-foreground")} />
-                {sub?.status ?? "inactive"}
+                <span className={cn("w-2 h-2 rounded-full", sub?.status === "active" && !expired ? "bg-success" : "bg-muted-foreground")} />
+                {expired ? "expired" : sub?.status ?? "inactive"}
               </span>
             </div>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Current package</p>
             {isUnlimited ? (
               <p className="text-2xl font-bold">Unlimited access</p>
             ) : (
               <>
-                <p className="text-2xl font-bold">{daysLeft} days remaining</p>
-                {end && <p className="text-sm text-muted-foreground">Expires on {end.toLocaleDateString()}</p>}
+                <p className="text-2xl font-bold tabular-nums">{remaining}{expired ? "" : " remaining"}</p>
+                {start && <p className="text-sm text-muted-foreground">Activated {start.toLocaleString()}</p>}
+                {end && <p className="text-sm text-muted-foreground">Expires {end.toLocaleString()}</p>}
               </>
             )}
+            {sub?.plans?.name && <p className="text-xs text-muted-foreground mt-1">Base plan: {sub.plans.name}</p>}
           </div>
           <Button asChild className="bg-gradient-to-r from-primary to-accent text-white">
             <Link to="/dashboard/billing">{sub?.plans?.slug === "free" ? "Upgrade plan" : "Manage plan"}</Link>
@@ -135,7 +161,7 @@ function OverviewPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={Activity} label="Total sessions" value={statsQ.isLoading ? null : statsQ.data?.total ?? 0} />
         <StatCard icon={TrendingUp} label="Sessions today" value={statsQ.isLoading ? null : statsQ.data?.today ?? 0} />
-        <StatCard icon={Calendar} label="Days remaining" value={isUnlimited ? "∞" : daysLeft} />
+        <StatCard icon={Calendar} label="Time remaining" value={remaining} />
         <StatCard icon={Award} label="Current plan" value={planName} />
       </div>
 
