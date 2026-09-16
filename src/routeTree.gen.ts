@@ -31,6 +31,7 @@ import { Route as TeamEarningsRouteImport } from './routes/team.earnings'
 import { Route as TeamEarningInfoRouteImport } from './routes/team.earning-info'
 import { Route as TeamSetupTokenRouteImport } from './routes/team-setup.$token'
 import { Route as JoinSlugRouteImport } from './routes/join.$slug'
+import { Route as JoinTeamSlugRouteImport } from './routes/join-team.$slug'
 import { Route as AuthenticatedReviewsRouteImport } from './routes/_authenticated/reviews'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -180,6 +181,11 @@ const TeamSetupTokenRoute = TeamSetupTokenRouteImport.update({
 const JoinSlugRoute = JoinSlugRouteImport.update({
   id: '/join/$slug',
   path: '/join/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JoinTeamSlugRoute = JoinTeamSlugRouteImport.update({
+  id: '/join-team/$slug',
+  path: '/join-team/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedReviewsRoute = AuthenticatedReviewsRouteImport.update({
@@ -439,6 +445,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/profile': typeof AuthenticatedProfileRoute
   '/reviews': typeof AuthenticatedReviewsRoute
+  '/join-team/$slug': typeof JoinTeamSlugRoute
   '/join/$slug': typeof JoinSlugRoute
   '/team-setup/$token': typeof TeamSetupTokenRoute
   '/team/earning-info': typeof TeamEarningInfoRoute
@@ -499,6 +506,7 @@ export interface FileRoutesByTo {
   '/affiliate': typeof AuthenticatedAffiliateRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/reviews': typeof AuthenticatedReviewsRoute
+  '/join-team/$slug': typeof JoinTeamSlugRoute
   '/join/$slug': typeof JoinSlugRoute
   '/team-setup/$token': typeof TeamSetupTokenRoute
   '/team/earning-info': typeof TeamEarningInfoRoute
@@ -565,6 +573,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/reviews': typeof AuthenticatedReviewsRoute
+  '/join-team/$slug': typeof JoinTeamSlugRoute
   '/join/$slug': typeof JoinSlugRoute
   '/team-setup/$token': typeof TeamSetupTokenRoute
   '/team/earning-info': typeof TeamEarningInfoRoute
@@ -631,6 +640,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/profile'
     | '/reviews'
+    | '/join-team/$slug'
     | '/join/$slug'
     | '/team-setup/$token'
     | '/team/earning-info'
@@ -691,6 +701,7 @@ export interface FileRouteTypes {
     | '/affiliate'
     | '/profile'
     | '/reviews'
+    | '/join-team/$slug'
     | '/join/$slug'
     | '/team-setup/$token'
     | '/team/earning-info'
@@ -756,6 +767,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/profile'
     | '/_authenticated/reviews'
+    | '/join-team/$slug'
     | '/join/$slug'
     | '/team-setup/$token'
     | '/team/earning-info'
@@ -816,6 +828,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   TeamRoute: typeof TeamRouteWithChildren
   TeamLoginRoute: typeof TeamLoginRoute
+  JoinTeamSlugRoute: typeof JoinTeamSlugRoute
   JoinSlugRoute: typeof JoinSlugRoute
   TeamSetupTokenRoute: typeof TeamSetupTokenRoute
 }
@@ -974,6 +987,13 @@ declare module '@tanstack/react-router' {
       path: '/join/$slug'
       fullPath: '/join/$slug'
       preLoaderRoute: typeof JoinSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/join-team/$slug': {
+      id: '/join-team/$slug'
+      path: '/join-team/$slug'
+      fullPath: '/join-team/$slug'
+      preLoaderRoute: typeof JoinTeamSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/reviews': {
@@ -1428,6 +1448,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   TeamRoute: TeamRouteWithChildren,
   TeamLoginRoute: TeamLoginRoute,
+  JoinTeamSlugRoute: JoinTeamSlugRoute,
   JoinSlugRoute: JoinSlugRoute,
   TeamSetupTokenRoute: TeamSetupTokenRoute,
 }
