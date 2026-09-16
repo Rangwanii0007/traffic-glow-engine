@@ -91,6 +91,7 @@ export const getRecruitment = createServerFn({ method: "POST" })
       counts,
       capacity,
       publicUrl: `${origin()}/join/${String(form['slug'])}`,
+      instantUrl: `${origin()}/join-team/${String(form['slug'])}`,
     };
   });
 
