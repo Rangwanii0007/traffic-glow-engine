@@ -78,6 +78,7 @@ function RecruitmentPage() {
     success_message: "", logo_url: "", cover_url: "", primary_color: "#22d3ee", accent_color: "#a855f7",
     contact_email: "", contact_phone: "", whatsapp: "", website: "",
     allow_duplicates: false, scoring_enabled: false, default_role: "runner",
+    instant_join_enabled: true, instant_join_role: "runner", instant_join_message: "",
   });
   const [questions, setQuestions] = useState<Q[]>([]);
   const [emailSettings, setEmailSettings] = useState({
@@ -109,6 +110,9 @@ function RecruitmentPage() {
       allow_duplicates: f['allow_duplicates'] === true,
       scoring_enabled: f['scoring_enabled'] === true,
       default_role: String(f['default_role'] ?? "runner"),
+      instant_join_enabled: f['instant_join_enabled'] !== false,
+      instant_join_role: String(f['instant_join_role'] ?? "runner"),
+      instant_join_message: String(f['instant_join_message'] ?? ""),
     });
     setQuestions((data.data?.questions ?? []).map((row, index) => ({
       id: String(row['id']),
