@@ -91,6 +91,7 @@ export const getRecruitment = createServerFn({ method: "POST" })
       counts,
       capacity,
       publicUrl: `${origin()}/join/${String(form['slug'])}`,
+      instantUrl: `${origin()}/join-team/${String(form['slug'])}`,
     };
   });
 
@@ -649,4 +650,117 @@ export const completeMemberSetup = createServerFn({ method: "POST" })
     const app = (member as Row | null)?.['application_id'];
     if (app) await logEvent(admin, String(app), String((member as Row)['team_id']), "password_set", "Team member completed account setup", "member");
     return { ok: true as const, email: String((member as Row | null)?.['email'] ?? "") };
+  });
+
+/* ═════════════════════════ public: instant join link ═════════════════════════ */
+
+/** Public branding + open state for the WhatsApp-style instant joining link. */
+export const getInstantJoin = createServerFn({ method: "POST" })
+  .inputValidator((input) => z.object({ slug: z.string().trim().min(3).max(60) }).parse(input))
+  .handler(async ({ data }) => {
+    const admin = getTeamAdmin();
+    const { data: formRow } = await admin
+      .from("team_join_forms").select("*").eq("slug", data.slug.toLowerCase()).maybeSingle();
+    if (!formRow) return { found: false as const };
+    const form = formRow as Row;
+    const { data: teamRow } = await admin
+      .from("teams").select("name, company_name").eq("id", String(form['team_id'])).maybeSingle();
+    const team = teamRow as Row | null;
+    const enabled = form['instant_join_enabled'] !== false && String(form['status']) !== "closed";
+    return {
+      found: true as const,
+      open: enabled,
+      branding: {
+        slug: String(form['slug']),
+        team_name: String(team?.['name'] ?? "AD4YOU Team"),
+        company_name: String(team?.['company_name'] ?? ""),
+        headline: String(form['headline'] ?? ""),
+        subheadline: String(form['subheadline'] ?? ""),
+        about_team: String(form['about_team'] ?? ""),
+        logo_url: String(form['logo_url'] ?? ""),
+        cover_url: String(form['cover_url'] ?? ""),
+        primary_color: String(form['primary_color'] ?? "#22d3ee"),
+        accent_color: String(form['accent_color'] ?? "#a855f7"),
+        contact_email: String(form['contact_email'] ?? ""),
+        contact_phone: String(form['contact_phone'] ?? ""),
+        whatsapp: String(form['whatsapp'] ?? ""),
+        website: String(form['website'] ?? ""),
+        closed_message: String(form['closed_message'] ?? ""),
+        instant_join_message: String(form['instant_join_message'] ?? ""),
+      },
+    };
+  });
+
+/**
+ * Creates a Team Member account straight from the shared link. The email must be
+ * free everywhere on AD4YOU (accounts and any team), verified with the service
+ * role so it cannot be bypassed from the browser.
+ */
+export const instantJoin = createServerFn({ method: "POST" })
+  .inputValidator((input) =>
+    z.object({
+      slug: z.string().trim().min(3).max(60),
+      name: z.string().trim().min(2).max(120),
+      email: z.string().trim().email().max(160),
+      password: z.string().min(6).max(200),
+    }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    const admin = getTeamAdmin();
+    const { data: formRow } = await admin
+      .from("team_join_forms").select("*").eq("slug", data.slug.toLowerCase()).maybeSingle();
+    if (!formRow) throw new Error("This joining link is not valid");
+    const form = formRow as Row;
+    if (form['instant_join_enabled'] === false || String(form['status']) === "closed") {
+      throw new Error(String(form['closed_message'] ?? "") || "This team is not accepting new members right now");
+    }
+
+    const teamId = String(form['team_id']);
+    const { data: teamRow } = await admin.from("teams").select("*").eq("id", teamId).maybeSingle();
+    if (!teamRow) throw new Error("This team no longer exists");
+    const team = teamRow as Row;
+
+    const capacity = await memberCapacity(admin, team);
+    if (capacity.isFull) throw new Error("This team is currently full. Please ask the team owner for a slot.");
+
+    const email = normEmail(data.email);
+    const owner = await findEmailOwner(admin, email);
+    if (owner.taken) {
+      throw new Error(
+        owner.kind === "account"
+          ? "This email is already used by an AD4YOU account. Please sign in with it instead."
+          : "This email is already registered as a Team Member on AD4YOU. Please use a different email.",
+      );
+    }
+
+    const role = (["editor", "runner", "viewer"] as const).includes(String(form['instant_join_role']) as never)
+      ? (String(form['instant_join_role']) as "editor" | "runner" | "viewer")
+      : "runner";
+
+    const { data: created, error } = await admin
+      .from("team_members")
+      .insert({
+        team_id: teamId,
+        name: data.name,
+        email,
+        password_hash: hashMemberPassword(data.password),
+        must_set_password: false,
+        role,
+        allowed_tools: defaultPermissions(role),
+        is_active: true,
+        is_online: false,
+      })
+      .select("id")
+      .single();
+    throwIf(error);
+
+    const { count } = await admin.from("team_members").select("id", { count: "exact", head: true }).eq("team_id", teamId);
+    await admin.from("teams").update({ total_members: Number(count ?? 0) }).eq("id", teamId);
+
+    return {
+      ok: true as const,
+      memberId: String((created as Row)['id']),
+      teamName: String(team['name'] ?? "your team"),
+      role,
+    };
   });

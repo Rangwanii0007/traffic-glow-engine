@@ -78,6 +78,7 @@ function RecruitmentPage() {
     success_message: "", logo_url: "", cover_url: "", primary_color: "#22d3ee", accent_color: "#a855f7",
     contact_email: "", contact_phone: "", whatsapp: "", website: "",
     allow_duplicates: false, scoring_enabled: false, default_role: "runner",
+    instant_join_enabled: true, instant_join_role: "runner", instant_join_message: "",
   });
   const [questions, setQuestions] = useState<Q[]>([]);
   const [emailSettings, setEmailSettings] = useState({
@@ -109,6 +110,9 @@ function RecruitmentPage() {
       allow_duplicates: f['allow_duplicates'] === true,
       scoring_enabled: f['scoring_enabled'] === true,
       default_role: String(f['default_role'] ?? "runner"),
+      instant_join_enabled: f['instant_join_enabled'] !== false,
+      instant_join_role: String(f['instant_join_role'] ?? "runner"),
+      instant_join_message: String(f['instant_join_message'] ?? ""),
     });
     setQuestions((data.data?.questions ?? []).map((row, index) => ({
       id: String(row['id']),
@@ -179,6 +183,7 @@ function RecruitmentPage() {
   });
 
   const publicUrl = data.data?.publicUrl ?? "";
+  const instantUrl = data.data?.instantUrl ?? "";
   const counts = data.data?.counts;
   const capacity = data.data?.capacity;
 
@@ -246,6 +251,59 @@ function RecruitmentPage() {
               {s === "published" ? "Publish" : s === "paused" ? "Pause" : s === "closed" ? "Close" : "Unpublish"}
             </Button>
           ))}
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-emerald-400/25 bg-emerald-500/[0.06] p-4 sm:p-6 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium flex items-center gap-2"><UserPlus className="w-4 h-4" />Instant join link (no approval needed)</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Share this like a group invite. Anyone who opens it creates their own member account with name, email and password
+              and joins your team straight away.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">{brand.instant_join_enabled ? "On" : "Off"}</span>
+            <Switch
+              checked={brand.instant_join_enabled}
+              onCheckedChange={(v) => { setBrand((b) => ({ ...b, instant_join_enabled: v })); saveForm.mutate({ instant_join_enabled: v }); }}
+            />
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Input readOnly value={instantUrl} className="max-w-md font-mono text-xs" />
+          <Button size="sm" variant="secondary" onClick={() => { void navigator.clipboard.writeText(instantUrl); toast.success("Invite link copied"); }}>
+            <Copy className="w-4 h-4" />Copy
+          </Button>
+          <Button size="sm" variant="ghost" asChild>
+            <a href={instantUrl} target="_blank" rel="noreferrer"><ExternalLink className="w-4 h-4" />Open</a>
+          </Button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Role given to everyone who joins with this link</Label>
+            <Select
+              value={brand.instant_join_role}
+              onValueChange={(v) => { setBrand((b) => ({ ...b, instant_join_role: v })); saveForm.mutate({ instant_join_role: v }); }}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="runner">Runner</SelectItem>
+                <SelectItem value="editor">Editor</SelectItem>
+                <SelectItem value="viewer">Viewer</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Welcome note shown on the invite page</Label>
+            <Input
+              value={brand.instant_join_message}
+              placeholder="Welcome to our team — create your account to start working."
+              onChange={(e) => setBrand((b) => ({ ...b, instant_join_message: e.target.value }))}
+              onBlur={() => saveForm.mutate({ instant_join_message: brand.instant_join_message })}
+            />
+          </div>
         </div>
       </section>
 
