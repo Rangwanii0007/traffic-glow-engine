@@ -58,6 +58,9 @@ export const brandingSchema = z.object({
   allow_duplicates: z.boolean().default(false),
   scoring_enabled: z.boolean().default(false),
   default_role: z.enum(["team_leader", "editor", "runner", "viewer"]).default("runner"),
+  instant_join_enabled: z.boolean().default(true),
+  instant_join_role: z.enum(["editor", "runner", "viewer"]).default("runner"),
+  instant_join_message: z.string().trim().max(1000).optional().default(""),
 });
 
 export function slugify(input: string) {
