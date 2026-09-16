@@ -183,6 +183,7 @@ function RecruitmentPage() {
   });
 
   const publicUrl = data.data?.publicUrl ?? "";
+  const instantUrl = data.data?.instantUrl ?? "";
   const counts = data.data?.counts;
   const capacity = data.data?.capacity;
 
