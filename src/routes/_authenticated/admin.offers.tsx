@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -34,10 +34,29 @@ function OffersAdmin() {
   const offers = useQuery({
     queryKey: ["admin-offers"],
     queryFn: async () => {
-      const { data } = await supabase.from("discount_offers").select("*, plans:plan_id(name)").order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("discount_offers")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
       return data ?? [];
     },
   });
+
+  const planName = (id: string | null) =>
+    plans.data?.find((p) => p.id === id)?.name ?? "";
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-offers-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "discount_offers" }, () => {
+        qc.invalidateQueries({ queryKey: ["admin-offers"] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
 
   const create = useMutation({
     mutationFn: async () => {
@@ -115,7 +134,13 @@ function OffersAdmin() {
 
       <div className="glass-card rounded-3xl p-6 space-y-3">
         <h2 className="font-semibold flex items-center gap-2"><Tag className="w-4 h-4" />Active offers</h2>
-        {offers.data?.length === 0 && <p className="text-sm text-muted-foreground py-6 text-center">No offers yet</p>}
+        {offers.isError && (
+          <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm">
+            <p className="text-destructive">{(offers.error as Error)?.message}</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => offers.refetch()}>Try again</Button>
+          </div>
+        )}
+        {!offers.isError && offers.data?.length === 0 && <p className="text-sm text-muted-foreground py-6 text-center">No offers yet</p>}
         {offers.data?.map((o) => {
           const discounted = Number(o.original_price) * (1 - Number(o.discount_percent) / 100);
           const pct = (o.seats_remaining / o.initial_seats) * 100;
@@ -123,7 +148,7 @@ function OffersAdmin() {
             <div key={o.id} className="rounded-2xl border border-white/10 p-4 bg-white/[0.02]">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="font-semibold">{o.title} <span className="text-xs text-muted-foreground">· {(o as { plans?: { name?: string } }).plans?.name}</span></p>
+                  <p className="font-semibold">{o.title} <span className="text-xs text-muted-foreground">· {planName(o.plan_id)}</span></p>
                   {o.reason && <p className="text-xs text-muted-foreground mt-0.5">{o.reason}</p>}
                   <div className="flex items-center gap-3 mt-2 text-sm">
                     <span className="line-through text-muted-foreground">${o.original_price}</span>
