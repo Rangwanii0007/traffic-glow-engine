@@ -148,7 +148,7 @@ function OffersAdmin() {
             <div key={o.id} className="rounded-2xl border border-white/10 p-4 bg-white/[0.02]">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="font-semibold">{o.title} <span className="text-xs text-muted-foreground">· {(o as { plans?: { name?: string } }).plans?.name}</span></p>
+                  <p className="font-semibold">{o.title} <span className="text-xs text-muted-foreground">· {planName(o.plan_id)}</span></p>
                   {o.reason && <p className="text-xs text-muted-foreground mt-0.5">{o.reason}</p>}
                   <div className="flex items-center gap-3 mt-2 text-sm">
                     <span className="line-through text-muted-foreground">${o.original_price}</span>
