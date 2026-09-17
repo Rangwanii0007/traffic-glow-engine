@@ -134,7 +134,13 @@ function OffersAdmin() {
 
       <div className="glass-card rounded-3xl p-6 space-y-3">
         <h2 className="font-semibold flex items-center gap-2"><Tag className="w-4 h-4" />Active offers</h2>
-        {offers.data?.length === 0 && <p className="text-sm text-muted-foreground py-6 text-center">No offers yet</p>}
+        {offers.isError && (
+          <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm">
+            <p className="text-destructive">{(offers.error as Error)?.message}</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => offers.refetch()}>Try again</Button>
+          </div>
+        )}
+        {!offers.isError && offers.data?.length === 0 && <p className="text-sm text-muted-foreground py-6 text-center">No offers yet</p>}
         {offers.data?.map((o) => {
           const discounted = Number(o.original_price) * (1 - Number(o.discount_percent) / 100);
           const pct = (o.seats_remaining / o.initial_seats) * 100;
