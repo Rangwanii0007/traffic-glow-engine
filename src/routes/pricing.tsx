@@ -179,7 +179,7 @@ function PricingPage() {
                       <div className="flex items-baseline gap-3 mt-4">
                         <span className="text-lg line-through text-white/40">${Number(o.original_price).toFixed(0)}</span>
                         <span className="text-4xl font-black text-emerald-300">${discounted.toFixed(0)}</span>
-                        <span className="text-sm font-bold text-emerald-300">/ {(o as { plans?: { name?: string } }).plans?.name ?? "plan"}</span>
+                        <span className="text-sm font-bold text-emerald-300">/ {planNameOf(o.plan_id)}</span>
                         <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/25 text-emerald-200 font-bold">{o.discount_percent}% OFF</span>
                       </div>
                     </div>
@@ -209,28 +209,55 @@ function PricingPage() {
             ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[520px] rounded-3xl" />)
             : plansQ.data?.map((plan) => {
                 const slug = plan.slug as Slug;
+                const { base, final, offer } = priceOf(plan);
                 return (
                   <div
                     key={plan.id}
                     className={cn(
                       "relative glass-card rounded-3xl p-6 flex flex-col",
                       plan.is_popular && "ring-2 ring-primary shadow-[0_0_60px_rgba(139,92,246,0.3)] scale-[1.02]",
+                      offer && "ring-2 ring-emerald-400/60 shadow-[0_0_60px_rgba(16,185,129,0.25)]",
                     )}
                   >
-                    {plan.is_popular && (
+                    {plan.is_popular && !offer && (
                       <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-primary to-accent text-white shadow-lg">
                         Most Popular
+                      </span>
+                    )}
+                    {offer && (
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-emerald-400 to-amber-400 text-black shadow-lg">
+                        {offer.discount_percent}% OFF · {offer.seats_remaining} seats left
                       </span>
                     )}
                     <h3 className="font-bold text-xl" style={{ color: plan.color ?? undefined }}>{plan.name}</h3>
                     <p className="text-sm text-muted-foreground mt-1 min-h-[2.5rem]">{plan.description}</p>
                     <div className="my-5">
-                      <p className="text-4xl font-bold">
-                        ${Number(plan.price).toFixed(2)}
-                        <span className="text-sm text-muted-foreground font-normal">
-                          {plan.duration_days === 0 ? "/forever" : "/month"}
-                        </span>
-                      </p>
+                      {offer ? (
+                        <>
+                          <p className="flex flex-wrap items-baseline gap-2">
+                            <span className="text-lg line-through text-muted-foreground">${base.toFixed(2)}</span>
+                            <span className="text-4xl font-black text-emerald-400">${final.toFixed(2)}</span>
+                            <span className="text-sm text-muted-foreground font-normal">
+                              {plan.duration_days === 0 ? "/forever" : "/month"}
+                            </span>
+                          </p>
+                          <p className="text-xs font-semibold text-emerald-300 mt-1">
+                            You save ${(base - final).toFixed(2)} — {offer.title}
+                          </p>
+                          {offer.coupon_code && (
+                            <p className="text-[11px] text-muted-foreground mt-1">
+                              Coupon <span className="font-mono text-primary">{offer.coupon_code}</span> applied automatically
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-4xl font-bold">
+                          ${Number(plan.price).toFixed(2)}
+                          <span className="text-sm text-muted-foreground font-normal">
+                            {plan.duration_days === 0 ? "/forever" : "/month"}
+                          </span>
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground mt-1">
                         {plan.duration_days === 0 ? "Unlimited" : `${plan.duration_days} days`}
                       </p>
