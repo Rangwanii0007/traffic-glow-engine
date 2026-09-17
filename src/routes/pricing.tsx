@@ -68,14 +68,19 @@ function PricingPage() {
   const offersQ = useQuery({
     queryKey: ["discount-offers-active"],
     queryFn: async () => {
-      const { data } = await supabase
+      const now = new Date().toISOString();
+      const { data, error } = await supabase
         .from("discount_offers")
-        .select("*, plans:plan_id(name, slug)")
+        .select("*")
         .eq("is_active", true)
         .gt("seats_remaining", 0)
+        .or(`starts_at.is.null,starts_at.lte.${now}`)
+        .or(`ends_at.is.null,ends_at.gt.${now}`)
         .order("discount_percent", { ascending: false });
+      if (error) throw error;
       return data ?? [];
     },
+    refetchInterval: 60_000,
   });
 
   const qc = useQueryClient();
@@ -93,6 +98,23 @@ function PricingPage() {
   }, [qc]);
 
   type PlanRow = NonNullable<typeof plansQ.data>[number];
+  type OfferRow = NonNullable<typeof offersQ.data>[number];
+
+  const offerFor = (planId: string): OfferRow | null =>
+    offersQ.data?.find((o) => o.plan_id === planId) ?? null;
+
+  const planNameOf = (planId: string | null) =>
+    plansQ.data?.find((p) => p.id === planId)?.name ?? "plan";
+
+  function priceOf(plan: PlanRow) {
+    const base = Number(plan.price) || 0;
+    const offer = offerFor(plan.id);
+    if (!offer) return { base, final: base, offer: null as OfferRow | null };
+    const original = Number(offer.original_price) || base;
+    const final = Math.max(0, original * (1 - Number(offer.discount_percent) / 100));
+    return { base: original, final, offer };
+  }
+
   function handleBuy(plan: PlanRow) {
     if (plan.is_free || Number(plan.price) <= 0) {
       navigate({ to: "/register" });
@@ -102,11 +124,12 @@ function PricingPage() {
       navigate({ to: "/register" });
       return;
     }
+    const { final, offer } = priceOf(plan);
     setSelectedPlan({
       id: plan.id,
-      name: plan.name,
+      name: offer ? `${plan.name} — ${offer.discount_percent}% OFF` : plan.name,
       slug: plan.slug,
-      price: Number(plan.price),
+      price: Number(final.toFixed(2)),
       duration_days: plan.duration_days ?? 30,
     });
   }
