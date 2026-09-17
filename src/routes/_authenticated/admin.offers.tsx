@@ -34,10 +34,29 @@ function OffersAdmin() {
   const offers = useQuery({
     queryKey: ["admin-offers"],
     queryFn: async () => {
-      const { data } = await supabase.from("discount_offers").select("*, plans:plan_id(name)").order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("discount_offers")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
       return data ?? [];
     },
   });
+
+  const planName = (id: string | null) =>
+    plans.data?.find((p) => p.id === id)?.name ?? "";
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-offers-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "discount_offers" }, () => {
+        qc.invalidateQueries({ queryKey: ["admin-offers"] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
 
   const create = useMutation({
     mutationFn: async () => {
