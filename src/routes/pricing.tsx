@@ -78,6 +78,19 @@ function PricingPage() {
     },
   });
 
+  const qc = useQueryClient();
+  useEffect(() => {
+    const channel = supabase
+      .channel("pricing-offers")
+      .on("postgres_changes", { event: "*", schema: "public", table: "discount_offers" }, () => {
+        void qc.invalidateQueries({ queryKey: ["discount-offers-active"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "plans" }, () => {
+        void qc.invalidateQueries({ queryKey: ["plans-public"] });
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [qc]);
 
   type PlanRow = NonNullable<typeof plansQ.data>[number];
   function handleBuy(plan: PlanRow) {
