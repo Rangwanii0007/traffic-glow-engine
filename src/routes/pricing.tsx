@@ -1,7 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, X, Sparkles, BookOpen } from "lucide-react";
+import { motion } from "motion/react";
+import {
+  ArrowRight,
+  BookOpen,
+  Building2,
+  Check,
+  Crown,
+  Gauge,
+  Monitor,
+  Plus,
+  Rocket,
+  ShieldCheck,
+  Sparkles,
+  Users,
+  X,
+  Zap,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -18,10 +34,12 @@ import { PageGate } from "@/components/PageGate";
 export const Route = createFileRoute("/pricing")({
   head: () => ({
     meta: [
-      { title: "Pricing — AD4YOU" },
-      { name: "description", content: "Simple, transparent pricing. Pay in crypto. Cancel anytime." },
-      { property: "og:title", content: "AD4YOU Pricing" },
-      { property: "og:description", content: "Choose the plan that fits your traffic goals." },
+      { title: "Pricing Plans — AD4YOU" },
+      { name: "description", content: "Choose an AD4YOU plan for your team, from 20 to 1,000 managed PCs." },
+      { property: "og:title", content: "AD4YOU Pricing Plans" },
+      { property: "og:description", content: "Start free, build your team, and scale your operation with flexible AD4YOU plans." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: () => (
@@ -31,12 +49,104 @@ export const Route = createFileRoute("/pricing")({
   ),
 });
 
-const SLUGS = ["free", "starter", "pro", "business"] as const;
-type Slug = (typeof SLUGS)[number];
+const DURATIONS = [30, 60, 90] as const;
+type Duration = (typeof DURATIONS)[number];
+type FeatureSlug = "starter" | "pro" | "business";
+
+type PlanSpec = {
+  slug: "starter" | "pro" | "business" | "agency";
+  name: string;
+  position: string;
+  capacity: string;
+  capacityNote: string;
+  prices: Record<Duration, number>;
+  icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+  featureSlug: FeatureSlug | null;
+  cardClass: string;
+  iconClass: string;
+  accentClass: string;
+  buttonClass: string;
+  capacityClass: string;
+  recommended?: boolean;
+};
+
+const PLAN_SPECS: PlanSpec[] = [
+  {
+    slug: "starter",
+    name: "Starter",
+    position: "For small teams",
+    capacity: "20 PCs",
+    capacityNote: "A focused start",
+    prices: { 30: 35, 60: 65, 90: 90 },
+    icon: Users,
+    featureSlug: "starter",
+    cardClass: "pricing-card--starter",
+    iconClass: "bg-pricing-starter-soft text-pricing-starter",
+    accentClass: "text-pricing-starter",
+    buttonClass: "bg-pricing-starter text-pricing-starter-foreground hover:bg-pricing-starter/90",
+    capacityClass: "w-[18%] bg-pricing-starter",
+  },
+  {
+    slug: "pro",
+    name: "Pro",
+    position: "For growing teams",
+    capacity: "50 PCs",
+    capacityNote: "Built for momentum",
+    prices: { 30: 60, 60: 110, 90: 155 },
+    icon: Rocket,
+    featureSlug: "pro",
+    cardClass: "pricing-card--pro",
+    iconClass: "bg-pricing-pro-soft text-pricing-pro",
+    accentClass: "text-pricing-pro",
+    buttonClass: "bg-pricing-pro text-pricing-pro-foreground hover:bg-pricing-pro/90",
+    capacityClass: "w-[32%] bg-pricing-pro",
+  },
+  {
+    slug: "business",
+    name: "Business",
+    position: "For scaling operations",
+    capacity: "200 PCs",
+    capacityNote: "Room to scale",
+    prices: { 30: 120, 60: 220, 90: 315 },
+    icon: Building2,
+    featureSlug: "business",
+    cardClass: "pricing-card--business",
+    iconClass: "bg-pricing-business-soft text-pricing-business",
+    accentClass: "text-pricing-business",
+    buttonClass: "bg-pricing-business text-pricing-business-foreground hover:bg-pricing-business/90",
+    capacityClass: "w-[58%] bg-pricing-business",
+    recommended: true,
+  },
+  {
+    slug: "agency",
+    name: "Agency",
+    position: "For large-scale operations",
+    capacity: "1,000 PCs",
+    capacityNote: "Enterprise capacity",
+    prices: { 30: 250, 60: 450, 90: 625 },
+    icon: Crown,
+    featureSlug: null,
+    cardClass: "pricing-card--agency",
+    iconClass: "bg-pricing-agency-soft text-pricing-agency",
+    accentClass: "text-pricing-agency",
+    buttonClass: "bg-pricing-agency text-pricing-agency-foreground hover:bg-pricing-agency/90",
+    capacityClass: "w-full bg-pricing-agency",
+  },
+];
+
+const CORE_FEATURES = [
+  "Team Management",
+  "Worker Management",
+  "PC Management",
+  "Live Team Statistics",
+  "Activity Tracking",
+  "24/7 Support",
+];
 
 function PricingPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [duration, setDuration] = useState<Duration>(30);
   const [selectedPlan, setSelectedPlan] = useState<null | { id: string; name: string; slug: string; price: number; duration_days: number }>(null);
   const [article, setArticle] = useState<PlanArticle | null>(null);
 
@@ -45,9 +155,6 @@ function PricingPage() {
     queryFn: () => listPlanArticles(),
     staleTime: 60_000,
   });
-  const articleFor = (slug: string) => articlesQ.data?.find((a) => a.plan_slug === slug) ?? null;
-
-
 
   const plansQ = useQuery({
     queryKey: ["plans-public"],
@@ -83,319 +190,340 @@ function PricingPage() {
     refetchInterval: 60_000,
   });
 
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   useEffect(() => {
     const channel = supabase
       .channel("pricing-offers")
       .on("postgres_changes", { event: "*", schema: "public", table: "discount_offers" }, () => {
-        void qc.invalidateQueries({ queryKey: ["discount-offers-active"] });
+        void queryClient.invalidateQueries({ queryKey: ["discount-offers-active"] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "plans" }, () => {
-        void qc.invalidateQueries({ queryKey: ["plans-public"] });
+        void queryClient.invalidateQueries({ queryKey: ["plans-public"] });
       })
       .subscribe();
-    return () => { void supabase.removeChannel(channel); };
-  }, [qc]);
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   type PlanRow = NonNullable<typeof plansQ.data>[number];
   type OfferRow = NonNullable<typeof offersQ.data>[number];
 
-  const offerFor = (planId: string): OfferRow | null =>
-    offersQ.data?.find((o) => o.plan_id === planId) ?? null;
+  const plansBySlug = useMemo(() => {
+    const map = new Map<string, PlanRow>();
+    plansQ.data?.forEach((plan) => map.set(String(plan.slug).toLowerCase(), plan));
+    return map;
+  }, [plansQ.data]);
 
-  const planNameOf = (planId: string | null) =>
-    plansQ.data?.find((p) => p.id === planId)?.name ?? "plan";
+  const articleFor = (slug: string) => articlesQ.data?.find((item) => item.plan_slug === slug) ?? null;
+  const offerFor = (planId?: string): OfferRow | null =>
+    planId ? offersQ.data?.find((offer) => offer.plan_id === planId) ?? null : null;
 
-  function priceOf(plan: PlanRow) {
-    const base = Number(plan.price) || 0;
-    const offer = offerFor(plan.id);
+  function displayedPrice(spec: PlanSpec, plan?: PlanRow) {
+    const base = spec.prices[duration];
+    const offer = offerFor(plan?.id);
     if (!offer) return { base, final: base, offer: null as OfferRow | null };
-    const original = Number(offer.original_price) || base;
-    const final = Math.max(0, original * (1 - Number(offer.discount_percent) / 100));
-    return { base: original, final, offer };
+    return {
+      base,
+      final: Math.max(0, base * (1 - Number(offer.discount_percent) / 100)),
+      offer,
+    };
   }
 
-  function handleBuy(plan: PlanRow) {
-    if (plan.is_free || Number(plan.price) <= 0) {
-      navigate({ to: "/register" });
+  function handleBuy(spec: PlanSpec) {
+    const plan = plansBySlug.get(spec.slug);
+    if (!plan || !user) {
+      navigate({ to: plan ? "/register" : "/contact" });
       return;
     }
-    if (!user) {
-      navigate({ to: "/register" });
-      return;
-    }
-    const { final, offer } = priceOf(plan);
+    const { final, offer } = displayedPrice(spec, plan);
     setSelectedPlan({
       id: plan.id,
-      name: offer ? `${plan.name} — ${offer.discount_percent}% OFF` : plan.name,
+      name: offer ? `${spec.name} — ${offer.discount_percent}% OFF` : `${spec.name} — ${duration} Days`,
       slug: plan.slug,
       price: Number(final.toFixed(2)),
-      duration_days: plan.duration_days ?? 30,
+      duration_days: duration,
     });
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="pricing-page min-h-screen overflow-x-clip bg-background text-foreground">
       <Navbar />
 
-      {/* hero */}
-      <section className="relative pt-32 pb-16 px-4 text-center overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,oklch(0.3_0.18_295_/_30%),transparent_70%)]" />
-        <div className="relative max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-xs font-medium text-primary mb-6">
-            <Sparkles className="w-3.5 h-3.5" />
-            Crypto-only. No card, no fees, no leaks.
-          </div>
-          <h1 className="text-4xl sm:text-6xl font-bold tracking-tight">
-            Choose your <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">plan</span>
-          </h1>
-          <p className="text-muted-foreground mt-5 text-lg">
-            Start free, scale on demand. Pay with Bitcoin, Ethereum, USDT and more.
-          </p>
-        </div>
-      </section>
+      <main>
+        <section className="pricing-hero relative px-4 pb-14 pt-32 sm:pb-20 sm:pt-40">
+          <div className="pricing-grid absolute inset-0" aria-hidden="true" />
+          <div className="relative mx-auto max-w-4xl text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-5 inline-flex items-center gap-2 rounded-full border border-pricing-line bg-pricing-surface/70 px-4 py-2 text-xs font-bold uppercase text-pricing-eyebrow backdrop-blur-xl"
+            >
+              <span className="grid size-6 place-items-center rounded-md bg-primary/15 text-primary"><Zap className="size-3.5" /></span>
+              AD4YOU
+            </motion.div>
+            <motion.h1
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.08 }}
+              className="font-display text-4xl font-bold sm:text-6xl lg:text-7xl"
+            >
+              Choose Your <span className="pricing-title-accent">Plan</span>
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.14 }}
+              className="mx-auto mt-5 max-w-2xl text-lg font-medium text-foreground/85 sm:text-xl"
+            >
+              Start free. Build your team. Scale your operation.
+            </motion.p>
+            <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+              Every paid plan includes team management. Your plan determines how many PCs your team can manage.
+            </p>
 
-      {/* Discount offers */}
-      {offersQ.data && offersQ.data.length > 0 && (
-        <section className="px-4 pb-8">
-          <div className="max-w-5xl mx-auto space-y-4">
-            {offersQ.data.map((o) => {
-              const discounted = Number(o.original_price) * (1 - Number(o.discount_percent) / 100);
-              const seatsPct = (o.seats_remaining / o.initial_seats) * 100;
-              return (
-                <div key={o.id} className="relative overflow-hidden rounded-3xl border border-amber-400/30 bg-gradient-to-br from-amber-500/10 via-fuchsia-500/10 to-emerald-500/10 p-6 sm:p-8">
-                  <div className="absolute -top-20 -right-20 w-64 h-64 bg-amber-400/20 rounded-full blur-3xl" />
-                  <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-fuchsia-500/20 rounded-full blur-3xl" />
-                  <div className="relative flex flex-col md:flex-row md:items-center gap-6">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-bold px-2 py-1 rounded-full bg-emerald-500/25 text-emerald-200">🎉 LIMITED OFFER</span>
-                        {o.coupon_code && <span className="text-xs font-mono px-2 py-1 rounded-full bg-white/10">{o.coupon_code}</span>}
-                      </div>
-                      <h3 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-amber-200 via-white to-fuchsia-200 bg-clip-text text-transparent">
-                        {o.title}
-                      </h3>
-                      {o.reason && <p className="text-sm text-white/70 mt-1">{o.reason}</p>}
-                      <div className="flex items-baseline gap-3 mt-4">
-                        <span className="text-lg line-through text-white/40">${Number(o.original_price).toFixed(0)}</span>
-                        <span className="text-4xl font-black text-emerald-300">${discounted.toFixed(0)}</span>
-                        <span className="text-sm font-bold text-emerald-300">/ {planNameOf(o.plan_id)}</span>
-                        <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/25 text-emerald-200 font-bold">{o.discount_percent}% OFF</span>
-                      </div>
-                    </div>
-                    <div className="md:w-72 shrink-0">
-                      <div className="flex justify-between text-xs mb-1.5">
-                        <span className="text-white/70">Only <b className="text-amber-300">{o.seats_remaining}</b> seats left</span>
-                        <span className="text-white/50">of {o.initial_seats}</span>
-                      </div>
-                      <div className="h-2.5 rounded-full bg-black/40 overflow-hidden ring-1 ring-white/10">
-                        <div className="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 transition-all" style={{ width: `${seatsPct}%` }} />
-                      </div>
-                      <p className="text-[11px] text-white/50 mt-2">Seats drop {o.daily_decay_min}–{o.daily_decay_max} per day</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            <div className="mx-auto mt-9 flex w-full max-w-md items-center rounded-xl border border-pricing-line bg-pricing-surface/80 p-1.5 shadow-2xl backdrop-blur-xl" role="group" aria-label="Billing duration">
+              {DURATIONS.map((item) => (
+                <Button
+                  key={item}
+                  type="button"
+                  variant="ghost"
+                  aria-pressed={duration === item}
+                  onClick={() => setDuration(item)}
+                  className={cn(
+                    "h-11 flex-1 rounded-lg text-sm font-bold transition-all",
+                    duration === item
+                      ? "bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                  )}
+                >
+                  {item} Days
+                </Button>
+              ))}
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">Longer plans include built-in savings.</p>
           </div>
         </section>
-      )}
 
-      {/* plan cards */}
-      <section className="px-4 pb-16">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {offersQ.data && offersQ.data.length > 0 && (
+          <section className="px-4 pb-8" aria-label="Active discounts">
+            <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-2 rounded-xl border border-success/25 bg-success/5 px-4 py-3 text-center text-sm">
+              <span className="inline-flex items-center gap-2 font-bold text-success"><Sparkles className="size-4" /> Active savings applied automatically</span>
+              <span className="text-muted-foreground">Valid offers appear directly on the matching plan.</span>
+            </div>
+          </section>
+        )}
 
-          {plansQ.isLoading
-            ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[520px] rounded-3xl" />)
-            : plansQ.data?.map((plan) => {
-                const slug = plan.slug as Slug;
-                const { base, final, offer } = priceOf(plan);
-                return (
-                  <div
-                    key={plan.id}
-                    className={cn(
-                      "relative glass-card rounded-3xl p-6 flex flex-col",
-                      plan.is_popular && "ring-2 ring-primary shadow-[0_0_60px_rgba(139,92,246,0.3)] scale-[1.02]",
-                      offer && "ring-2 ring-emerald-400/60 shadow-[0_0_60px_rgba(16,185,129,0.25)]",
-                    )}
-                  >
-                    {plan.is_popular && !offer && (
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-primary to-accent text-white shadow-lg">
-                        Most Popular
-                      </span>
-                    )}
-                    {offer && (
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-emerald-400 to-amber-400 text-black shadow-lg">
-                        {offer.discount_percent}% OFF · {offer.seats_remaining} seats left
-                      </span>
-                    )}
-                    <h3 className="font-bold text-xl" style={{ color: plan.color ?? undefined }}>{plan.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1 min-h-[2.5rem]">{plan.description}</p>
-                    <div className="my-5">
-                      {offer ? (
-                        <>
-                          <p className="flex flex-wrap items-baseline gap-2">
-                            <span className="text-lg line-through text-muted-foreground">${base.toFixed(2)}</span>
-                            <span className="text-4xl font-black text-emerald-400">${final.toFixed(2)}</span>
-                            <span className="text-sm text-muted-foreground font-normal">
-                              {plan.duration_days === 0 ? "/forever" : "/month"}
-                            </span>
-                          </p>
-                          <p className="text-xs font-semibold text-emerald-300 mt-1">
-                            You save ${(base - final).toFixed(2)} — {offer.title}
-                          </p>
-                          {offer.coupon_code && (
-                            <p className="text-[11px] text-muted-foreground mt-1">
-                              Coupon <span className="font-mono text-primary">{offer.coupon_code}</span> applied automatically
-                            </p>
-                          )}
-                        </>
-                      ) : (
-                        <p className="text-4xl font-bold">
-                          ${Number(plan.price).toFixed(2)}
-                          <span className="text-sm text-muted-foreground font-normal">
-                            {plan.duration_days === 0 ? "/forever" : "/month"}
-                          </span>
-                        </p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {plan.duration_days === 0 ? "Unlimited" : `${plan.duration_days} days`}
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => handleBuy(plan)}
-                      className={cn(
-                        "w-full mb-5",
-                        plan.is_popular
-                          ? "bg-gradient-to-r from-primary to-accent text-white hover:opacity-90"
-                          : "bg-white/10 text-white hover:bg-white/15",
-                      )}
+        <section className="px-4 pb-20" aria-label="Pricing plans">
+          <div className="mx-auto grid max-w-7xl grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4 xl:items-stretch">
+            {plansQ.isLoading
+              ? Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-[650px] rounded-lg" />)
+              : PLAN_SPECS.map((spec, index) => {
+                  const plan = plansBySlug.get(spec.slug);
+                  const { base, final, offer } = displayedPrice(spec, plan);
+                  const PlanIcon = spec.icon;
+                  const info = articleFor(spec.slug);
+                  return (
+                    <motion.article
+                      key={spec.slug}
+                      initial={{ opacity: 0, y: 24 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, margin: "-60px" }}
+                      transition={{ duration: 0.45, delay: index * 0.06 }}
+                      whileHover={{ y: -6 }}
+                      className={cn("pricing-card relative flex min-h-[650px] flex-col rounded-lg p-5 sm:p-6", spec.cardClass)}
                     >
-                      {plan.is_free ? "Get started free" : "Buy now"}
-                    </Button>
-                    {articleFor(plan.slug) && (
-                      <button
-                        onClick={() => setArticle(articleFor(plan.slug))}
-                        className="w-full mb-5 -mt-3 flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
-                      >
-                        <BookOpen className="w-3.5 h-3.5" />
-                        {articleFor(plan.slug)?.emoji ?? "📦"} Package info & earning guide
-                      </button>
-                    )}
+                      {spec.recommended && (
+                        <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-pricing-business px-4 py-1.5 text-[10px] font-black uppercase text-pricing-business-foreground shadow-lg">
+                          Recommended
+                        </span>
+                      )}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className={cn("grid size-12 place-items-center rounded-xl", spec.iconClass)}>
+                          <PlanIcon className="size-6" strokeWidth={1.8} />
+                        </div>
+                        <span className="rounded-full border border-pricing-line bg-background/40 px-2.5 py-1 text-[10px] font-bold uppercase text-muted-foreground">
+                          {spec.position}
+                        </span>
+                      </div>
 
-                    <ul className="space-y-2.5 text-sm flex-1">
-                      {featuresQ.data?.map((f) => {
-                        const raw = f[`${slug}_value` as `${Slug}_value`] as string;
-                        if (f.feature_type === "boolean") {
-                          const on = raw === "true";
-                          return (
-                            <li key={f.id} className={cn("flex items-center gap-2", !on && "opacity-50")}>
-                              {on ? <Check className="w-4 h-4 text-success shrink-0" /> : <X className="w-4 h-4 text-muted-foreground shrink-0" />}
-                              <span>{f.feature_name}</span>
-                            </li>
-                          );
-                        }
-                        return (
-                          <li key={f.id} className="flex items-center gap-2">
-                            <Check className="w-4 h-4 text-primary shrink-0" />
-                            <span>
-                              {f.feature_name}: <strong>{Number(raw) >= 999999 ? "Unlimited" : raw}</strong>
-                            </span>
+                      <div className="mt-6">
+                        <h2 className={cn("font-display text-sm font-black uppercase", spec.accentClass)}>{spec.name}</h2>
+                        <div className="mt-3 flex min-h-16 items-end gap-2">
+                          {offer && <span className="mb-2 text-base text-muted-foreground line-through">${base}</span>}
+                          <motion.span
+                            key={`${spec.slug}-${duration}-${final}`}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="font-display text-5xl font-bold tabular-nums"
+                          >
+                            ${Number(final.toFixed(2))}
+                          </motion.span>
+                          <span className="mb-2 text-sm text-muted-foreground">/ {duration} days</span>
+                        </div>
+                        {offer ? (
+                          <div className="mt-3 rounded-md border border-success/25 bg-success/10 px-3 py-2 text-xs">
+                            <p className="font-bold text-success">{offer.discount_percent}% OFF · Save ${(base - final).toFixed(2)}</p>
+                            <p className="mt-0.5 truncate text-muted-foreground">{offer.title}{offer.coupon_code ? ` · ${offer.coupon_code} applied` : ""}</p>
+                          </div>
+                        ) : (
+                          <p className="mt-3 text-xs text-muted-foreground">One clear price. Full team access included.</p>
+                        )}
+                      </div>
+
+                      <div className="my-5 rounded-lg border border-pricing-line bg-background/35 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground">Team capacity</p>
+                            <p className="mt-1 font-display text-2xl font-bold">{spec.capacity}</p>
+                          </div>
+                          <div className={cn("grid size-10 place-items-center rounded-lg", spec.iconClass)}><Monitor className="size-5" /></div>
+                        </div>
+                        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
+                          <div className={cn("h-full rounded-full shadow-lg", spec.capacityClass)} />
+                        </div>
+                        <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"><Gauge className="size-3.5" /> {spec.capacityNote}</p>
+                      </div>
+
+                      <ul className="flex-1 space-y-3 text-sm">
+                        {CORE_FEATURES.map((feature) => (
+                          <li key={feature} className="flex items-center gap-2.5">
+                            <span className={cn("grid size-5 shrink-0 place-items-center rounded-full", spec.iconClass)}><Check className="size-3" strokeWidth={3} /></span>
+                            <span className="text-foreground/85">{feature}</span>
                           </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                );
-              })}
-        </div>
-      </section>
+                        ))}
+                      </ul>
 
-      {/* comparison table */}
-      <section className="px-4 pb-24">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8">Full feature comparison</h2>
-          <div className="glass-card rounded-3xl overflow-hidden overflow-x-auto">
-            <table className="w-full text-sm min-w-[640px]">
-              <thead className="sticky top-0 bg-card/95 backdrop-blur">
-                <tr className="border-b border-white/10">
-                  <th className="text-left p-4 font-medium text-muted-foreground">Feature</th>
-                  {plansQ.data?.map((p) => (
-                    <th key={p.id} className="p-4 font-semibold text-center" style={{ color: p.color ?? undefined }}>
-                      {p.name}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {featuresQ.data?.map((f) => (
-                  <tr key={f.id} className="border-b border-white/5">
-                    <td className="p-4 font-medium">{f.feature_name}</td>
-                    {SLUGS.map((slug) => {
-                      const raw = f[`${slug}_value` as `${Slug}_value`] as string;
-                      if (f.feature_type === "boolean") {
-                        return (
-                          <td key={slug} className="p-4 text-center">
-                            {raw === "true" ? (
-                              <Check className="w-4 h-4 text-success mx-auto" />
-                            ) : (
-                              <X className="w-4 h-4 text-muted-foreground/50 mx-auto" />
-                            )}
-                          </td>
-                        );
-                      }
-                      return (
-                        <td key={slug} className="p-4 text-center font-medium">
-                          {Number(raw) >= 999999 ? "∞" : raw}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <div className="mt-6 space-y-2">
+                        <Button onClick={() => handleBuy(spec)} className={cn("h-12 w-full rounded-lg font-bold", spec.buttonClass)}>
+                          Choose {spec.name}<ArrowRight className="ml-1 size-4" />
+                        </Button>
+                        {info && (
+                          <Button variant="ghost" onClick={() => setArticle(info)} className="h-10 w-full text-xs text-muted-foreground hover:text-foreground">
+                            <BookOpen className="mr-2 size-3.5" /> Package info & earning guide
+                          </Button>
+                        )}
+                      </div>
+                    </motion.article>
+                  );
+                })}
           </div>
-          <p className="text-center text-xs text-muted-foreground mt-6">
-            Already have an account? <Link to="/login" className="text-primary hover:underline">Sign in</Link>
-          </p>
-        </div>
-      </section>
+        </section>
+
+        <section className="border-y border-pricing-line bg-pricing-band px-4 py-16 sm:py-20">
+          <div className="mx-auto max-w-6xl">
+            <div className="flex flex-col gap-4 text-center sm:flex-row sm:items-end sm:justify-between sm:text-left">
+              <div>
+                <p className="text-xs font-black uppercase text-pricing-eyebrow">Flexible capacity</p>
+                <h2 className="mt-2 font-display text-3xl font-bold sm:text-4xl">Need More PCs?</h2>
+                <p className="mt-2 text-muted-foreground">Add extra PC capacity to your current subscription.</p>
+              </div>
+              <div className="inline-flex items-center justify-center gap-2 text-sm text-success"><ShieldCheck className="size-4" /> Added to your active plan</div>
+            </div>
+
+            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              {[
+                { pcs: "+100 PCs", price: "$30" },
+                { pcs: "+200 PCs", price: "$60" },
+                { pcs: "+300 PCs", price: "$90" },
+              ].map((addon) => (
+                <div key={addon.pcs} className="pricing-addon flex items-center justify-between rounded-lg border border-pricing-line bg-pricing-surface p-5">
+                  <div className="flex items-center gap-3">
+                    <span className="grid size-10 place-items-center rounded-lg bg-accent/15 text-accent"><Plus className="size-5" /></span>
+                    <span className="font-display text-lg font-bold">{addon.pcs}</span>
+                  </div>
+                  <span className="font-display text-2xl font-bold text-accent">{addon.price}</span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-5 text-center text-xs leading-5 text-muted-foreground">
+              Extra PC capacity is valid for the remaining period of your current subscription.
+            </p>
+          </div>
+        </section>
+
+        <section className="px-4 py-20 sm:py-24">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-8 text-center">
+              <p className="text-xs font-black uppercase text-pricing-eyebrow">Every detail, side by side</p>
+              <h2 className="mt-2 font-display text-3xl font-bold sm:text-4xl">Full Feature Comparison</h2>
+              <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">Compare every available capability before choosing your team capacity.</p>
+            </div>
+
+            <div className="overflow-hidden rounded-lg border border-pricing-line bg-pricing-surface shadow-2xl">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px] text-sm">
+                  <thead className="bg-pricing-band">
+                    <tr className="border-b border-pricing-line">
+                      <th className="sticky left-0 z-10 bg-pricing-band p-4 text-left font-semibold text-muted-foreground">Feature</th>
+                      {PLAN_SPECS.map((spec) => (
+                        <th key={spec.slug} className={cn("p-4 text-center font-display font-bold", spec.accentClass)}>{spec.name}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-pricing-line bg-background/20">
+                      <td className="sticky left-0 bg-pricing-surface p-4 font-semibold">PC capacity</td>
+                      {PLAN_SPECS.map((spec) => <td key={spec.slug} className="p-4 text-center font-bold">{spec.capacity}</td>)}
+                    </tr>
+                    {featuresQ.data?.map((feature) => (
+                      <tr key={feature.id} className="border-b border-pricing-line last:border-0 hover:bg-secondary/25">
+                        <td className="sticky left-0 bg-pricing-surface p-4 font-medium">{feature.feature_name}</td>
+                        {PLAN_SPECS.map((spec) => {
+                          if (!spec.featureSlug) return <td key={spec.slug} className="p-4 text-center text-muted-foreground">—</td>;
+                          const raw = feature[`${spec.featureSlug}_value` as `${FeatureSlug}_value`] as string;
+                          if (feature.feature_type === "boolean") {
+                            return (
+                              <td key={spec.slug} className="p-4 text-center">
+                                {raw === "true" ? <Check className="mx-auto size-4 text-success" /> : <X className="mx-auto size-4 text-muted-foreground/50" />}
+                              </td>
+                            );
+                          }
+                          return <td key={spec.slug} className="p-4 text-center font-medium">{Number(raw) >= 999999 ? "∞" : raw}</td>;
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="px-4 pb-24">
+          <div className="pricing-final-cta mx-auto max-w-5xl overflow-hidden rounded-lg border border-pricing-line px-5 py-10 text-center sm:px-10 sm:py-14">
+            <p className="text-xs font-black uppercase text-pricing-eyebrow">Your team starts here</p>
+            <h2 className="mt-3 font-display text-3xl font-bold sm:text-5xl">Ready to scale your operation?</h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">Choose the capacity that fits today. Grow when your operation does.</p>
+            <Button asChild className="mt-7 h-12 rounded-lg bg-primary px-7 font-bold text-primary-foreground hover:bg-primary/90">
+              <Link to="/register">Start Building Your Team <ArrowRight className="ml-1 size-4" /></Link>
+            </Button>
+            <p className="mt-5 text-sm text-muted-foreground">Already have an account? <Link to="/login" className="font-bold text-foreground hover:text-primary">Sign in</Link></p>
+          </div>
+        </section>
+      </main>
 
       <Footer />
 
-      <CryptoCheckoutModal plan={selectedPlan} open={!!selectedPlan} onOpenChange={(v) => !v && setSelectedPlan(null)} />
+      <CryptoCheckoutModal plan={selectedPlan} open={!!selectedPlan} onOpenChange={(open) => !open && setSelectedPlan(null)} />
 
-      <Dialog open={!!article} onOpenChange={(v) => !v && setArticle(null)}>
-        <DialogContent className="w-[calc(100vw-1.5rem)] sm:w-full max-w-3xl max-h-[88vh] overflow-y-auto border-white/10 bg-[oklch(0.09_0.02_270)]">
+      <Dialog open={!!article} onOpenChange={(open) => !open && setArticle(null)}>
+        <DialogContent className="max-h-[88vh] w-[calc(100vw-1.5rem)] max-w-3xl overflow-y-auto border-pricing-line bg-popover sm:w-full">
           <DialogHeader>
-            <DialogTitle className="text-left text-xl sm:text-2xl font-black">
-              <span className="mr-2">{article?.emoji ?? "📦"}</span>
-              {article?.title}
+            <DialogTitle className="text-left font-display text-xl font-bold sm:text-2xl">
+              <span className="mr-2">{article?.emoji ?? ""}</span>{article?.title}
             </DialogTitle>
             {article?.subtitle && <p className="text-left text-sm text-muted-foreground">{article.subtitle}</p>}
-            {(() => {
-              const p = plansQ.data?.find((x) => x.slug === article?.plan_slug);
-              if (!p) return null;
-              return (
-                <p className="text-left text-xs font-semibold text-primary">
-                  {p.name} plan · ${Number(p.price).toFixed(2)}
-                  {p.duration_days === 0 ? " /forever" : " /month"}
-                </p>
-              );
-            })()}
           </DialogHeader>
-          {article?.hero_image_url && (
-            <img src={article.hero_image_url} alt={article.title} loading="lazy" className="w-full rounded-2xl border border-white/10" />
-          )}
+          {article?.hero_image_url && <img src={article.hero_image_url} alt={article.title} loading="lazy" className="w-full rounded-lg border border-pricing-line" />}
           {article && <Markdown content={article.content} />}
-
-          <div className="sticky bottom-0 -mx-6 mt-4 border-t border-white/10 bg-[oklch(0.09_0.02_270)]/95 px-6 py-4 backdrop-blur">
+          <div className="sticky bottom-0 -mx-6 mt-4 border-t border-pricing-line bg-popover/95 px-6 py-4 backdrop-blur-xl">
             <Button
-              className="w-full bg-gradient-to-r from-primary to-accent text-white"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={() => {
-                const plan = plansQ.data?.find((p) => p.slug === article?.plan_slug);
+                const spec = PLAN_SPECS.find((item) => item.slug === article?.plan_slug);
                 setArticle(null);
-                if (plan) handleBuy(plan);
+                if (spec) handleBuy(spec);
               }}
             >
               Get this package now
@@ -403,7 +531,6 @@ function PricingPage() {
           </div>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }

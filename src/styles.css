@@ -34,6 +34,22 @@
   --color-adsense: var(--adsense);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-pricing-surface: var(--pricing-surface);
+  --color-pricing-band: var(--pricing-band);
+  --color-pricing-line: var(--pricing-line);
+  --color-pricing-eyebrow: var(--pricing-eyebrow);
+  --color-pricing-starter: var(--pricing-starter);
+  --color-pricing-starter-soft: var(--pricing-starter-soft);
+  --color-pricing-starter-foreground: var(--pricing-starter-foreground);
+  --color-pricing-pro: var(--pricing-pro);
+  --color-pricing-pro-soft: var(--pricing-pro-soft);
+  --color-pricing-pro-foreground: var(--pricing-pro-foreground);
+  --color-pricing-business: var(--pricing-business);
+  --color-pricing-business-soft: var(--pricing-business-soft);
+  --color-pricing-business-foreground: var(--pricing-business-foreground);
+  --color-pricing-agency: var(--pricing-agency);
+  --color-pricing-agency-soft: var(--pricing-agency-soft);
+  --color-pricing-agency-foreground: var(--pricing-agency-foreground);
   --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
 }
@@ -65,6 +81,23 @@
   --adsense: oklch(0.65 0.18 240);   /* blue */
   --success: oklch(0.72 0.18 155);
   --warning: oklch(0.78 0.16 75);
+
+  --pricing-surface: oklch(0.125 0.018 264 / 88%);
+  --pricing-band: oklch(0.1 0.018 266);
+  --pricing-line: oklch(0.34 0.025 265 / 46%);
+  --pricing-eyebrow: oklch(0.76 0.13 235);
+  --pricing-starter: oklch(0.73 0.18 151);
+  --pricing-starter-soft: oklch(0.73 0.18 151 / 14%);
+  --pricing-starter-foreground: oklch(0.12 0.03 151);
+  --pricing-pro: oklch(0.7 0.17 246);
+  --pricing-pro-soft: oklch(0.7 0.17 246 / 14%);
+  --pricing-pro-foreground: oklch(0.12 0.03 246);
+  --pricing-business: oklch(0.72 0.2 310);
+  --pricing-business-soft: oklch(0.72 0.2 310 / 16%);
+  --pricing-business-foreground: oklch(0.13 0.03 310);
+  --pricing-agency: oklch(0.79 0.17 77);
+  --pricing-agency-soft: oklch(0.79 0.17 77 / 14%);
+  --pricing-agency-foreground: oklch(0.16 0.035 77);
 
   --gradient-primary: linear-gradient(135deg, oklch(0.65 0.24 295), oklch(0.6 0.22 250));
   --gradient-adsterra: linear-gradient(135deg, oklch(0.7 0.22 35), oklch(0.55 0.24 20));
@@ -155,6 +188,68 @@
 
 @utility animate-float-slow { animation: float-slow 8s ease-in-out infinite; }
 @utility animate-pulse-glow { animation: pulse-glow 4s ease-in-out infinite; }
+
+/* Pricing experience */
+.pricing-page {
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--primary) 6%, transparent), transparent 24rem),
+    var(--background);
+}
+.pricing-hero { isolation: isolate; }
+.pricing-grid {
+  z-index: -1;
+  opacity: .65;
+  background-image:
+    linear-gradient(color-mix(in oklab, var(--pricing-line) 42%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--pricing-line) 42%, transparent) 1px, transparent 1px),
+    linear-gradient(180deg, color-mix(in oklab, var(--primary) 10%, transparent), transparent 75%);
+  background-size: 52px 52px, 52px 52px, 100% 100%;
+  mask-image: linear-gradient(to bottom, black 20%, transparent 96%);
+}
+.pricing-title-accent {
+  color: var(--pricing-eyebrow);
+  text-shadow: 0 0 34px color-mix(in oklab, var(--pricing-eyebrow) 28%, transparent);
+}
+.pricing-card {
+  overflow: hidden;
+  border: 1px solid var(--pricing-line);
+  background: linear-gradient(155deg, color-mix(in oklab, var(--pricing-surface) 96%, white 4%), var(--pricing-surface));
+  box-shadow: 0 26px 70px oklch(0 0 0 / 32%), inset 0 1px oklch(1 0 0 / 5%);
+  backdrop-filter: blur(18px);
+  transition: border-color 220ms ease, box-shadow 220ms ease;
+}
+.pricing-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--card-accent);
+  box-shadow: 0 0 24px var(--card-accent);
+}
+.pricing-card--starter { --card-accent: var(--pricing-starter); }
+.pricing-card--starter:hover { border-color: color-mix(in oklab, var(--pricing-starter) 52%, transparent); box-shadow: 0 28px 75px oklch(0 0 0 / 38%), 0 0 34px var(--pricing-starter-soft); }
+.pricing-card--pro { --card-accent: var(--pricing-pro); }
+.pricing-card--pro:hover { border-color: color-mix(in oklab, var(--pricing-pro) 52%, transparent); box-shadow: 0 28px 75px oklch(0 0 0 / 38%), 0 0 34px var(--pricing-pro-soft); }
+.pricing-card--business { --card-accent: var(--pricing-business); border-color: color-mix(in oklab, var(--pricing-business) 45%, transparent); box-shadow: 0 28px 80px oklch(0 0 0 / 40%), 0 0 48px var(--pricing-business-soft); }
+.pricing-card--business:hover { border-color: color-mix(in oklab, var(--pricing-business) 70%, transparent); box-shadow: 0 30px 85px oklch(0 0 0 / 42%), 0 0 62px var(--pricing-business-soft); }
+.pricing-card--agency { --card-accent: var(--pricing-agency); }
+.pricing-card--agency:hover { border-color: color-mix(in oklab, var(--pricing-agency) 52%, transparent); box-shadow: 0 28px 75px oklch(0 0 0 / 38%), 0 0 34px var(--pricing-agency-soft); }
+.pricing-addon { box-shadow: inset 0 1px oklch(1 0 0 / 4%); transition: transform 200ms ease, border-color 200ms ease; }
+.pricing-addon:hover { transform: translateY(-3px); border-color: color-mix(in oklab, var(--accent) 48%, transparent); }
+.pricing-final-cta {
+  background:
+    linear-gradient(125deg, color-mix(in oklab, var(--primary) 13%, var(--pricing-surface)), color-mix(in oklab, var(--accent) 9%, var(--pricing-surface)));
+  box-shadow: 0 28px 80px oklch(0 0 0 / 34%), inset 0 1px oklch(1 0 0 / 6%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pricing-page *, .pricing-page *::before, .pricing-page *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
 
 /* Premium dual-environment login */
 .premium-login {
