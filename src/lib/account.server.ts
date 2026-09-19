@@ -20,6 +20,9 @@ export const planFieldsSchema = z.object({
   is_active: z.boolean().nullable().optional(),
   is_popular: z.boolean().nullable().optional(),
   sort_order: z.number().int().min(0).max(9999).optional(),
+  max_team_members: z.number().int().min(0).max(1000000).nullable().optional(),
+  capacity_note: z.string().trim().max(120).nullable().optional(),
+  position_label: z.string().trim().max(120).nullable().optional(),
 });
 
 export function getAppAdmin() {
