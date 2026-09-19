@@ -236,13 +236,18 @@ function PricingPage() {
       navigate({ to: plan ? "/register" : "/contact" });
       return;
     }
-    const { final, offer } = displayedPrice(spec, plan);
+    const offer = offerFor(plan.id);
+    const storedPrice = Number(plan.price) || 0;
+    const checkoutBase = offer ? Number(offer.original_price) || storedPrice : storedPrice;
+    const checkoutPrice = offer
+      ? Math.max(0, checkoutBase * (1 - Number(offer.discount_percent) / 100))
+      : storedPrice;
     setSelectedPlan({
       id: plan.id,
-      name: offer ? `${spec.name} — ${offer.discount_percent}% OFF` : `${spec.name} — ${duration} Days`,
+      name: offer ? `${plan.name} — ${offer.discount_percent}% OFF` : plan.name,
       slug: plan.slug,
-      price: Number(final.toFixed(2)),
-      duration_days: duration,
+      price: Number(checkoutPrice.toFixed(2)),
+      duration_days: plan.duration_days ?? 30,
     });
   }
 
