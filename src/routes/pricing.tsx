@@ -160,7 +160,18 @@ function PricingPage() {
     queryKey: ["plans-public"],
     queryFn: async () => {
       const { data } = await supabase.from("plans").select("*").eq("is_active", true).order("sort_order");
-      return data ?? [];
+      return (data ?? []) as unknown as PlanRow[];
+    },
+  });
+
+  const optionsQ = useQuery({
+    queryKey: ["plan-pricing-options-public"],
+    queryFn: async () => {
+      const { data } = await (supabase as never as typeof supabase)
+        .from("plan_pricing_options" as never)
+        .select("*")
+        .order("sort_order");
+      return (data ?? []) as unknown as PricingOptionRow[];
     },
   });
 
