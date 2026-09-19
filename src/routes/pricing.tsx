@@ -49,6 +49,29 @@ export const Route = createFileRoute("/pricing")({
   ),
 });
 
+type PlanRow = {
+  id: string;
+  name: string;
+  title: string | null;
+  slug: string;
+  price: number | null;
+  duration_days: number | null;
+  sort_order: number | null;
+  max_team_members: number | null;
+  capacity_note: string | null;
+  position_label: string | null;
+};
+
+type PricingOptionRow = {
+  id: string;
+  plan_id: string;
+  label: string;
+  price: number;
+  duration_value: number;
+  duration_unit: string;
+  is_active: boolean | null;
+};
+
 const DURATIONS = [30, 60, 90] as const;
 type Duration = (typeof DURATIONS)[number];
 type FeatureSlug = "starter" | "pro" | "business";
@@ -160,7 +183,18 @@ function PricingPage() {
     queryKey: ["plans-public"],
     queryFn: async () => {
       const { data } = await supabase.from("plans").select("*").eq("is_active", true).order("sort_order");
-      return data ?? [];
+      return (data ?? []) as unknown as PlanRow[];
+    },
+  });
+
+  const optionsQ = useQuery({
+    queryKey: ["plan-pricing-options-public"],
+    queryFn: async () => {
+      const { data } = await (supabase as never as typeof supabase)
+        .from("plan_pricing_options" as never)
+        .select("*")
+        .order("sort_order");
+      return (data ?? []) as unknown as PricingOptionRow[];
     },
   });
 
@@ -206,7 +240,6 @@ function PricingPage() {
     };
   }, [queryClient]);
 
-  type PlanRow = NonNullable<typeof plansQ.data>[number];
   type OfferRow = NonNullable<typeof offersQ.data>[number];
 
   const plansBySlug = useMemo(() => {
