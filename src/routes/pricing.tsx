@@ -252,8 +252,26 @@ function PricingPage() {
   const offerFor = (planId?: string): OfferRow | null =>
     planId ? offersQ.data?.find((offer) => offer.plan_id === planId) ?? null : null;
 
+  /** Admin-defined 30/60/90 day option for a plan; falls back to the built-in price. */
+  const optionFor = (planId: string | undefined, days: number): PricingOptionRow | null => {
+    if (!planId) return null;
+    return (
+      optionsQ.data?.find(
+        (o) =>
+          o.plan_id === planId &&
+          o.duration_unit === "days" &&
+          Number(o.duration_value) === days &&
+          (o.is_active ?? true),
+      ) ?? null
+    );
+  };
+
+  const capacityOf = (spec: PlanSpec, plan?: PlanRow) =>
+    plan?.max_team_members ? `${Number(plan.max_team_members).toLocaleString()} PCs` : spec.capacity;
+
   function displayedPrice(spec: PlanSpec, plan?: PlanRow) {
-    const base = spec.prices[duration];
+    const option = optionFor(plan?.id, duration);
+    const base = option ? Number(option.price) : spec.prices[duration];
     const offer = offerFor(plan?.id);
     if (!offer) return { base, final: base, offer: null as OfferRow | null };
     return {
@@ -270,17 +288,19 @@ function PricingPage() {
       return;
     }
     const offer = offerFor(plan.id);
-    const storedPrice = Number(plan.price) || 0;
+    const option = optionFor(plan.id, duration);
+    const storedPrice = option ? Number(option.price) : Number(plan.price) || 0;
     const checkoutBase = offer ? Number(offer.original_price) || storedPrice : storedPrice;
     const checkoutPrice = offer
       ? Math.max(0, checkoutBase * (1 - Number(offer.discount_percent) / 100))
       : storedPrice;
+    const label = option ? `${plan.name} — ${option.label}` : plan.name;
     setSelectedPlan({
       id: plan.id,
-      name: offer ? `${plan.name} — ${offer.discount_percent}% OFF` : plan.name,
+      name: offer ? `${label} — ${offer.discount_percent}% OFF` : label,
       slug: plan.slug,
       price: Number(checkoutPrice.toFixed(2)),
-      duration_days: plan.duration_days ?? 30,
+      duration_days: option ? Number(option.duration_value) : plan.duration_days ?? 30,
     });
   }
 
