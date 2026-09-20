@@ -32,7 +32,7 @@ function OverviewPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("subscriptions")
-        .select("status, start_date, end_date, duration_days, package_title, duration_value, duration_unit, is_unlimited, plans(name, title, color, price, slug)")
+        .select("status, start_date, end_date, duration_days, package_title, duration_value, duration_unit, is_unlimited, plans(name, title, color, price, slug, max_pcs, max_team_members)")
         .eq("user_id", uid!)
         .maybeSingle();
       return data as any;
@@ -137,6 +137,14 @@ function OverviewPage() {
   const isUnlimited = sub?.is_unlimited === true || sub?.duration_days === 0;
   const remaining = isUnlimited ? "Unlimited" : formatRemaining(sub?.end_date, now);
   const expired = !isUnlimited && !!end && end.getTime() <= now;
+  const baseCapacity = Number(sub?.plans?.max_team_members ?? sub?.plans?.max_pcs ?? 0);
+  const capacity = capacitySummary({
+    baseCapacity,
+    addons: capQ.data?.addons,
+    subscriptionEnd: sub?.end_date ?? null,
+    usedPcs: capQ.data?.used ?? 0,
+    now,
+  });
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
@@ -192,6 +200,54 @@ function OverviewPage() {
           </Button>
         </div>
       </div>
+
+      {/* PC capacity */}
+      {capacity.total > 0 && (
+        <div className="glass-card rounded-3xl p-6 sm:p-8">
+          <div className="flex items-center gap-2 mb-5">
+            <MonitorSmartphone className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-semibold">PC capacity</h2>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2 text-sm">
+              <Row label="Base capacity" value={`${capacity.base.toLocaleString()} PCs`} />
+              <Row label="Extra capacity" value={`${capacity.extra > 0 ? "+" : ""}${capacity.extra.toLocaleString()} PCs`} />
+              <div className="border-t border-white/10 pt-2">
+                <Row label="Total capacity" value={`${capacity.total.toLocaleString()} PCs`} strong />
+              </div>
+              <div className="pt-2 space-y-2">
+                <Row label="Used" value={`${capacity.used.toLocaleString()} PCs`} />
+                <Row label="Available" value={`${capacity.available.toLocaleString()} PCs`} />
+              </div>
+              <div className="h-2 rounded-full bg-white/10 overflow-hidden mt-3">
+                <div className="h-full rounded-full bg-gradient-to-r from-primary to-accent" style={{ width: `${capacity.usedPercent}%` }} />
+              </div>
+            </div>
+            <div className="space-y-4 text-sm">
+              <div>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">Subscription expires</p>
+                <p className="font-semibold">{isUnlimited ? "Never" : end ? end.toLocaleString() : "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">Extra PCs expire</p>
+                <p className="font-semibold">
+                  {capacity.extra === 0
+                    ? "No extra capacity"
+                    : capacity.extraExpiresAt
+                      ? capacity.extraExpiresAt.toLocaleString()
+                      : "With your subscription"}
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Extra PC capacity is valid for the remaining period of your current subscription.
+              </p>
+              <Button asChild variant="outline" size="sm">
+                <Link to="/pricing">Add extra PCs</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
