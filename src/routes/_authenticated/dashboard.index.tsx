@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Activity, TrendingUp, Calendar, Award, ArrowRight, Sparkles } from "lucide-react";
+import { Activity, TrendingUp, Calendar, Award, ArrowRight, Sparkles, MonitorSmartphone } from "lucide-react";
+import { capacitySummary, type CapacityAddonRow } from "@/lib/capacity";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -76,6 +77,41 @@ function OverviewPage() {
       return data ?? [];
     },
   });
+
+  const capQ = useQuery({
+    queryKey: ["my-capacity", uid],
+    enabled: !!uid,
+    queryFn: async () => {
+      const client = supabase as never as typeof supabase;
+      const [addonsRes, teamsRes] = await Promise.all([
+        client.from("capacity_addons" as never).select("*").eq("user_id", uid!),
+        client.from("teams" as never).select("id").eq("owner_id", uid!),
+      ]);
+      const addons = ((addonsRes.data ?? []) as unknown as CapacityAddonRow[]) ?? [];
+      const teamIds = ((teamsRes.data ?? []) as unknown as { id: string }[]).map((t) => t.id);
+      let used = 0;
+      if (teamIds.length) {
+        const { count } = await client
+          .from("team_members" as never)
+          .select("id", { count: "exact", head: true })
+          .in("team_id", teamIds)
+          .eq("is_active", true);
+        used = Number(count ?? 0);
+      }
+      return { addons, used };
+    },
+  });
+
+  useEffect(() => {
+    if (!uid) return;
+    const channel = supabase
+      .channel(`my-capacity-${uid}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "capacity_addons", filter: `user_id=eq.${uid}` }, () => {
+        qc.invalidateQueries({ queryKey: ["my-capacity", uid] });
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [uid, qc]);
 
   const annQ = useQuery({
     queryKey: ["active-announcement"],
