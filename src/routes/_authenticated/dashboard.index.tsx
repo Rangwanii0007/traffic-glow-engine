@@ -87,7 +87,7 @@ function OverviewPage() {
         client.from("capacity_addons" as never).select("*").eq("user_id", uid!),
         client.from("teams" as never).select("id").eq("owner_id", uid!),
       ]);
-      const addons = ((addonsRes.data ?? []) as unknown as CapacityAddonRow[]) ?? [];
+      const addons = (addonsRes.data ?? []) as unknown as CapacityAddonRow[];
       const teamIds = ((teamsRes.data ?? []) as unknown as { id: string }[]).map((t) => t.id);
       let used = 0;
       if (teamIds.length) {
