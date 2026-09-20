@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Activity, TrendingUp, Calendar, Award, ArrowRight, Sparkles } from "lucide-react";
+import { Activity, TrendingUp, Calendar, Award, ArrowRight, Sparkles, MonitorSmartphone } from "lucide-react";
+import { capacitySummary, type CapacityAddonRow } from "@/lib/capacity";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,7 +32,7 @@ function OverviewPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("subscriptions")
-        .select("status, start_date, end_date, duration_days, package_title, duration_value, duration_unit, is_unlimited, plans(name, title, color, price, slug)")
+        .select("status, start_date, end_date, duration_days, package_title, duration_value, duration_unit, is_unlimited, plans(name, title, color, price, slug, max_pcs, max_team_members)")
         .eq("user_id", uid!)
         .maybeSingle();
       return data as any;
@@ -77,6 +78,41 @@ function OverviewPage() {
     },
   });
 
+  const capQ = useQuery({
+    queryKey: ["my-capacity", uid],
+    enabled: !!uid,
+    queryFn: async () => {
+      const client = supabase as never as typeof supabase;
+      const [addonsRes, teamsRes] = await Promise.all([
+        client.from("capacity_addons" as never).select("*").eq("user_id", uid!),
+        client.from("teams" as never).select("id").eq("owner_id", uid!),
+      ]);
+      const addons = (addonsRes.data ?? []) as unknown as CapacityAddonRow[];
+      const teamIds = ((teamsRes.data ?? []) as unknown as { id: string }[]).map((t) => t.id);
+      let used = 0;
+      if (teamIds.length) {
+        const { count } = await client
+          .from("team_members" as never)
+          .select("id", { count: "exact", head: true })
+          .in("team_id", teamIds)
+          .eq("is_active", true);
+        used = Number(count ?? 0);
+      }
+      return { addons, used };
+    },
+  });
+
+  useEffect(() => {
+    if (!uid) return;
+    const channel = supabase
+      .channel(`my-capacity-${uid}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "capacity_addons", filter: `user_id=eq.${uid}` }, () => {
+        qc.invalidateQueries({ queryKey: ["my-capacity", uid] });
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [uid, qc]);
+
   const annQ = useQuery({
     queryKey: ["active-announcement"],
     queryFn: async () => {
@@ -101,6 +137,14 @@ function OverviewPage() {
   const isUnlimited = sub?.is_unlimited === true || sub?.duration_days === 0;
   const remaining = isUnlimited ? "Unlimited" : formatRemaining(sub?.end_date, now);
   const expired = !isUnlimited && !!end && end.getTime() <= now;
+  const baseCapacity = Number(sub?.plans?.max_team_members ?? sub?.plans?.max_pcs ?? 0);
+  const capacity = capacitySummary({
+    baseCapacity,
+    addons: capQ.data?.addons,
+    subscriptionEnd: sub?.end_date ?? null,
+    usedPcs: capQ.data?.used ?? 0,
+    now,
+  });
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
@@ -156,6 +200,54 @@ function OverviewPage() {
           </Button>
         </div>
       </div>
+
+      {/* PC capacity */}
+      {capacity.total > 0 && (
+        <div className="glass-card rounded-3xl p-6 sm:p-8">
+          <div className="flex items-center gap-2 mb-5">
+            <MonitorSmartphone className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-semibold">PC capacity</h2>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2 text-sm">
+              <Row label="Base capacity" value={`${capacity.base.toLocaleString()} PCs`} />
+              <Row label="Extra capacity" value={`${capacity.extra > 0 ? "+" : ""}${capacity.extra.toLocaleString()} PCs`} />
+              <div className="border-t border-white/10 pt-2">
+                <Row label="Total capacity" value={`${capacity.total.toLocaleString()} PCs`} strong />
+              </div>
+              <div className="pt-2 space-y-2">
+                <Row label="Used" value={`${capacity.used.toLocaleString()} PCs`} />
+                <Row label="Available" value={`${capacity.available.toLocaleString()} PCs`} />
+              </div>
+              <div className="h-2 rounded-full bg-white/10 overflow-hidden mt-3">
+                <div className="h-full rounded-full bg-gradient-to-r from-primary to-accent" style={{ width: `${capacity.usedPercent}%` }} />
+              </div>
+            </div>
+            <div className="space-y-4 text-sm">
+              <div>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">Subscription expires</p>
+                <p className="font-semibold">{isUnlimited ? "Never" : end ? end.toLocaleString() : "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">Extra PCs expire</p>
+                <p className="font-semibold">
+                  {capacity.extra === 0
+                    ? "No extra capacity"
+                    : capacity.extraExpiresAt
+                      ? capacity.extraExpiresAt.toLocaleString()
+                      : "With your subscription"}
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Extra PC capacity is valid for the remaining period of your current subscription.
+              </p>
+              <Button asChild variant="outline" size="sm">
+                <Link to="/pricing">Add extra PCs</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

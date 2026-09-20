@@ -286,24 +286,47 @@ export async function memberCapacity(admin: SupabaseClient, team: Row) {
 
   const override = team['max_members'] === null || team['max_members'] === undefined ? null : Number(team['max_members']);
   let limit = override && override > 0 ? override : null;
+  let base = 0;
+  let extra = 0;
+  let subscriptionEnd: string | null = null;
 
-  if (!limit && team['owner_id']) {
+  if (team['owner_id']) {
+    const ownerId = String(team['owner_id']);
     const { data: subs } = await admin
       .from("subscriptions")
-      .select("status, end_date, plans(max_pcs)")
-      .eq("user_id", String(team['owner_id']))
+      .select("status, end_date, plans(max_pcs, max_team_members)")
+      .eq("user_id", ownerId)
       .eq("status", "active")
       .order("end_date", { ascending: false })
       .limit(3);
     for (const row of (subs ?? []) as Row[]) {
       const planRow = row['plans'] as Json;
       const plan = Array.isArray(planRow) ? (planRow[0] as Row | undefined) : (planRow as Row | null);
-      const max = plan ? Number(plan['max_pcs'] ?? 0) : 0;
-      if (max > 0) { limit = Math.max(limit ?? 0, max); }
+      const max = plan ? Number(plan['max_team_members'] ?? plan['max_pcs'] ?? 0) : 0;
+      if (max > base) base = max;
+      const end = row['end_date'] ? String(row['end_date']) : null;
+      if (end && (!subscriptionEnd || new Date(end) > new Date(subscriptionEnd))) subscriptionEnd = end;
+    }
+
+    // Extra PC capacity add-ons purchased/granted on top of the plan.
+    const { data: addons } = await admin
+      .from("capacity_addons")
+      .select("extra_pcs, starts_at, expires_at, is_active")
+      .eq("user_id", ownerId)
+      .eq("is_active", true);
+    const now = Date.now();
+    for (const a of (addons ?? []) as Row[]) {
+      const startsAt = a['starts_at'] ? new Date(String(a['starts_at'])).getTime() : 0;
+      if (startsAt > now) continue;
+      const endRaw = (a['expires_at'] as string | null) ?? subscriptionEnd;
+      if (endRaw && new Date(endRaw).getTime() <= now) continue;
+      extra += Number(a['extra_pcs'] ?? 0);
     }
   }
 
-  return { active, limit, isFull: limit !== null && active >= limit };
+  if (!limit && base + extra > 0) limit = base + extra;
+
+  return { active, limit, base, extra, isFull: limit !== null && active >= limit };
 }
 
 /* ───────────────────────── branded emails ───────────────────────── */
