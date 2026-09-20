@@ -231,6 +231,9 @@ function PricingPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "discount_offers" }, () => {
         void queryClient.invalidateQueries({ queryKey: ["discount-offers-active"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "plan_pricing_options" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["plan-pricing-options-public"] });
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "plans" }, () => {
         void queryClient.invalidateQueries({ queryKey: ["plans-public"] });
       })
@@ -401,7 +404,7 @@ function PricingPage() {
                           <PlanIcon className="size-6" strokeWidth={1.8} />
                         </div>
                         <span className="rounded-full border border-pricing-line bg-background/40 px-2.5 py-1 text-[10px] font-bold uppercase text-muted-foreground">
-                          {spec.position}
+                          {plan?.position_label ?? spec.position}
                         </span>
                       </div>
 
@@ -433,14 +436,14 @@ function PricingPage() {
                         <div className="flex items-center justify-between gap-3">
                           <div>
                             <p className="text-xs font-medium text-muted-foreground">Team capacity</p>
-                            <p className="mt-1 font-display text-2xl font-bold">{spec.capacity}</p>
+                            <p className="mt-1 font-display text-2xl font-bold">{capacityOf(spec, plan)}</p>
                           </div>
                           <div className={cn("grid size-10 place-items-center rounded-lg", spec.iconClass)}><Monitor className="size-5" /></div>
                         </div>
                         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
                           <div className={cn("h-full rounded-full shadow-lg", spec.capacityClass)} />
                         </div>
-                        <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"><Gauge className="size-3.5" /> {spec.capacityNote}</p>
+                        <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"><Gauge className="size-3.5" /> {plan?.capacity_note ?? spec.capacityNote}</p>
                       </div>
 
                       <ul className="flex-1 space-y-3 text-sm">
@@ -522,7 +525,11 @@ function PricingPage() {
                   <tbody>
                     <tr className="border-b border-pricing-line bg-background/20">
                       <td className="sticky left-0 bg-pricing-surface p-4 font-semibold">PC capacity</td>
-                      {PLAN_SPECS.map((spec) => <td key={spec.slug} className="p-4 text-center font-bold">{spec.capacity}</td>)}
+                      {PLAN_SPECS.map((spec) => (
+                        <td key={spec.slug} className="p-4 text-center font-bold">
+                          {capacityOf(spec, plansBySlug.get(spec.slug))}
+                        </td>
+                      ))}
                     </tr>
                     {featuresQ.data?.map((feature) => (
                       <tr key={feature.id} className="border-b border-pricing-line last:border-0 hover:bg-secondary/25">
