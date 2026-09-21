@@ -306,6 +306,15 @@ function OverviewPage() {
   );
 }
 
+function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span className={cn("text-muted-foreground", strong && "text-foreground font-medium")}>{label}</span>
+      <span className={cn("tabular-nums", strong ? "text-lg font-bold" : "font-medium")}>{value}</span>
+    </div>
+  );
+}
+
 function StatCard({ icon: Icon, label, value }: { icon: typeof Activity; label: string; value: string | number | null }) {
   return (
     <div className="glass-card rounded-2xl p-5">
