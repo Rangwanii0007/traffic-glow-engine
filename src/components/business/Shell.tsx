@@ -65,13 +65,13 @@ export function BusinessShell({ children }: { children: ReactNode }) {
           <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-[oklch(0.78_0.16_85)] to-[oklch(0.62_0.2_35)] grid place-content-center">
             <Crown className="w-6 h-6 text-black" />
           </div>
-          <h1 className="text-2xl font-bold">Business plan required</h1>
+          <h1 className="text-2xl font-bold">A paid plan is required</h1>
           <p className="text-sm text-muted-foreground">
-            The team control panel — shared URLs, workers, earning rates, leaderboard and withdrawals — is part of the
-            Business plan. Upgrade to unlock it for your whole team.
+            The team control panel — shared URLs, workers, earning rates, leaderboard and withdrawals — is included with
+            every paid plan. Your plan decides how many PCs your team can manage.
           </p>
           <div className="flex flex-col sm:flex-row gap-2 justify-center">
-            <Button asChild><Link to="/pricing"><Sparkles className="w-4 h-4" />View Business plan</Link></Button>
+            <Button asChild><Link to="/pricing"><Sparkles className="w-4 h-4" />View plans</Link></Button>
             <Button asChild variant="outline"><Link to="/dashboard">Back to account</Link></Button>
           </div>
         </div>
