@@ -80,18 +80,25 @@ export async function requireBusinessOwner() {
   const isSiteAdmin = (profile as { role?: string } | null)?.role === "admin";
   if (isSiteAdmin) return { user, admin, isSiteAdmin: true };
 
+  // Team management is included with every paid plan (Starter, Pro, Business, Agency
+  // and any custom paid package). Only free plans are excluded.
   const { data: subs } = await admin
     .from("subscriptions")
-    .select("status, end_date, plans(slug)")
+    .select("status, end_date, plans(slug, is_free, price)")
     .eq("user_id", user.id)
     .eq("status", "active")
     .order("end_date", { ascending: false })
     .limit(5);
-  const slugs = (subs ?? []).map((row) => {
-    const planRow = (row as { plans?: { slug?: string } | { slug?: string }[] }).plans;
-    return Array.isArray(planRow) ? planRow[0]?.slug : planRow?.slug;
+  type PlanBit = { slug?: string; is_free?: boolean | null; price?: number | null };
+  const hasPaid = (subs ?? []).some((row) => {
+    const planRow = (row as { plans?: PlanBit | PlanBit[] }).plans;
+    const plan = Array.isArray(planRow) ? planRow[0] : planRow;
+    if (!plan) return false;
+    if (plan.is_free === true) return false;
+    if (plan.slug === "free") return false;
+    return Number(plan.price ?? 0) > 0 || plan.is_free === false;
   });
-  if (!slugs.includes("business")) throw new Error("Business plan required");
+  if (!hasPaid) throw new Error("A paid plan is required to manage a team");
   return { user, admin, isSiteAdmin: false };
 }
 
