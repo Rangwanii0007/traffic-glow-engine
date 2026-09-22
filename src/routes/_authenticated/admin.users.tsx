@@ -146,30 +146,40 @@ function UsersAdmin() {
     return error;
   };
 
-  const assignPlan = async (userId: string, planId: string) => {
+  /** `selection` is a plan id, or `opt:<pricing option id>` for a specific duration. */
+  const assignPlan = async (userId: string, selection: string) => {
+    const option = selection.startsWith("opt:")
+      ? optionsQ.data?.find((o) => o.id === selection.slice(4)) ?? null
+      : null;
+    const planId = option ? option.plan_id : selection;
     const plan = plansQ.data?.find((p) => p.id === planId);
     if (!plan) return;
     setAssigning(userId);
-    const unlimited = !!plan.is_unlimited || (plan.duration_days ?? 0) === 0;
-    const value = plan.duration_value ?? (plan.duration_days || 30);
-    const unit = plan.duration_unit ?? "days";
+    const unlimited = option ? false : !!plan.is_unlimited || (plan.duration_days ?? 0) === 0;
+    const value = option ? Number(option.duration_value) : plan.duration_value ?? (plan.duration_days || 30);
+    const unit: DurationUnit = option ? option.duration_unit : plan.duration_unit ?? "days";
     const start = new Date();
+    const end = unlimited ? new Date("2099-12-31T23:59:59Z") : computeExpiry(start, value, unit);
+    const label = option
+      ? `${plan.title ?? plan.name} — ${option.label ?? `${option.duration_value} ${option.duration_unit}`}`
+      : plan.title ?? plan.name;
     const error = await upsertSubscription({
       user_id: userId,
       plan_id: planId,
       status: "active",
       start_date: start.toISOString(),
-      end_date: unlimited ? "2099-12-31T23:59:59Z" : computeExpiry(start, value, unit).toISOString(),
+      end_date: end.toISOString(),
       duration_value: unlimited ? null : value,
       duration_unit: unit,
       is_unlimited: unlimited,
-      duration_days: unlimited ? 0 : plan.duration_days ?? 30,
-      package_title: plan.title ?? plan.name,
+      duration_days: unlimited ? 0 : Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 86400000)),
+      package_title: label,
+      pricing_option_id: option?.id ?? null,
       created_by: "admin",
     });
     setAssigning(null);
     if (error) return toast.error(error.message);
-    toast.success(`Assigned ${plan.title ?? plan.name}`);
+    toast.success(`Assigned ${label}`);
     qc.invalidateQueries({ queryKey: ["admin-users"] });
   };
 
