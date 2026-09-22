@@ -108,7 +108,13 @@ Deno.serve(async (req) => {
       .eq("id", payment.plan_id)
       .maybeSingle();
 
-    const days = plan?.duration_days ?? 30;
+    // The purchased duration is encoded in the order id (…_d60_…) so the
+    // exact selected package length wins over the plan default.
+    const orderRef = String(
+      (payment as { nowpayments_order_id?: string }).nowpayments_order_id ?? payload.order_id ?? "",
+    );
+    const encoded = orderRef.match(/_d(\d+)_/);
+    const days = encoded ? Number(encoded[1]) : (plan?.duration_days ?? 30);
     const start = new Date();
     const end = new Date(start.getTime() + days * 24 * 60 * 60 * 1000);
 
