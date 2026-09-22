@@ -113,6 +113,13 @@ function UsersAdmin() {
       .on("postgres_changes", { event: "*", schema: "public", table: "subscriptions" }, () => {
         qc.invalidateQueries({ queryKey: ["admin-users"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "plans" }, () => {
+        qc.invalidateQueries({ queryKey: ["admin-users-plans"] });
+        qc.invalidateQueries({ queryKey: ["admin-users"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "plan_pricing_options" }, () => {
+        qc.invalidateQueries({ queryKey: ["admin-users-plan-options"] });
+      })
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [qc]);
