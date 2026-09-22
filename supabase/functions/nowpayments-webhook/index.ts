@@ -126,6 +126,8 @@ Deno.serve(async (req) => {
         start_date: start.toISOString(),
         end_date: end.toISOString(),
         duration_days: days,
+        duration_value: days,
+        duration_unit: "days",
         created_by: "nowpayments",
       },
       { onConflict: "user_id" },
