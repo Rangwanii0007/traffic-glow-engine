@@ -156,7 +156,7 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
       price_currency: "usd",
       pay_currency: data.payCurrency,
       order_id: orderId,
-      order_description: `AD4YOU ${plan.name} Plan - ${plan.duration_days} Days`,
+      order_description: `AD4YOU ${packageLabel} - ${days} Days`,
       ipn_callback_url: `${ipnBase}/functions/v1/nowpayments-webhook`,
       success_url: data.successUrl,
       cancel_url: data.cancelUrl,
