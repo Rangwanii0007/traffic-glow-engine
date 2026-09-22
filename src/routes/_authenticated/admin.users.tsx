@@ -22,6 +22,11 @@ type Plan = {
   duration_value: number | null; duration_unit: DurationUnit | null; is_free: boolean | null; is_unlimited: boolean | null;
 };
 
+type PricingOption = {
+  id: string; plan_id: string; label: string | null; price: number;
+  duration_value: number; duration_unit: DurationUnit; is_active: boolean | null;
+};
+
 type CustomState = {
   userId: string; email: string; planId: string; title: string;
   value: number; unit: DurationUnit; unlimited: boolean; start: string; notes: string;
@@ -60,6 +65,18 @@ function UsersAdmin() {
         .order("sort_order");
       if (basic.error) throw new Error(basic.error.message);
       return (basic.data ?? []) as unknown as Plan[];
+    },
+  });
+
+  // Admin-defined duration/price options (30/60/90 days etc.) per plan.
+  const optionsQ = useQuery({
+    queryKey: ["admin-users-plan-options"],
+    queryFn: async () => {
+      const { data } = await (supabase as never as typeof supabase)
+        .from("plan_pricing_options" as never)
+        .select("*")
+        .order("sort_order");
+      return (data ?? []) as unknown as PricingOption[];
     },
   });
 
