@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
 
   const { data: payment, error: fetchErr } = await admin
     .from("payments")
-    .select("id, user_id, plan_id, status")
+    .select("id, user_id, plan_id, status, nowpayments_order_id")
     .eq("nowpayments_id", npId)
     .maybeSingle();
 
