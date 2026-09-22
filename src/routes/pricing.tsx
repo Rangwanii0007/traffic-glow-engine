@@ -171,7 +171,14 @@ function PricingPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [duration, setDuration] = useState<Duration>(30);
-  const [selectedPlan, setSelectedPlan] = useState<null | { id: string; name: string; slug: string; price: number; duration_days: number }>(null);
+  const [selectedPlan, setSelectedPlan] = useState<null | {
+    id: string;
+    name: string;
+    slug: string;
+    price: number;
+    duration_days: number;
+    pricingOptionId?: string | null;
+  }>(null);
   const [article, setArticle] = useState<PlanArticle | null>(null);
 
   const articlesQ = useQuery({
