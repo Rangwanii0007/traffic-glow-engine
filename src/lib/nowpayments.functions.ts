@@ -12,7 +12,22 @@ type InvoiceInput = {
   successUrl: string;
   cancelUrl: string;
   referralCode?: string | null;
+  /** Selected admin-defined duration/price option (plan_pricing_options.id). */
+  pricingOptionId?: string | null;
 };
+
+const UNIT_DAYS: Record<string, number> = {
+  minutes: 1 / 1440,
+  hours: 1 / 24,
+  days: 1,
+  weeks: 7,
+  months: 30,
+};
+
+function toDays(value: number, unit: string): number {
+  const factor = UNIT_DAYS[String(unit || "days").toLowerCase()] ?? 1;
+  return Math.max(1, Math.ceil(value * factor));
+}
 
 type InvoiceResult = {
   payment_id: string;
