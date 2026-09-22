@@ -116,6 +116,7 @@ export function CryptoCheckoutModal({
       const inv = await createInvoice({
         data: {
           planId: plan.id,
+          pricingOptionId: plan.pricingOptionId ?? null,
           payCurrency: selected,
           referralCode: refState.status === "valid" ? refCode.trim() : null,
           successUrl: `${window.location.origin}/dashboard/billing?success=true`,
