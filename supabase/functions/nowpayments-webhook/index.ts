@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
 
   const { data: payment, error: fetchErr } = await admin
     .from("payments")
-    .select("id, user_id, plan_id, status")
+    .select("id, user_id, plan_id, status, nowpayments_order_id")
     .eq("nowpayments_id", npId)
     .maybeSingle();
 
@@ -108,7 +108,13 @@ Deno.serve(async (req) => {
       .eq("id", payment.plan_id)
       .maybeSingle();
 
-    const days = plan?.duration_days ?? 30;
+    // The purchased duration is encoded in the order id (…_d60_…) so the
+    // exact selected package length wins over the plan default.
+    const orderRef = String(
+      (payment as { nowpayments_order_id?: string }).nowpayments_order_id ?? payload.order_id ?? "",
+    );
+    const encoded = orderRef.match(/_d(\d+)_/);
+    const days = encoded ? Number(encoded[1]) : (plan?.duration_days ?? 30);
     const start = new Date();
     const end = new Date(start.getTime() + days * 24 * 60 * 60 * 1000);
 
@@ -120,6 +126,8 @@ Deno.serve(async (req) => {
         start_date: start.toISOString(),
         end_date: end.toISOString(),
         duration_days: days,
+        duration_value: days,
+        duration_unit: "days",
         created_by: "nowpayments",
       },
       { onConflict: "user_id" },

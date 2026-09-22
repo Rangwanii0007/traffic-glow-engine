@@ -30,6 +30,7 @@ import { Markdown } from "@/components/Markdown";
 import { listPlanArticles, type PlanArticle } from "@/lib/plan-articles.functions";
 import { cn } from "@/lib/utils";
 import { PageGate } from "@/components/PageGate";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
@@ -170,7 +171,14 @@ function PricingPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [duration, setDuration] = useState<Duration>(30);
-  const [selectedPlan, setSelectedPlan] = useState<null | { id: string; name: string; slug: string; price: number; duration_days: number }>(null);
+  const [selectedPlan, setSelectedPlan] = useState<null | {
+    id: string;
+    name: string;
+    slug: string;
+    price: number;
+    duration_days: number;
+    pricingOptionId?: string | null;
+  }>(null);
   const [article, setArticle] = useState<PlanArticle | null>(null);
 
   const articlesQ = useQuery({
@@ -286,17 +294,20 @@ function PricingPage() {
 
   function handleBuy(spec: PlanSpec) {
     const plan = plansBySlug.get(spec.slug);
-    if (!plan || !user) {
-      navigate({ to: plan ? "/register" : "/contact" });
+    if (!plan) {
+      toast.error(`${spec.name} is not published yet. Please try again shortly.`);
+      return;
+    }
+    if (!user) {
+      navigate({ to: "/register" });
       return;
     }
     const offer = offerFor(plan.id);
     const option = optionFor(plan.id, duration);
-    const storedPrice = option ? Number(option.price) : Number(plan.price) || 0;
-    const checkoutBase = offer ? Number(offer.original_price) || storedPrice : storedPrice;
+    const listPrice = option ? Number(option.price) : Number(plan.price) || 0;
     const checkoutPrice = offer
-      ? Math.max(0, checkoutBase * (1 - Number(offer.discount_percent) / 100))
-      : storedPrice;
+      ? Math.max(0, listPrice * (1 - Number(offer.discount_percent) / 100))
+      : listPrice;
     const label = option ? `${plan.name} — ${option.label}` : plan.name;
     setSelectedPlan({
       id: plan.id,
@@ -304,6 +315,7 @@ function PricingPage() {
       slug: plan.slug,
       price: Number(checkoutPrice.toFixed(2)),
       duration_days: option ? Number(option.duration_value) : plan.duration_days ?? 30,
+      pricingOptionId: option?.id ?? null,
     });
   }
 

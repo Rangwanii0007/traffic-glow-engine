@@ -12,7 +12,22 @@ type InvoiceInput = {
   successUrl: string;
   cancelUrl: string;
   referralCode?: string | null;
+  /** Selected admin-defined duration/price option (plan_pricing_options.id). */
+  pricingOptionId?: string | null;
 };
+
+const UNIT_DAYS: Record<string, number> = {
+  minutes: 1 / 1440,
+  hours: 1 / 24,
+  days: 1,
+  weeks: 7,
+  months: 30,
+};
+
+function toDays(value: number, unit: string): number {
+  const factor = UNIT_DAYS[String(unit || "days").toLowerCase()] ?? 1;
+  return Math.max(1, Math.ceil(value * factor));
+}
 
 type InvoiceResult = {
   payment_id: string;
@@ -80,15 +95,57 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
       .eq("id", data.planId)
       .maybeSingle();
     if (planErr || !plan) throw new Error("Plan not found");
-    if (plan.is_free || Number(plan.price) <= 0) throw new Error("Cannot purchase a free plan");
+    if (plan.is_free) throw new Error("Cannot purchase a free plan");
     if (!plan.is_active) throw new Error("Plan not available");
+
+    // The admin-defined duration/price option is the source of truth when picked.
+    let listPrice = Number(plan.price) || 0;
+    let days = Number(plan.duration_days) || 30;
+    let packageLabel = plan.name as string;
+
+    if (data.pricingOptionId) {
+      const { data: option } = await (admin as never as typeof admin)
+        .from("plan_pricing_options" as never)
+        .select("*")
+        .eq("id", data.pricingOptionId)
+        .maybeSingle();
+      const row = option as unknown as
+        | { plan_id: string; label: string | null; price: number; duration_value: number; duration_unit: string; is_active: boolean | null }
+        | null;
+      if (!row || row.plan_id !== plan.id || row.is_active === false) {
+        throw new Error("Selected pricing option is not available");
+      }
+      listPrice = Number(row.price) || 0;
+      days = toDays(Number(row.duration_value) || 1, row.duration_unit);
+      packageLabel = `${plan.name} — ${row.label ?? `${row.duration_value} ${row.duration_unit}`}`;
+    }
+
+    if (listPrice <= 0) throw new Error("This plan has no price configured yet");
+
+    // Live admin offer discount, validated on the server.
+    const nowIso = new Date().toISOString();
+    const { data: offers } = await admin
+      .from("discount_offers")
+      .select("*")
+      .eq("plan_id", plan.id)
+      .eq("is_active", true)
+      .order("discount_percent", { ascending: false });
+    const offer = (offers ?? []).find((o) => {
+      const seats = o.seats_remaining;
+      const startsOk = !o.starts_at || o.starts_at <= nowIso;
+      const endsOk = !o.ends_at || o.ends_at > nowIso;
+      return (seats === null || Number(seats) > 0) && startsOk && endsOk;
+    });
+    const offerPercent = offer ? Math.min(95, Math.max(0, Number(offer.discount_percent) || 0)) : 0;
 
     // Referral discount is resolved and applied on the SERVER only.
     const discount = await resolveReferralDiscount(admin, userId, data.referralCode);
-    const originalPrice = Number(plan.price);
-    const finalPrice = applyDiscount(originalPrice, discount.valid ? discount.discountPercent : 0);
+    const originalPrice = listPrice;
+    const afterOffer = applyDiscount(originalPrice, offerPercent);
+    const finalPrice = applyDiscount(afterOffer, discount.valid ? discount.discountPercent : 0);
 
-    const orderId = `sub_${userId}_${plan.slug}_${Date.now()}`;
+    // Days are encoded so the IPN webhook activates the exact purchased length.
+    const orderId = `sub_${userId}_${plan.slug}_d${days}_${Date.now()}`;
     const { url: externalUrl } = getExternalEnv();
     // IPN must hit our edge function. Webhook is hosted on Lovable Cloud infra
     // but writes to external project via EXTERNAL_SUPABASE_* secrets.
@@ -99,7 +156,7 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
       price_currency: "usd",
       pay_currency: data.payCurrency,
       order_id: orderId,
-      order_description: `AD4YOU ${plan.name} Plan - ${plan.duration_days} Days`,
+      order_description: `AD4YOU ${packageLabel} - ${days} Days`,
       ipn_callback_url: `${ipnBase}/functions/v1/nowpayments-webhook`,
       success_url: data.successUrl,
       cancel_url: data.cancelUrl,

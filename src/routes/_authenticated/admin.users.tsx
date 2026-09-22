@@ -22,6 +22,11 @@ type Plan = {
   duration_value: number | null; duration_unit: DurationUnit | null; is_free: boolean | null; is_unlimited: boolean | null;
 };
 
+type PricingOption = {
+  id: string; plan_id: string; label: string | null; price: number;
+  duration_value: number; duration_unit: DurationUnit; is_active: boolean | null;
+};
+
 type CustomState = {
   userId: string; email: string; planId: string; title: string;
   value: number; unit: DurationUnit; unlimited: boolean; start: string; notes: string;
@@ -63,6 +68,18 @@ function UsersAdmin() {
     },
   });
 
+  // Admin-defined duration/price options (30/60/90 days etc.) per plan.
+  const optionsQ = useQuery({
+    queryKey: ["admin-users-plan-options"],
+    queryFn: async () => {
+      const { data } = await (supabase as never as typeof supabase)
+        .from("plan_pricing_options" as never)
+        .select("*")
+        .order("sort_order");
+      return (data ?? []) as unknown as PricingOption[];
+    },
+  });
+
   const q = useQuery({
     queryKey: ["admin-users", search],
     queryFn: async () => {
@@ -96,6 +113,13 @@ function UsersAdmin() {
       .on("postgres_changes", { event: "*", schema: "public", table: "subscriptions" }, () => {
         qc.invalidateQueries({ queryKey: ["admin-users"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "plans" }, () => {
+        qc.invalidateQueries({ queryKey: ["admin-users-plans"] });
+        qc.invalidateQueries({ queryKey: ["admin-users"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "plan_pricing_options" }, () => {
+        qc.invalidateQueries({ queryKey: ["admin-users-plan-options"] });
+      })
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [qc]);
@@ -122,30 +146,40 @@ function UsersAdmin() {
     return error;
   };
 
-  const assignPlan = async (userId: string, planId: string) => {
+  /** `selection` is a plan id, or `opt:<pricing option id>` for a specific duration. */
+  const assignPlan = async (userId: string, selection: string) => {
+    const option = selection.startsWith("opt:")
+      ? optionsQ.data?.find((o) => o.id === selection.slice(4)) ?? null
+      : null;
+    const planId = option ? option.plan_id : selection;
     const plan = plansQ.data?.find((p) => p.id === planId);
     if (!plan) return;
     setAssigning(userId);
-    const unlimited = !!plan.is_unlimited || (plan.duration_days ?? 0) === 0;
-    const value = plan.duration_value ?? (plan.duration_days || 30);
-    const unit = plan.duration_unit ?? "days";
+    const unlimited = option ? false : !!plan.is_unlimited || (plan.duration_days ?? 0) === 0;
+    const value = option ? Number(option.duration_value) : plan.duration_value ?? (plan.duration_days || 30);
+    const unit: DurationUnit = option ? option.duration_unit : plan.duration_unit ?? "days";
     const start = new Date();
+    const end = unlimited ? new Date("2099-12-31T23:59:59Z") : computeExpiry(start, value, unit);
+    const label = option
+      ? `${plan.title ?? plan.name} — ${option.label ?? `${option.duration_value} ${option.duration_unit}`}`
+      : plan.title ?? plan.name;
     const error = await upsertSubscription({
       user_id: userId,
       plan_id: planId,
       status: "active",
       start_date: start.toISOString(),
-      end_date: unlimited ? "2099-12-31T23:59:59Z" : computeExpiry(start, value, unit).toISOString(),
+      end_date: end.toISOString(),
       duration_value: unlimited ? null : value,
       duration_unit: unit,
       is_unlimited: unlimited,
-      duration_days: unlimited ? 0 : plan.duration_days ?? 30,
-      package_title: plan.title ?? plan.name,
+      duration_days: unlimited ? 0 : Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 86400000)),
+      package_title: label,
+      pricing_option_id: option?.id ?? null,
       created_by: "admin",
     });
     setAssigning(null);
     if (error) return toast.error(error.message);
-    toast.success(`Assigned ${plan.title ?? plan.name}`);
+    toast.success(`Assigned ${label}`);
     qc.invalidateQueries({ queryKey: ["admin-users"] });
   };
 
@@ -239,9 +273,28 @@ function UsersAdmin() {
                           <SelectValue placeholder="Assign plan…">{sub?.plans?.title ?? sub?.plans?.name ?? "No plan"}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          {plansQ.data?.map((p) => (
-                            <SelectItem key={p.id} value={p.id}>{p.title ?? p.name}</SelectItem>
-                          ))}
+                          {!plansQ.data?.length && (
+                            <div className="px-2 py-3 text-xs text-muted-foreground">
+                              {plansQ.isError
+                                ? `Could not load plans: ${(plansQ.error as Error).message}`
+                                : "No active plans yet — create them in Admin → Plans."}
+                            </div>
+                          )}
+                          {plansQ.data?.map((p) => {
+                            const opts = (optionsQ.data ?? []).filter(
+                              (o) => o.plan_id === p.id && o.is_active !== false,
+                            );
+                            return (
+                              <div key={p.id}>
+                                <SelectItem value={p.id}>{p.title ?? p.name}</SelectItem>
+                                {opts.map((o) => (
+                                  <SelectItem key={o.id} value={`opt:${o.id}`} className="pl-6 text-muted-foreground">
+                                    {p.title ?? p.name} — {o.label ?? `${o.duration_value} ${o.duration_unit}`}
+                                  </SelectItem>
+                                ))}
+                              </div>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     </td>
