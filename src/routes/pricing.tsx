@@ -30,6 +30,7 @@ import { Markdown } from "@/components/Markdown";
 import { listPlanArticles, type PlanArticle } from "@/lib/plan-articles.functions";
 import { cn } from "@/lib/utils";
 import { PageGate } from "@/components/PageGate";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
