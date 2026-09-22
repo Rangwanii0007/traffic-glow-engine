@@ -10,7 +10,14 @@ import { Input } from "@/components/ui/input";
 import { getStoredRef } from "@/lib/referral";
 import { cn } from "@/lib/utils";
 
-type Plan = { id: string; name: string; slug: string; price: number; duration_days: number };
+type Plan = {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  duration_days: number;
+  pricingOptionId?: string | null;
+};
 
 const CRYPTOS = [
   { code: "btc", name: "Bitcoin", symbol: "BTC", color: "from-orange-500 to-amber-600" },
