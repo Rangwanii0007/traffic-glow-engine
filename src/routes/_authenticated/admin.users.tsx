@@ -273,9 +273,28 @@ function UsersAdmin() {
                           <SelectValue placeholder="Assign plan…">{sub?.plans?.title ?? sub?.plans?.name ?? "No plan"}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          {plansQ.data?.map((p) => (
-                            <SelectItem key={p.id} value={p.id}>{p.title ?? p.name}</SelectItem>
-                          ))}
+                          {!plansQ.data?.length && (
+                            <div className="px-2 py-3 text-xs text-muted-foreground">
+                              {plansQ.isError
+                                ? `Could not load plans: ${(plansQ.error as Error).message}`
+                                : "No active plans yet — create them in Admin → Plans."}
+                            </div>
+                          )}
+                          {plansQ.data?.map((p) => {
+                            const opts = (optionsQ.data ?? []).filter(
+                              (o) => o.plan_id === p.id && o.is_active !== false,
+                            );
+                            return (
+                              <div key={p.id}>
+                                <SelectItem value={p.id}>{p.title ?? p.name}</SelectItem>
+                                {opts.map((o) => (
+                                  <SelectItem key={o.id} value={`opt:${o.id}`} className="pl-6 text-muted-foreground">
+                                    {p.title ?? p.name} — {o.label ?? `${o.duration_value} ${o.duration_unit}`}
+                                  </SelectItem>
+                                ))}
+                              </div>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     </td>
