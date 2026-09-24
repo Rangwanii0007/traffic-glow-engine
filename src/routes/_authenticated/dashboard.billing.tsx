@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CryptoCheckoutModal } from "@/components/pricing/CryptoCheckoutModal";
 import { cn } from "@/lib/utils";
+import { daysOf, durationLabel, optionsForPlan, usePlanCatalog } from "@/lib/plan-catalog";
 
 type SearchParams = { success?: boolean; cancelled?: boolean };
 
@@ -28,7 +29,14 @@ function BillingPage() {
   const search = useSearch({ from: "/_authenticated/dashboard/billing" });
   const navigate = useNavigate();
 
-  const [selectedPlan, setSelectedPlan] = useState<null | { id: string; name: string; slug: string; price: number; duration_days: number }>(null);
+  const [selectedPlan, setSelectedPlan] = useState<null | {
+    id: string;
+    name: string;
+    slug: string;
+    price: number;
+    duration_days: number;
+    pricingOptionId?: string | null;
+  }>(null);
 
   useEffect(() => {
     if (search.success) {
@@ -57,13 +65,8 @@ function BillingPage() {
     };
   }, [uid, qc]);
 
-  const plansQ = useQuery({
-    queryKey: ["plans-all"],
-    queryFn: async () => {
-      const { data } = await supabase.from("plans").select("*").eq("is_active", true).order("sort_order");
-      return data ?? [];
-    },
-  });
+  // Plans, prices and durations all come live from the database catalogue.
+  const { plansQ, optionsQ } = usePlanCatalog();
 
   const subQ = useQuery({
     queryKey: ["my-subscription", uid],
@@ -105,7 +108,7 @@ function BillingPage() {
 
   const sub = subQ.data;
   const currentPlanId = sub?.plan_id;
-  const otherPlans = plansQ.data?.filter((p) => p.id !== currentPlanId && !p.is_free) ?? [];
+  const otherPlans = plansQ.data?.filter((p) => !p.is_free) ?? [];
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -150,41 +153,80 @@ function BillingPage() {
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {otherPlans.map((p) => (
-              <div
-                key={p.id}
-                className={cn(
-                  "glass-card rounded-2xl p-6 relative overflow-hidden",
-                  p.is_popular && "ring-2 ring-primary/40 shadow-[0_0_40px_rgba(139,92,246,0.2)]",
-                )}
-              >
-                {p.is_popular && (
-                  <span className="absolute top-4 right-4 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-gradient-to-r from-primary to-accent text-white">
-                    Popular
-                  </span>
-                )}
-                <h3 className="font-bold text-lg" style={{ color: p.color ?? undefined }}>{p.name}</h3>
-                <p className="text-3xl font-bold mt-2">
-                  ${Number(p.price).toFixed(2)}
-                  <span className="text-sm text-muted-foreground font-normal">/{p.duration_days} days</span>
-                </p>
-                <p className="text-sm text-muted-foreground mt-2 mb-5">{p.description}</p>
-                <Button
-                  className="w-full bg-gradient-to-r from-primary to-accent text-white"
-                  onClick={() =>
-                    setSelectedPlan({
-                      id: p.id,
-                      name: p.name,
-                      slug: p.slug,
-                      price: Number(p.price),
-                      duration_days: p.duration_days ?? 30,
-                    })
-                  }
+            {otherPlans.map((p) => {
+              const options = optionsForPlan(optionsQ.data, p.id);
+              const basePeriod = durationLabel(
+                Number(p.duration_value ?? p.duration_days ?? 30),
+                p.duration_unit ?? "days",
+              );
+              return (
+                <div
+                  key={p.id}
+                  className={cn(
+                    "glass-card rounded-2xl p-6 relative overflow-hidden",
+                    p.is_popular && "ring-2 ring-primary/40 shadow-[0_0_40px_rgba(139,92,246,0.2)]",
+                  )}
                 >
-                  {sub?.plan_id === p.id ? "Renew" : "Upgrade"}
-                </Button>
-              </div>
-            ))}
+                  {p.is_popular && (
+                    <span className="absolute top-4 right-4 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-gradient-to-r from-primary to-accent text-white">
+                      Popular
+                    </span>
+                  )}
+                  <h3 className="font-bold text-lg" style={{ color: p.color ?? undefined }}>{p.title ?? p.name}</h3>
+                  <p className="text-sm text-muted-foreground mt-2 mb-4">{p.description}</p>
+
+                  {options.length > 0 ? (
+                    <div className="space-y-2">
+                      {options.map((o) => (
+                        <Button
+                          key={o.id}
+                          variant="outline"
+                          className="w-full justify-between"
+                          onClick={() =>
+                            setSelectedPlan({
+                              id: p.id,
+                              name: `${p.name} — ${o.label ?? durationLabel(o.duration_value, o.duration_unit)}`,
+                              slug: p.slug,
+                              price: Number(o.price),
+                              duration_days: daysOf(o.duration_value, o.duration_unit),
+                              pricingOptionId: o.id,
+                            })
+                          }
+                        >
+                          <span>{o.label ?? durationLabel(o.duration_value, o.duration_unit)}</span>
+                          <span className="font-bold">${Number(o.price).toFixed(2)}</span>
+                        </Button>
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-3xl font-bold mb-4">
+                        ${Number(p.price ?? 0).toFixed(2)}
+                        <span className="text-sm text-muted-foreground font-normal"> / {basePeriod}</span>
+                      </p>
+                      <Button
+                        className="w-full bg-gradient-to-r from-primary to-accent text-white"
+                        onClick={() =>
+                          setSelectedPlan({
+                            id: p.id,
+                            name: p.name,
+                            slug: p.slug,
+                            price: Number(p.price ?? 0),
+                            duration_days: daysOf(
+                              Number(p.duration_value ?? p.duration_days ?? 30),
+                              p.duration_unit ?? "days",
+                            ),
+                            pricingOptionId: null,
+                          })
+                        }
+                      >
+                        {sub?.plan_id === p.id ? "Renew" : "Upgrade"}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

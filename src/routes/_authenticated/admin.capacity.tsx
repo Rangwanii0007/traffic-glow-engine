@@ -11,17 +11,14 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { capacitySummary, type CapacityAddonRow } from "@/lib/capacity";
+import { usePlanCatalog } from "@/lib/plan-catalog";
 
 export const Route = createFileRoute("/_authenticated/admin/capacity")({
   head: () => ({ meta: [{ title: "Admin · PC Capacity — AD4YOU" }] }),
   component: CapacityAdmin,
 });
 
-const PRESETS = [
-  { extra: 100, price: 30 },
-  { extra: 200, price: 60 },
-  { extra: 300, price: 90 },
-];
+// Extra-PC presets come from the database (public.capacity_packages), never code.
 
 type UserRow = { id: string; email: string; full_name: string | null };
 
@@ -33,7 +30,9 @@ function CapacityAdmin() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState<string | null>(null);
-  const [form, setForm] = useState({ extra: 100, price: 30, expires_at: "", note: "" });
+  const [form, setForm] = useState({ extra: 0, price: 0, expires_at: "", note: "" });
+  const { packagesQ } = usePlanCatalog();
+  const presets = (packagesQ.data ?? []).filter((p) => (p.is_active ?? true) && Number(p.extra_pcs) > 0);
 
   const usersQ = useQuery({
     queryKey: ["admin-capacity-users"],
@@ -191,14 +190,16 @@ function CapacityAdmin() {
                   <DialogContent className="max-w-md">
                     <DialogHeader><DialogTitle>Extra PCs for {user.email}</DialogTitle></DialogHeader>
                     <div className="space-y-3">
-                      <div className="flex gap-2">
-                        {PRESETS.map((p) => (
-                          <Button key={p.extra} type="button" variant="outline" size="sm"
-                            onClick={() => setForm((f) => ({ ...f, extra: p.extra, price: p.price }))}>
-                            +{p.extra} · ${p.price}
-                          </Button>
-                        ))}
-                      </div>
+                      {presets.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {presets.map((p) => (
+                            <Button key={p.id} type="button" variant="outline" size="sm"
+                              onClick={() => setForm((f) => ({ ...f, extra: Number(p.extra_pcs), price: Number(p.price) }))}>
+                              {p.label ?? `+${Number(p.extra_pcs)}`} · ${Number(p.price).toFixed(0)}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
                       <label className="block space-y-1">
                         <span className="text-xs text-muted-foreground">Extra PCs</span>
                         <Input type="number" min={1} value={form.extra} onChange={(e) => setForm((f) => ({ ...f, extra: Number(e.target.value) }))} />
