@@ -11,17 +11,14 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { capacitySummary, type CapacityAddonRow } from "@/lib/capacity";
+import { usePlanCatalog } from "@/lib/plan-catalog";
 
 export const Route = createFileRoute("/_authenticated/admin/capacity")({
   head: () => ({ meta: [{ title: "Admin · PC Capacity — AD4YOU" }] }),
   component: CapacityAdmin,
 });
 
-const PRESETS = [
-  { extra: 100, price: 30 },
-  { extra: 200, price: 60 },
-  { extra: 300, price: 90 },
-];
+// Extra-PC presets come from the database (public.capacity_packages), never code.
 
 type UserRow = { id: string; email: string; full_name: string | null };
 
