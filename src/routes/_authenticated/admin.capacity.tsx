@@ -30,7 +30,9 @@ function CapacityAdmin() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState<string | null>(null);
-  const [form, setForm] = useState({ extra: 100, price: 30, expires_at: "", note: "" });
+  const [form, setForm] = useState({ extra: 0, price: 0, expires_at: "", note: "" });
+  const { packagesQ } = usePlanCatalog();
+  const presets = (packagesQ.data ?? []).filter((p) => (p.is_active ?? true) && Number(p.extra_pcs) > 0);
 
   const usersQ = useQuery({
     queryKey: ["admin-capacity-users"],
