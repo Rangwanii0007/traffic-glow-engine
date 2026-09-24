@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CryptoCheckoutModal } from "@/components/pricing/CryptoCheckoutModal";
 import { cn } from "@/lib/utils";
+import { daysOf, durationLabel, optionsForPlan, usePlanCatalog } from "@/lib/plan-catalog";
 
 type SearchParams = { success?: boolean; cancelled?: boolean };
 
@@ -28,7 +29,14 @@ function BillingPage() {
   const search = useSearch({ from: "/_authenticated/dashboard/billing" });
   const navigate = useNavigate();
 
-  const [selectedPlan, setSelectedPlan] = useState<null | { id: string; name: string; slug: string; price: number; duration_days: number }>(null);
+  const [selectedPlan, setSelectedPlan] = useState<null | {
+    id: string;
+    name: string;
+    slug: string;
+    price: number;
+    duration_days: number;
+    pricingOptionId?: string | null;
+  }>(null);
 
   useEffect(() => {
     if (search.success) {
@@ -57,13 +65,8 @@ function BillingPage() {
     };
   }, [uid, qc]);
 
-  const plansQ = useQuery({
-    queryKey: ["plans-all"],
-    queryFn: async () => {
-      const { data } = await supabase.from("plans").select("*").eq("is_active", true).order("sort_order");
-      return data ?? [];
-    },
-  });
+  // Plans, prices and durations all come live from the database catalogue.
+  const { plansQ, optionsQ } = usePlanCatalog();
 
   const subQ = useQuery({
     queryKey: ["my-subscription", uid],
