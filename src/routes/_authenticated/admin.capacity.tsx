@@ -190,14 +190,16 @@ function CapacityAdmin() {
                   <DialogContent className="max-w-md">
                     <DialogHeader><DialogTitle>Extra PCs for {user.email}</DialogTitle></DialogHeader>
                     <div className="space-y-3">
-                      <div className="flex gap-2">
-                        {PRESETS.map((p) => (
-                          <Button key={p.extra} type="button" variant="outline" size="sm"
-                            onClick={() => setForm((f) => ({ ...f, extra: p.extra, price: p.price }))}>
-                            +{p.extra} · ${p.price}
-                          </Button>
-                        ))}
-                      </div>
+                      {presets.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {presets.map((p) => (
+                            <Button key={p.id} type="button" variant="outline" size="sm"
+                              onClick={() => setForm((f) => ({ ...f, extra: Number(p.extra_pcs), price: Number(p.price) }))}>
+                              {p.label ?? `+${Number(p.extra_pcs)}`} · ${Number(p.price).toFixed(0)}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
                       <label className="block space-y-1">
                         <span className="text-xs text-muted-foreground">Extra PCs</span>
                         <Input type="number" min={1} value={form.extra} onChange={(e) => setForm((f) => ({ ...f, extra: Number(e.target.value) }))} />
