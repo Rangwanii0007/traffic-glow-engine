@@ -100,6 +100,26 @@ Deno.serve(async (req) => {
     })
     .eq("id", payment.id);
 
+  // Extra-PC purchase: grant capacity once; it follows the subscription expiry.
+  const pcsRef = String(
+    (payment as { nowpayments_order_id?: string }).nowpayments_order_id ?? payload.order_id ?? "",
+  );
+  const pcs = pcsRef.match(/^pcs_([0-9a-f-]{36})_([0-9a-f-]{36})_/);
+  if (mappedStatus === "confirmed" && payment.status !== "confirmed" && pcs) {
+    const { data: pkg } = await admin.from("capacity_packages").select("*").eq("id", pcs[2]).maybeSingle();
+    if (pkg) {
+      await admin.from("capacity_addons").insert({
+        user_id: payment.user_id,
+        extra_pcs: pkg.extra_pcs,
+        price: pkg.price,
+        currency: pkg.currency ?? "USD",
+        label: pkg.label ?? `+${pkg.extra_pcs} PCs`,
+        note: `Purchased via crypto (${npId})`,
+        created_by: "nowpayments",
+      });
+    }
+  }
+
   // Activate subscription on confirmation
   if (mappedStatus === "confirmed" && payment.status !== "confirmed" && payment.plan_id) {
     const { data: plan } = await admin

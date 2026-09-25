@@ -14,6 +14,8 @@ type InvoiceInput = {
   referralCode?: string | null;
   /** Selected admin-defined duration/price option (plan_pricing_options.id). */
   pricingOptionId?: string | null;
+  /** Extra-PC package (capacity_packages.id) — buys capacity instead of a plan. */
+  capacityPackageId?: string | null;
 };
 
 const UNIT_DAYS: Record<string, number> = {
@@ -88,6 +90,10 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
     if (!apiKey) throw new Error("NOWPAYMENTS_API_KEY not configured");
 
     const { userId, admin } = await authenticateRequest();
+
+    if (data.capacityPackageId) {
+      return createAddonInvoice(admin, userId, data, apiKey);
+    }
 
     const { data: plan, error: planErr } = await admin
       .from("plans")
@@ -212,6 +218,81 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
       referral_code: discount.valid ? (discount.code ?? null) : null,
     };
   });
+
+async function createAddonInvoice(
+  admin: ReturnType<typeof getAdminClient>,
+  userId: string,
+  data: InvoiceInput,
+  apiKey: string,
+): Promise<InvoiceResult> {
+  const { data: pkgRaw } = await (admin as never as typeof admin)
+    .from("capacity_packages" as never)
+    .select("*")
+    .eq("id", data.capacityPackageId!)
+    .maybeSingle();
+  const pkg = pkgRaw as unknown as { id: string; extra_pcs: number; price: number; is_active: boolean | null } | null;
+  if (!pkg || pkg.is_active === false || Number(pkg.extra_pcs) <= 0) throw new Error("This PC package is not available");
+  const price = Number(pkg.price) || 0;
+  if (price <= 0) throw new Error("This PC package has no price configured");
+
+  // Extra PCs attach to a live paid subscription only.
+  const { data: sub } = await admin
+    .from("subscriptions")
+    .select("status, end_date, plan_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  const { data: subPlan } = sub?.plan_id
+    ? await admin.from("plans").select("is_free").eq("id", sub.plan_id).maybeSingle()
+    : { data: null };
+  if (!sub || sub.status !== "active" || new Date(sub.end_date).getTime() <= Date.now() || subPlan?.is_free) {
+    throw new Error("You need an active paid plan before adding extra PCs");
+  }
+
+  const discount = await resolveReferralDiscount(admin, userId, data.referralCode);
+  const finalPrice = applyDiscount(price, discount.valid ? discount.discountPercent : 0);
+  const orderId = `pcs_${userId}_${pkg.id}_${Date.now()}`;
+  const ipnBase = process.env.SUPABASE_URL || getExternalEnv().url;
+
+  const res = await fetch(`${NP_API}/payment`, {
+    method: "POST",
+    headers: { "x-api-key": apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      price_amount: finalPrice,
+      price_currency: "usd",
+      pay_currency: data.payCurrency,
+      order_id: orderId,
+      order_description: `AD4YOU +${pkg.extra_pcs} PCs`,
+      ipn_callback_url: `${ipnBase}/functions/v1/nowpayments-webhook`,
+      success_url: data.successUrl,
+      cancel_url: data.cancelUrl,
+    }),
+  });
+  if (!res.ok) {
+    console.error("[nowpayments] addon payment failed", res.status, await res.text());
+    throw new Error(`Payment provider error (${res.status})`);
+  }
+  const np = (await res.json()) as {
+    payment_id: number | string; pay_address: string; pay_amount: number; pay_currency: string;
+    price_amount: number; price_currency: string; order_id: string; expiration_estimate_date?: string; invoice_url?: string;
+  };
+  await admin.from("payments").insert({
+    user_id: userId,
+    plan_id: null,
+    amount: finalPrice,
+    currency: "USD",
+    crypto_type: data.payCurrency,
+    nowpayments_id: String(np.payment_id),
+    nowpayments_order_id: orderId,
+    status: "waiting",
+  });
+  return {
+    payment_id: String(np.payment_id), pay_address: np.pay_address, pay_amount: np.pay_amount,
+    pay_currency: np.pay_currency, price_amount: np.price_amount, price_currency: np.price_currency,
+    order_id: np.order_id, expiration_estimate_date: np.expiration_estimate_date, invoice_url: np.invoice_url,
+    discount_percent: discount.valid ? discount.discountPercent : 0, original_amount: price,
+    referral_code: discount.valid ? (discount.code ?? null) : null,
+  };
+}
 
 export const getPaymentStatus = createServerFn({ method: "POST" })
   .inputValidator((d: { paymentId: string }) => d)
