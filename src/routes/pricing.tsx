@@ -85,6 +85,7 @@ function PricingPage() {
     price: number;
     duration_days: number;
     pricingOptionId?: string | null;
+    capacityPackageId?: string | null;
   }>(null);
   const [article, setArticle] = useState<PlanArticle | null>(null);
 
@@ -188,6 +189,21 @@ function PricingPage() {
       periodLabel: option?.label?.trim() || durationLabel(value, unit),
       currency: option?.currency ?? plan.currency ?? "USD",
     };
+  }
+
+  function handleBuyAddon(addon: { id: string; label: string | null; extra_pcs: number; price: number }) {
+    if (!user) {
+      navigate({ to: "/register" });
+      return;
+    }
+    setSelectedPlan({
+      id: "",
+      name: addon.label ?? `+${Number(addon.extra_pcs).toLocaleString()} PCs`,
+      slug: "extra-pcs",
+      price: Number(addon.price),
+      duration_days: 0,
+      capacityPackageId: addon.id,
+    });
   }
 
   function handleBuy(plan: PlanRow) {
@@ -436,15 +452,18 @@ function PricingPage() {
 
               <div className="mt-8 grid gap-3 sm:grid-cols-3">
                 {capacityPackages.map((addon) => (
-                  <div key={addon.id} className="pricing-addon flex items-center justify-between rounded-lg border border-pricing-line bg-pricing-surface p-5">
+                  <button type="button" key={addon.id} onClick={() => handleBuyAddon(addon)} className="pricing-addon flex items-center justify-between rounded-lg border border-pricing-line bg-pricing-surface p-5 text-left transition-colors hover:border-accent">
                     <div className="flex items-center gap-3">
                       <span className="grid size-10 place-items-center rounded-lg bg-accent/15 text-accent"><Plus className="size-5" /></span>
                       <span className="font-display text-lg font-bold">
                         {addon.label ?? `+${Number(addon.extra_pcs).toLocaleString()} PCs`}
                       </span>
                     </div>
-                    <span className="font-display text-2xl font-bold text-accent">${Number(addon.price).toFixed(0)}</span>
-                  </div>
+                    <span className="text-right">
+                      <span className="block font-display text-2xl font-bold text-accent">${Number(addon.price).toFixed(0)}</span>
+                      <span className="text-xs font-semibold text-muted-foreground">Buy now</span>
+                    </span>
+                  </button>
                 ))}
               </div>
               <p className="mt-5 text-center text-xs leading-5 text-muted-foreground">
