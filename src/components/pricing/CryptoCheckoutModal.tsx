@@ -17,6 +17,7 @@ type Plan = {
   price: number;
   duration_days: number;
   pricingOptionId?: string | null;
+  capacityPackageId?: string | null;
 };
 
 const CRYPTOS = [
@@ -97,7 +98,7 @@ export function CryptoCheckoutModal({
         setStatus(r.status);
         if (r.status === "finished" || r.status === "confirmed") {
           setStep("success");
-          toast.success("Payment confirmed! Premium activated.");
+          toast.success(plan?.capacityPackageId ? "Payment confirmed! Extra PCs added." : "Payment confirmed! Premium activated.");
         } else if (r.status === "failed" || r.status === "expired") {
           toast.error(`Payment ${r.status}`);
         }
@@ -117,6 +118,7 @@ export function CryptoCheckoutModal({
         data: {
           planId: plan.id,
           pricingOptionId: plan.pricingOptionId ?? null,
+          capacityPackageId: plan.capacityPackageId ?? null,
           payCurrency: selected,
           referralCode: refState.status === "valid" ? refCode.trim() : null,
           successUrl: `${window.location.origin}/dashboard/billing?success=true`,
@@ -158,11 +160,11 @@ export function CryptoCheckoutModal({
                   <span className="text-success font-semibold">
                     ${(plan.price * (1 - refState.percent / 100)).toFixed(2)}
                   </span>{" "}
-                  · {plan.duration_days} days · {refState.percent}% off
+                  · {plan.capacityPackageId ? "until your plan ends" : `${plan.duration_days} days`} · {refState.percent}% off
                 </>
               ) : (
                 <>
-                  ${plan.price.toFixed(2)} · {plan.duration_days} days
+                  ${plan.price.toFixed(2)} · {plan.capacityPackageId ? "until your plan ends" : `${plan.duration_days} days`}
                 </>
               )}
             </p>
@@ -304,7 +306,7 @@ export function CryptoCheckoutModal({
             <div className="w-16 h-16 mx-auto rounded-full bg-success/20 grid place-content-center">
               <Check className="w-8 h-8 text-success" />
             </div>
-            <p className="font-semibold">Premium activated</p>
+            <p className="font-semibold">{plan?.capacityPackageId ? "Extra PCs added" : "Premium activated"}</p>
             <p className="text-sm text-muted-foreground">Your subscription is now active.</p>
             <Button
               onClick={() => onOpenChange(false)}
