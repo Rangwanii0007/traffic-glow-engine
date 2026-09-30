@@ -23,6 +23,7 @@ export const planFieldsSchema = z.object({
   max_team_members: z.number().int().min(0).max(1000000).nullable().optional(),
   capacity_note: z.string().trim().max(120).nullable().optional(),
   position_label: z.string().trim().max(120).nullable().optional(),
+  notice_text: z.string().trim().max(2000).nullable().optional(),
 });
 
 export function getAppAdmin() {

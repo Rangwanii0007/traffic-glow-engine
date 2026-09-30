@@ -32,7 +32,7 @@ function OverviewPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("subscriptions")
-        .select("status, start_date, end_date, duration_days, package_title, duration_value, duration_unit, is_unlimited, plans(name, title, color, price, slug, max_pcs, max_team_members)")
+        .select("status, start_date, end_date, duration_days, package_title, duration_value, duration_unit, is_unlimited, plans(name, title, color, price, slug, max_pcs, max_team_members, notice_text)")
         .eq("user_id", uid!)
         .maybeSingle();
       return data as any;
@@ -162,6 +162,13 @@ function OverviewPage() {
         <h1 className="text-3xl font-bold tracking-tight">Welcome back, {profile?.full_name ?? "Publisher"}!</h1>
         <p className="text-muted-foreground mt-1">Here's what's happening with your account.</p>
       </div>
+
+      {(sub?.plans as { notice_text?: string | null } | null)?.notice_text && (
+        <div role="alert" className="rounded-2xl p-4 border border-destructive/40 bg-destructive/10 flex items-start gap-3">
+          <Sparkles className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+          <p className="text-sm whitespace-pre-line">{(sub?.plans as { notice_text?: string | null }).notice_text}</p>
+        </div>
+      )}
 
       {/* current plan card */}
       <div className="glass-card rounded-3xl p-6 sm:p-8 relative overflow-hidden">

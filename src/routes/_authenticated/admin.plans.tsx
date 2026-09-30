@@ -21,7 +21,7 @@ type PlanRow = {
   price: number; currency: string | null; duration_days: number;
   duration_value: number | null; duration_unit: DurationUnit | null; is_unlimited: boolean | null;
   is_free: boolean | null; is_active: boolean | null; is_popular: boolean | null; sort_order: number | null;
-  max_team_members: number | null; capacity_note: string | null; position_label: string | null;
+  max_team_members: number | null; capacity_note: string | null; position_label: string | null; notice_text?: string | null;
 };
 
 type OptionRow = {
@@ -159,6 +159,7 @@ function PlansAdmin() {
                     <Input type="number" min={0} value={v.max_team_members ?? 0} onChange={(e) => update(p.id, { max_team_members: Number(e.target.value) })} />
                   </Field>
                   <Field label="Capacity note"><Input value={v.capacity_note ?? ""} onChange={(e) => update(p.id, { capacity_note: e.target.value })} /></Field>
+                  <Field label="Dashboard notice (shown to users on this plan)"><Input value={v.notice_text ?? ""} onChange={(e) => update(p.id, { notice_text: e.target.value })} /></Field>
                   <Field label="Audience label"><Input value={v.position_label ?? ""} onChange={(e) => update(p.id, { position_label: e.target.value })} /></Field>
                   <Field label="Description"><Input value={v.description ?? ""} onChange={(e) => update(p.id, { description: e.target.value })} /></Field>
                   <div className="md:col-span-3 flex gap-2 justify-end">
