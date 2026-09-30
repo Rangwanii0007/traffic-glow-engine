@@ -4,6 +4,17 @@
 -- Safe, additive, idempotent. Run once in the Supabase SQL Editor.
 -- ============================================================================
 
+-- ── 0) Make sure every column the offers system needs exists ───────────────
+ALTER TABLE public.discount_offers ADD COLUMN IF NOT EXISTS last_decay_at TIMESTAMPTZ;
+ALTER TABLE public.discount_offers ADD COLUMN IF NOT EXISTS daily_decay_min INTEGER NOT NULL DEFAULT 2;
+ALTER TABLE public.discount_offers ADD COLUMN IF NOT EXISTS daily_decay_max INTEGER NOT NULL DEFAULT 6;
+ALTER TABLE public.discount_offers ADD COLUMN IF NOT EXISTS seats_remaining INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE public.discount_offers ADD COLUMN IF NOT EXISTS initial_seats INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE public.discount_offers ADD COLUMN IF NOT EXISTS starts_at TIMESTAMPTZ;
+ALTER TABLE public.discount_offers ADD COLUMN IF NOT EXISTS ends_at TIMESTAMPTZ;
+ALTER TABLE public.discount_offers ADD COLUMN IF NOT EXISTS coupon_code TEXT;
+ALTER TABLE public.discount_offers ADD COLUMN IF NOT EXISTS reason TEXT;
+
 -- ── 1) DISCOUNT OFFERS ──────────────────────────────────────────────────────
 -- New offers must be ACTIVE by default and visible to logged-out visitors.
 ALTER TABLE public.discount_offers
