@@ -136,9 +136,9 @@ function PricingPage() {
 
   type OfferRow = NonNullable<typeof offersQ.data>[number];
 
-  /** Paid, published plans only — the database decides which cards exist. */
+  /** Publicly purchasable plans only. Demo is assigned privately by an admin. */
   const plans = useMemo(
-    () => (plansQ.data ?? []).filter((plan) => !plan.is_free),
+    () => (plansQ.data ?? []).filter((plan) => !plan.is_free && plan.slug.toLowerCase() !== "demo"),
     [plansQ.data],
   );
 
