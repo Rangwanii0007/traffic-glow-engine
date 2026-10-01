@@ -108,7 +108,7 @@ function BillingPage() {
 
   const sub = subQ.data;
   const currentPlanId = sub?.plan_id;
-  const otherPlans = plansQ.data?.filter((p) => !p.is_free) ?? [];
+  const otherPlans = plansQ.data?.filter((p) => !p.is_free && p.slug.toLowerCase() !== "demo") ?? [];
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">

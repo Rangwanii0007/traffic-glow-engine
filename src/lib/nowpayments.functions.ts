@@ -101,6 +101,7 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
       .eq("id", data.planId)
       .maybeSingle();
     if (planErr || !plan) throw new Error("Plan not found");
+    if (String(plan.slug).toLowerCase() === "demo") throw new Error("Demo access can only be assigned by an admin");
     if (plan.is_free) throw new Error("Cannot purchase a free plan");
     if (!plan.is_active) throw new Error("Plan not available");
 

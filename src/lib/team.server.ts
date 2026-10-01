@@ -73,15 +73,15 @@ export async function requireSessionUser() {
   return { user: data.user, admin };
 }
 
-/** Business-plan owners (and site admins) may use the team panel. */
+/** Active paid-plan and admin-assigned Demo owners (plus site admins) may use the team panel. */
 export async function requireBusinessOwner() {
   const { user, admin } = await requireSessionUser();
   const { data: profile } = await admin.from("users").select("role").eq("id", user.id).maybeSingle();
   const isSiteAdmin = (profile as { role?: string } | null)?.role === "admin";
   if (isSiteAdmin) return { user, admin, isSiteAdmin: true };
 
-  // Team management is included with every paid plan (Starter, Pro, Business, Agency
-  // and any custom paid package). Only free plans are excluded.
+  // Demo is a full-access, admin-assigned package. It remains hidden from public
+  // checkout, but receives the same web feature access as paid packages.
   const { data: subs } = await admin
     .from("subscriptions")
     .select("status, end_date, plans(slug, is_free, price)")
@@ -94,6 +94,7 @@ export async function requireBusinessOwner() {
     const planRow = (row as { plans?: PlanBit | PlanBit[] }).plans;
     const plan = Array.isArray(planRow) ? planRow[0] : planRow;
     if (!plan) return false;
+    if (String(plan.slug ?? "").toLowerCase() === "demo") return true;
     if (plan.is_free === true) return false;
     if (plan.slug === "free") return false;
     return Number(plan.price ?? 0) > 0 || plan.is_free === false;

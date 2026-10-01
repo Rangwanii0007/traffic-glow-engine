@@ -18,6 +18,21 @@ type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
 type Row = Record<string, Json>;
 
 const uuid = z.string().uuid();
+const LEGACY_DEFAULT_URLS = new Set([
+  "http://scholars4dev.com",
+  "http://www.scholars4dev.com",
+  "https://scholars4dev.com",
+  "https://www.scholars4dev.com",
+]);
+
+function isLegacyDefaultUrl(value: unknown) {
+  const raw = typeof value === "string"
+    ? value
+    : value && typeof value === "object" && "url" in value
+      ? String((value as { url?: unknown }).url ?? "")
+      : "";
+  return LEGACY_DEFAULT_URLS.has(raw.trim().replace(/\/+$/, "").toLowerCase());
+}
 
 /* ───────────────────────── access + teams ───────────────────────── */
 
@@ -221,8 +236,11 @@ export const getTeamConfig = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { admin, team } = await requireTeam(data.teamId);
     const { data: config } = await admin.from("team_configurations").select("*").eq("team_id", data.teamId).maybeSingle();
-    const urls = ((config as { urls_list?: unknown } | null)?.urls_list ?? []) as UrlEntry[];
-    const fallback = Array.isArray(team['locked_urls']) ? (team['locked_urls'] as unknown[]) : [];
+    const urls = (((config as { urls_list?: unknown } | null)?.urls_list ?? []) as UrlEntry[])
+      .filter((value) => !isLegacyDefaultUrl(value));
+    const fallback = Array.isArray(team['locked_urls'])
+      ? (team['locked_urls'] as unknown[]).filter((value) => !isLegacyDefaultUrl(value))
+      : [];
     const list: UrlEntry[] = urls.length
       ? urls
       : fallback.map((value) =>
@@ -243,17 +261,18 @@ export const saveTeamUrls = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { admin } = await requireTeam(data.teamId);
     const now = new Date().toISOString();
+    const urls = data.urls.filter((value) => !isLegacyDefaultUrl(value));
     const { error: configError } = await admin
       .from("team_configurations")
-      .upsert({ team_id: data.teamId, urls_list: data.urls, updated_at: now }, { onConflict: "team_id" });
+      .upsert({ team_id: data.teamId, urls_list: urls, updated_at: now }, { onConflict: "team_id" });
     throwIf(configError);
     // Older software builds read the plain string list from teams.locked_urls.
     const { error } = await admin
       .from("teams")
-      .update({ locked_urls: data.urls.filter((u) => u.is_active).map((u) => u.url), updated_at: now })
+      .update({ locked_urls: urls.filter((u) => u.is_active).map((u) => u.url), updated_at: now })
       .eq("id", data.teamId);
     throwIf(error);
-    await logActivity(admin, data.teamId, "urls_synced", `${data.urls.length} URL(s) pushed to all members`);
+    await logActivity(admin, data.teamId, "urls_synced", `${urls.length} URL(s) pushed to all members`);
     return { ok: true as const };
   });
 
