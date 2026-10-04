@@ -71,6 +71,7 @@ import { Route as AuthenticatedAdminPayoutMethodsRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authenticated/admin.payments'
 import { Route as AuthenticatedAdminOffersRouteImport } from './routes/_authenticated/admin.offers'
 import { Route as AuthenticatedAdminManualPaymentsRouteImport } from './routes/_authenticated/admin.manual-payments'
+import { Route as AuthenticatedAdminManualMethodsRouteImport } from './routes/_authenticated/admin.manual-methods'
 import { Route as AuthenticatedAdminFeaturesRouteImport } from './routes/_authenticated/admin.features'
 import { Route as AuthenticatedAdminContactRouteImport } from './routes/_authenticated/admin.contact'
 import { Route as AuthenticatedAdminCapacityRouteImport } from './routes/_authenticated/admin.capacity'
@@ -416,6 +417,12 @@ const AuthenticatedAdminManualPaymentsRoute =
     path: '/manual-payments',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminManualMethodsRoute =
+  AuthenticatedAdminManualMethodsRouteImport.update({
+    id: '/manual-methods',
+    path: '/manual-methods',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminFeaturesRoute =
   AuthenticatedAdminFeaturesRouteImport.update({
     id: '/features',
@@ -481,6 +488,7 @@ export interface FileRoutesByFullPath {
   '/admin/capacity': typeof AuthenticatedAdminCapacityRoute
   '/admin/contact': typeof AuthenticatedAdminContactRoute
   '/admin/features': typeof AuthenticatedAdminFeaturesRoute
+  '/admin/manual-methods': typeof AuthenticatedAdminManualMethodsRoute
   '/admin/manual-payments': typeof AuthenticatedAdminManualPaymentsRoute
   '/admin/offers': typeof AuthenticatedAdminOffersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
@@ -545,6 +553,7 @@ export interface FileRoutesByTo {
   '/admin/capacity': typeof AuthenticatedAdminCapacityRoute
   '/admin/contact': typeof AuthenticatedAdminContactRoute
   '/admin/features': typeof AuthenticatedAdminFeaturesRoute
+  '/admin/manual-methods': typeof AuthenticatedAdminManualMethodsRoute
   '/admin/manual-payments': typeof AuthenticatedAdminManualPaymentsRoute
   '/admin/offers': typeof AuthenticatedAdminOffersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
@@ -615,6 +624,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/capacity': typeof AuthenticatedAdminCapacityRoute
   '/_authenticated/admin/contact': typeof AuthenticatedAdminContactRoute
   '/_authenticated/admin/features': typeof AuthenticatedAdminFeaturesRoute
+  '/_authenticated/admin/manual-methods': typeof AuthenticatedAdminManualMethodsRoute
   '/_authenticated/admin/manual-payments': typeof AuthenticatedAdminManualPaymentsRoute
   '/_authenticated/admin/offers': typeof AuthenticatedAdminOffersRoute
   '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
@@ -685,6 +695,7 @@ export interface FileRouteTypes {
     | '/admin/capacity'
     | '/admin/contact'
     | '/admin/features'
+    | '/admin/manual-methods'
     | '/admin/manual-payments'
     | '/admin/offers'
     | '/admin/payments'
@@ -749,6 +760,7 @@ export interface FileRouteTypes {
     | '/admin/capacity'
     | '/admin/contact'
     | '/admin/features'
+    | '/admin/manual-methods'
     | '/admin/manual-payments'
     | '/admin/offers'
     | '/admin/payments'
@@ -818,6 +830,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/capacity'
     | '/_authenticated/admin/contact'
     | '/_authenticated/admin/features'
+    | '/_authenticated/admin/manual-methods'
     | '/_authenticated/admin/manual-payments'
     | '/_authenticated/admin/offers'
     | '/_authenticated/admin/payments'
@@ -1308,6 +1321,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminManualPaymentsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/manual-methods': {
+      id: '/_authenticated/admin/manual-methods'
+      path: '/manual-methods'
+      fullPath: '/admin/manual-methods'
+      preLoaderRoute: typeof AuthenticatedAdminManualMethodsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/features': {
       id: '/_authenticated/admin/features'
       path: '/features'
@@ -1352,6 +1372,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminCapacityRoute: typeof AuthenticatedAdminCapacityRoute
   AuthenticatedAdminContactRoute: typeof AuthenticatedAdminContactRoute
   AuthenticatedAdminFeaturesRoute: typeof AuthenticatedAdminFeaturesRoute
+  AuthenticatedAdminManualMethodsRoute: typeof AuthenticatedAdminManualMethodsRoute
   AuthenticatedAdminManualPaymentsRoute: typeof AuthenticatedAdminManualPaymentsRoute
   AuthenticatedAdminOffersRoute: typeof AuthenticatedAdminOffersRoute
   AuthenticatedAdminPaymentsRoute: typeof AuthenticatedAdminPaymentsRoute
@@ -1374,6 +1395,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminCapacityRoute: AuthenticatedAdminCapacityRoute,
   AuthenticatedAdminContactRoute: AuthenticatedAdminContactRoute,
   AuthenticatedAdminFeaturesRoute: AuthenticatedAdminFeaturesRoute,
+  AuthenticatedAdminManualMethodsRoute: AuthenticatedAdminManualMethodsRoute,
   AuthenticatedAdminManualPaymentsRoute: AuthenticatedAdminManualPaymentsRoute,
   AuthenticatedAdminOffersRoute: AuthenticatedAdminOffersRoute,
   AuthenticatedAdminPaymentsRoute: AuthenticatedAdminPaymentsRoute,
