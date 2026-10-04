@@ -44,6 +44,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedDashboardSupportRouteImport } from './routes/_authenticated/dashboard.support'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
 import { Route as AuthenticatedDashboardSessionsRouteImport } from './routes/_authenticated/dashboard.sessions'
+import { Route as AuthenticatedDashboardPaymentsRouteImport } from './routes/_authenticated/dashboard.payments'
 import { Route as AuthenticatedDashboardBillingRouteImport } from './routes/_authenticated/dashboard.billing'
 import { Route as AuthenticatedBusinessWithdrawalsRouteImport } from './routes/_authenticated/business.withdrawals'
 import { Route as AuthenticatedBusinessUrlsRouteImport } from './routes/_authenticated/business.urls'
@@ -69,6 +70,8 @@ import { Route as AuthenticatedAdminPayoutsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminPayoutMethodsRouteImport } from './routes/_authenticated/admin.payout-methods'
 import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authenticated/admin.payments'
 import { Route as AuthenticatedAdminOffersRouteImport } from './routes/_authenticated/admin.offers'
+import { Route as AuthenticatedAdminManualPaymentsRouteImport } from './routes/_authenticated/admin.manual-payments'
+import { Route as AuthenticatedAdminManualMethodsRouteImport } from './routes/_authenticated/admin.manual-methods'
 import { Route as AuthenticatedAdminFeaturesRouteImport } from './routes/_authenticated/admin.features'
 import { Route as AuthenticatedAdminContactRouteImport } from './routes/_authenticated/admin.contact'
 import { Route as AuthenticatedAdminCapacityRouteImport } from './routes/_authenticated/admin.capacity'
@@ -254,6 +257,12 @@ const AuthenticatedDashboardSessionsRoute =
     path: '/sessions',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardPaymentsRoute =
+  AuthenticatedDashboardPaymentsRouteImport.update({
+    id: '/payments',
+    path: '/payments',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardBillingRoute =
   AuthenticatedDashboardBillingRouteImport.update({
     id: '/billing',
@@ -402,6 +411,18 @@ const AuthenticatedAdminOffersRoute =
     path: '/offers',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminManualPaymentsRoute =
+  AuthenticatedAdminManualPaymentsRouteImport.update({
+    id: '/manual-payments',
+    path: '/manual-payments',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminManualMethodsRoute =
+  AuthenticatedAdminManualMethodsRouteImport.update({
+    id: '/manual-methods',
+    path: '/manual-methods',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminFeaturesRoute =
   AuthenticatedAdminFeaturesRouteImport.update({
     id: '/features',
@@ -467,6 +488,8 @@ export interface FileRoutesByFullPath {
   '/admin/capacity': typeof AuthenticatedAdminCapacityRoute
   '/admin/contact': typeof AuthenticatedAdminContactRoute
   '/admin/features': typeof AuthenticatedAdminFeaturesRoute
+  '/admin/manual-methods': typeof AuthenticatedAdminManualMethodsRoute
+  '/admin/manual-payments': typeof AuthenticatedAdminManualPaymentsRoute
   '/admin/offers': typeof AuthenticatedAdminOffersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/payout-methods': typeof AuthenticatedAdminPayoutMethodsRoute
@@ -492,6 +515,7 @@ export interface FileRoutesByFullPath {
   '/business/urls': typeof AuthenticatedBusinessUrlsRoute
   '/business/withdrawals': typeof AuthenticatedBusinessWithdrawalsRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
+  '/dashboard/payments': typeof AuthenticatedDashboardPaymentsRoute
   '/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/support': typeof AuthenticatedDashboardSupportRoute
@@ -529,6 +553,8 @@ export interface FileRoutesByTo {
   '/admin/capacity': typeof AuthenticatedAdminCapacityRoute
   '/admin/contact': typeof AuthenticatedAdminContactRoute
   '/admin/features': typeof AuthenticatedAdminFeaturesRoute
+  '/admin/manual-methods': typeof AuthenticatedAdminManualMethodsRoute
+  '/admin/manual-payments': typeof AuthenticatedAdminManualPaymentsRoute
   '/admin/offers': typeof AuthenticatedAdminOffersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/payout-methods': typeof AuthenticatedAdminPayoutMethodsRoute
@@ -554,6 +580,7 @@ export interface FileRoutesByTo {
   '/business/urls': typeof AuthenticatedBusinessUrlsRoute
   '/business/withdrawals': typeof AuthenticatedBusinessWithdrawalsRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
+  '/dashboard/payments': typeof AuthenticatedDashboardPaymentsRoute
   '/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/support': typeof AuthenticatedDashboardSupportRoute
@@ -597,6 +624,8 @@ export interface FileRoutesById {
   '/_authenticated/admin/capacity': typeof AuthenticatedAdminCapacityRoute
   '/_authenticated/admin/contact': typeof AuthenticatedAdminContactRoute
   '/_authenticated/admin/features': typeof AuthenticatedAdminFeaturesRoute
+  '/_authenticated/admin/manual-methods': typeof AuthenticatedAdminManualMethodsRoute
+  '/_authenticated/admin/manual-payments': typeof AuthenticatedAdminManualPaymentsRoute
   '/_authenticated/admin/offers': typeof AuthenticatedAdminOffersRoute
   '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/_authenticated/admin/payout-methods': typeof AuthenticatedAdminPayoutMethodsRoute
@@ -622,6 +651,7 @@ export interface FileRoutesById {
   '/_authenticated/business/urls': typeof AuthenticatedBusinessUrlsRoute
   '/_authenticated/business/withdrawals': typeof AuthenticatedBusinessWithdrawalsRoute
   '/_authenticated/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
+  '/_authenticated/dashboard/payments': typeof AuthenticatedDashboardPaymentsRoute
   '/_authenticated/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/_authenticated/dashboard/support': typeof AuthenticatedDashboardSupportRoute
@@ -665,6 +695,8 @@ export interface FileRouteTypes {
     | '/admin/capacity'
     | '/admin/contact'
     | '/admin/features'
+    | '/admin/manual-methods'
+    | '/admin/manual-payments'
     | '/admin/offers'
     | '/admin/payments'
     | '/admin/payout-methods'
@@ -690,6 +722,7 @@ export interface FileRouteTypes {
     | '/business/urls'
     | '/business/withdrawals'
     | '/dashboard/billing'
+    | '/dashboard/payments'
     | '/dashboard/sessions'
     | '/dashboard/settings'
     | '/dashboard/support'
@@ -727,6 +760,8 @@ export interface FileRouteTypes {
     | '/admin/capacity'
     | '/admin/contact'
     | '/admin/features'
+    | '/admin/manual-methods'
+    | '/admin/manual-payments'
     | '/admin/offers'
     | '/admin/payments'
     | '/admin/payout-methods'
@@ -752,6 +787,7 @@ export interface FileRouteTypes {
     | '/business/urls'
     | '/business/withdrawals'
     | '/dashboard/billing'
+    | '/dashboard/payments'
     | '/dashboard/sessions'
     | '/dashboard/settings'
     | '/dashboard/support'
@@ -794,6 +830,8 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/capacity'
     | '/_authenticated/admin/contact'
     | '/_authenticated/admin/features'
+    | '/_authenticated/admin/manual-methods'
+    | '/_authenticated/admin/manual-payments'
     | '/_authenticated/admin/offers'
     | '/_authenticated/admin/payments'
     | '/_authenticated/admin/payout-methods'
@@ -819,6 +857,7 @@ export interface FileRouteTypes {
     | '/_authenticated/business/urls'
     | '/_authenticated/business/withdrawals'
     | '/_authenticated/dashboard/billing'
+    | '/_authenticated/dashboard/payments'
     | '/_authenticated/dashboard/sessions'
     | '/_authenticated/dashboard/settings'
     | '/_authenticated/dashboard/support'
@@ -1093,6 +1132,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardSessionsRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/payments': {
+      id: '/_authenticated/dashboard/payments'
+      path: '/payments'
+      fullPath: '/dashboard/payments'
+      preLoaderRoute: typeof AuthenticatedDashboardPaymentsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/billing': {
       id: '/_authenticated/dashboard/billing'
       path: '/billing'
@@ -1268,6 +1314,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminOffersRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/manual-payments': {
+      id: '/_authenticated/admin/manual-payments'
+      path: '/manual-payments'
+      fullPath: '/admin/manual-payments'
+      preLoaderRoute: typeof AuthenticatedAdminManualPaymentsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/manual-methods': {
+      id: '/_authenticated/admin/manual-methods'
+      path: '/manual-methods'
+      fullPath: '/admin/manual-methods'
+      preLoaderRoute: typeof AuthenticatedAdminManualMethodsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/features': {
       id: '/_authenticated/admin/features'
       path: '/features'
@@ -1312,6 +1372,8 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminCapacityRoute: typeof AuthenticatedAdminCapacityRoute
   AuthenticatedAdminContactRoute: typeof AuthenticatedAdminContactRoute
   AuthenticatedAdminFeaturesRoute: typeof AuthenticatedAdminFeaturesRoute
+  AuthenticatedAdminManualMethodsRoute: typeof AuthenticatedAdminManualMethodsRoute
+  AuthenticatedAdminManualPaymentsRoute: typeof AuthenticatedAdminManualPaymentsRoute
   AuthenticatedAdminOffersRoute: typeof AuthenticatedAdminOffersRoute
   AuthenticatedAdminPaymentsRoute: typeof AuthenticatedAdminPaymentsRoute
   AuthenticatedAdminPayoutMethodsRoute: typeof AuthenticatedAdminPayoutMethodsRoute
@@ -1333,6 +1395,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminCapacityRoute: AuthenticatedAdminCapacityRoute,
   AuthenticatedAdminContactRoute: AuthenticatedAdminContactRoute,
   AuthenticatedAdminFeaturesRoute: AuthenticatedAdminFeaturesRoute,
+  AuthenticatedAdminManualMethodsRoute: AuthenticatedAdminManualMethodsRoute,
+  AuthenticatedAdminManualPaymentsRoute: AuthenticatedAdminManualPaymentsRoute,
   AuthenticatedAdminOffersRoute: AuthenticatedAdminOffersRoute,
   AuthenticatedAdminPaymentsRoute: AuthenticatedAdminPaymentsRoute,
   AuthenticatedAdminPayoutMethodsRoute: AuthenticatedAdminPayoutMethodsRoute,
@@ -1393,6 +1457,7 @@ const AuthenticatedBusinessRouteWithChildren =
 
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardBillingRoute: typeof AuthenticatedDashboardBillingRoute
+  AuthenticatedDashboardPaymentsRoute: typeof AuthenticatedDashboardPaymentsRoute
   AuthenticatedDashboardSessionsRoute: typeof AuthenticatedDashboardSessionsRoute
   AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
   AuthenticatedDashboardSupportRoute: typeof AuthenticatedDashboardSupportRoute
@@ -1402,6 +1467,7 @@ interface AuthenticatedDashboardRouteChildren {
 const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
   {
     AuthenticatedDashboardBillingRoute: AuthenticatedDashboardBillingRoute,
+    AuthenticatedDashboardPaymentsRoute: AuthenticatedDashboardPaymentsRoute,
     AuthenticatedDashboardSessionsRoute: AuthenticatedDashboardSessionsRoute,
     AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,
     AuthenticatedDashboardSupportRoute: AuthenticatedDashboardSupportRoute,
