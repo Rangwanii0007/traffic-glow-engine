@@ -244,7 +244,7 @@ export const listManualPaymentsAdmin = createServerFn({ method: "GET" }).handler
   const ids = [...new Set(rows.map((r) => String(r.user_id)))];
   const { data: users } = ids.length ? await admin.from("users").select("id, email, full_name").in("id", ids) : { data: [] };
   const byId = new Map((users ?? []).map((u) => [u.id, u]));
-  return rows.map((r) => ({ ...r, user: byId.get(r.user_id) ?? null }));
+  return rows.map((r) => ({ ...r, user: byId.get(r.user_id) ?? null })) as Any[];
 });
 
 export const getManualProofUrl = createServerFn({ method: "POST" })
