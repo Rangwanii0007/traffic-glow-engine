@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Eye, Image as ImageIcon, Loader2, XCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -112,7 +112,7 @@ function ManualPaymentsAdmin() {
                   ["Method", detail.method_name], ["Country", detail.country_name], ["Rate", `1 USD = ${detail.exchange_rate} ${detail.currency_code}`], ["Rate source", detail.rate_source],
                   ["Amount", fmt(Number(detail.local_amount), detail.currency_code)], ["Transaction ID", detail.transaction_id], ["Status", detail.status],
                   ["Reviewed", detail.approved_at ?? detail.rejected_at ?? "—"], ["Reason", detail.rejection_reason ?? "—"]].map(([k, v]) => (
-                  <><dt key={`${k}k`} className="text-muted-foreground">{k}</dt><dd key={`${k}v`} className="break-all">{String(v ?? "—")}</dd></>
+                  <Fragment key={String(k)}><dt className="text-muted-foreground">{k}</dt><dd className="break-all">{String(v ?? "—")}</dd></Fragment>
                 ))}
               </dl>
               <Button variant="outline" className="w-full" onClick={() => openProof(detail.id)}><ImageIcon className="w-4 h-4" />View Screenshot</Button>

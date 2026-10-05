@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Treat the `demo` plan slug as full feature access but admin-assigned only; keep it out of public pricing and checkout so its zero price cannot be purchased.
+- Manual payments live in their own tables (manual_payments etc.) and activate subscriptions only through the approve_manual_payment SQL function; prices and exchange rates are always recalculated server-side and frozen at submission. Why: keeps NOWPayments untouched and prevents price tampering or double activation.
