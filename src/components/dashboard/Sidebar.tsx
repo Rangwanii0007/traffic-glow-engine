@@ -7,6 +7,7 @@ type NavLink = { to: string; label: string; icon: typeof LayoutDashboard; exact?
 const links: NavLink[] = [
   { to: "/dashboard", label: "Profile", icon: User, exact: true },
   { to: "/dashboard/billing", label: "Billing & Plans", icon: CreditCard },
+  { to: "/dashboard/payments", label: "Payments", icon: Receipt },
   { to: "/dashboard/sessions", label: "My Sessions", icon: Activity },
   { to: "/dashboard/settings", label: "Settings", icon: Settings },
   { to: "/dashboard/support", label: "Support", icon: HelpCircle },

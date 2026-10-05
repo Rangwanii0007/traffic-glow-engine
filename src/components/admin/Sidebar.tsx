@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Package, Sliders, CreditCard, Activity,
   HelpCircle, Megaphone, Mail, Download, Settings, ShieldCheck, ArrowLeft, Tag, Share2,
-  HandCoins, Crown, BookOpen, Wallet, MonitorSmartphone,
+  HandCoins, Crown, Banknote, Landmark, BookOpen, Wallet, MonitorSmartphone,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,9 @@ const links = [
   { to: "/admin/capacity", label: "PC Capacity", icon: MonitorSmartphone },
   { to: "/admin/plan-info", label: "Package Info", icon: BookOpen },
   { to: "/admin/offers", label: "Discount Offers", icon: Tag },
-  { to: "/admin/payments", label: "Payments", icon: CreditCard },
+  { to: "/admin/payments", label: "Crypto Payments", icon: CreditCard },
+  { to: "/admin/manual-payments", label: "Manual Payments", icon: Banknote },
+  { to: "/admin/manual-methods", label: "Manual Methods", icon: Landmark },
   { to: "/admin/payouts", label: "Affiliate Payouts", icon: HandCoins },
   { to: "/admin/affiliate", label: "Affiliate Control", icon: Crown },
   { to: "/admin/payout-methods", label: "Payout Methods", icon: Wallet },

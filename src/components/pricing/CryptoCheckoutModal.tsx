@@ -9,6 +9,7 @@ import { createCryptoInvoice, getPaymentStatus, checkReferralCode } from "@/lib/
 import { Input } from "@/components/ui/input";
 import { getStoredRef } from "@/lib/referral";
 import { cn } from "@/lib/utils";
+import { Link } from "@tanstack/react-router";
 
 type Plan = {
   id: string;
@@ -173,6 +174,13 @@ export function CryptoCheckoutModal({
 
         {step === "select" && (
           <div className="space-y-4">
+            {plan && !plan.capacityPackageId && (
+              <Link to="/dashboard/payments" search={{ plan: plan.id, option: plan.pricingOptionId ?? undefined }} onClick={() => onOpenChange(false)}
+                className="block rounded-xl border border-white/10 hover:bg-white/5 p-3 text-sm">
+                <span className="font-medium">Pay manually</span>
+                <span className="block text-xs text-muted-foreground">Bank transfer, local wallets, PayPal, Binance & more — verified by our team</span>
+              </Link>
+            )}
             <div className="grid grid-cols-2 gap-3">
               {CRYPTOS.map((c) => {
                 const sel = selected === c.code;
