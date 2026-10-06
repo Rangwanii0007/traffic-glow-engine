@@ -87,6 +87,35 @@ CREATE TABLE IF NOT EXISTS public.manual_payments (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- An older manual_payments table may already exist: add any missing columns (nullable, safe).
+ALTER TABLE public.manual_payments
+  ADD COLUMN IF NOT EXISTS user_id UUID,
+  ADD COLUMN IF NOT EXISTS plan_id UUID,
+  ADD COLUMN IF NOT EXISTS pricing_option_id UUID,
+  ADD COLUMN IF NOT EXISTS plan_name TEXT,
+  ADD COLUMN IF NOT EXISTS package_label TEXT,
+  ADD COLUMN IF NOT EXISTS duration_days INTEGER,
+  ADD COLUMN IF NOT EXISTS base_price_usd NUMERIC(12,2),
+  ADD COLUMN IF NOT EXISTS method_id UUID,
+  ADD COLUMN IF NOT EXISTS method_name TEXT,
+  ADD COLUMN IF NOT EXISTS country_id UUID,
+  ADD COLUMN IF NOT EXISTS country_name TEXT,
+  ADD COLUMN IF NOT EXISTS country_code TEXT,
+  ADD COLUMN IF NOT EXISTS currency_code TEXT,
+  ADD COLUMN IF NOT EXISTS exchange_rate NUMERIC(20,8),
+  ADD COLUMN IF NOT EXISTS local_amount NUMERIC(16,2),
+  ADD COLUMN IF NOT EXISTS rate_source TEXT,
+  ADD COLUMN IF NOT EXISTS rate_fetched_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS transaction_id TEXT,
+  ADD COLUMN IF NOT EXISTS screenshot_path TEXT,
+  ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending',
+  ADD COLUMN IF NOT EXISTS rejection_reason TEXT,
+  ADD COLUMN IF NOT EXISTS reviewed_by UUID,
+  ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS subscription_activated_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 CREATE UNIQUE INDEX IF NOT EXISTS manual_payments_txn_key ON public.manual_payments (lower(btrim(transaction_id)));
 CREATE UNIQUE INDEX IF NOT EXISTS manual_payments_one_pending_key
   ON public.manual_payments (user_id, plan_id, COALESCE(pricing_option_id, '00000000-0000-0000-0000-000000000000'::uuid))
