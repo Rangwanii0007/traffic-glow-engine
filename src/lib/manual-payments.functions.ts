@@ -92,6 +92,7 @@ export const submitManualPayment = createServerFn({ method: "POST" })
     if (up.error) throw new Error(`Could not upload screenshot: ${up.error.message}`);
 
     const { data: row, error } = await t(admin, "manual_payments").insert({
+      id: crypto.randomUUID(),
       user_id: user.id,
       plan_id: pkg.planId,
       pricing_option_id: pkg.optionId,
