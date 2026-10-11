@@ -166,7 +166,20 @@ function OverviewPage() {
       {(sub?.plans as { notice_text?: string | null } | null)?.notice_text && (
         <div role="alert" className="rounded-2xl p-4 border border-destructive/40 bg-destructive/10 flex items-start gap-3">
           <Sparkles className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-          <p className="text-sm whitespace-pre-line">{(sub?.plans as { notice_text?: string | null }).notice_text}</p>
+          <div className="flex-1 space-y-3">
+            {sub?.plans?.slug === "demo" && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-md bg-destructive px-2 py-0.5 text-xs font-bold tracking-wider text-destructive-foreground">DEMO PLAN</span>
+                <span className="text-xs font-semibold text-destructive">7 / 113 engines active</span>
+              </div>
+            )}
+            <p className="text-sm whitespace-pre-line">{(sub?.plans as { notice_text?: string | null }).notice_text}</p>
+            {sub?.plans?.slug === "demo" && (
+              <Button asChild size="sm" variant="destructive">
+                <Link to="/pricing">Upgrade Plan</Link>
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
